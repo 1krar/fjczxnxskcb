@@ -261,6 +261,50 @@
     font-weight: 500;
   }
 
+  .mobile-day-timeline .section-marker {
+    border-top: 1px dashed var(--color-border);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .mobile-day-timeline .section-label {
+    position: absolute;
+    left: -56px;
+    top: -10px;
+    width: 48px;
+    text-align: right;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--color-primary);
+    background: var(--color-bg);
+    padding: 0 2px;
+    border-radius: 2px;
+  }
+
+  .scroll-hint-arrow {
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 36px;
+    background: var(--color-primary);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-lg);
+    z-index: 10;
+    cursor: pointer;
+    animation: bounceDown 1.5s ease infinite;
+  }
+
+  @keyframes bounceDown {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(4px); }
+  }
+
   .mobile-day-course-card {
     position: absolute;
     left: 0;
@@ -352,18 +396,18 @@
   /* ========== Analytics ========== */
   .analytics-grid {
     grid-template-columns: 1fr;
-    gap: 12px;
-    margin-bottom: 16px;
+    gap: 10px;
+    margin-bottom: 12px;
   }
 
   .analytics-card {
-    padding: 16px;
+    padding: 14px;
     border-radius: var(--radius-lg);
   }
 
   .analytics-card-title {
     font-size: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
 
   .weekly-load {
@@ -417,6 +461,15 @@
 
   .stat-table th {
     font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .stat-table {
+    min-width: 560px;
+  }
+
+  .locations-cell {
+    max-width: none;
     white-space: nowrap;
   }
 

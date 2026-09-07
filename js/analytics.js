@@ -142,15 +142,24 @@ function renderCourseStats(dm, className) {
           </tr>
         </thead>
         <tbody>
-          ${stats.map(s => `
+          ${stats.map(s => {
+            const locs = s.locations;
+            const showToggle = locs.length > 1;
+            const firstLoc = locs.length > 0 ? locs[0] : '<span class="muted">未提供</span>';
+            const restLocs = locs.length > 1 ? locs.slice(1).join('、') : '';
+            return `
             <tr>
               <td style="font-weight:600;">${s.courseName}</td>
               <td class="mono">${s.count}</td>
               <td class="mono">${s.totalSections}</td>
               <td class="mono">${s.totalHours}小时</td>
               <td>${s.teachers.length > 0 ? s.teachers.join('、') : '<span class="muted">未提供</span>'}</td>
-              <td>${s.locations.length > 0 ? s.locations.join('、') : '<span class="muted">未提供</span>'}</td>
-            </tr>`).join('')}
+              <td class="locations-cell">
+                <span class="loc-first">${firstLoc}</span>
+                ${showToggle ? `<span class="loc-rest" style="display:none;">、${restLocs}</span><button class="loc-toggle" data-expanded="false" data-count="${locs.length - 1}">+${locs.length - 1}</button>` : ''}
+              </td>
+            </tr>`;
+          }).join('')}
         </tbody>
       </table>
     </div>`;
@@ -250,7 +259,23 @@ function renderFreeTime(dm, className, week) {
 }
 
 function attachCourseRowEvents(el, dm, className) {
-  // Could add click-to-filter functionality
+  el.querySelectorAll('.loc-toggle').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const expanded = btn.dataset.expanded === 'true';
+      const restSpan = btn.parentElement.querySelector('.loc-rest');
+      const count = btn.dataset.count;
+      if (expanded) {
+        restSpan.style.display = 'none';
+        btn.dataset.expanded = 'false';
+        btn.textContent = '+' + count;
+      } else {
+        restSpan.style.display = 'inline';
+        btn.dataset.expanded = 'true';
+        btn.textContent = '收起';
+      }
+    });
+  });
 }
 
 function attachTeacherSearch(el, dm, className, state) {

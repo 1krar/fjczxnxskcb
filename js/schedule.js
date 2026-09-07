@@ -180,6 +180,18 @@ export function renderSchedule(container, state, dm) {
         </div>`;
     }
 
+    // Section markers
+    let sectionMarkersHTML = '';
+    for (const [secNum, secTime] of Object.entries(times)) {
+      const top = timeToTop(secTime.start);
+      if (top >= 0 && top <= timelineHeight) {
+        sectionMarkersHTML += `
+          <div class="section-marker" style="position:absolute;top:${top}px;left:0;right:0;">
+            <span class="section-label">第${secNum}节</span>
+          </div>`;
+      }
+    }
+
     // Course cards
     let courseCardsHTML = '';
     for (let i = 0; i < courses.length; i++) {
@@ -237,8 +249,12 @@ export function renderSchedule(container, state, dm) {
       <div class="timeline" style="padding: 16px 12px 16px 12px; margin-top: 8px; position: relative; overflow-y: auto; -webkit-overflow-scrolling: touch;" id="mobile-day-timeline">
         <div class="mobile-day-timeline" style="min-height: ${timelineHeight}px; height: ${timelineHeight}px;">
           ${hourMarkersHTML}
+          ${sectionMarkersHTML}
           ${courseCardsHTML}
           ${nowLineHTML}
+        </div>
+        <div class="scroll-hint-arrow" id="scroll-hint-arrow" style="display:none;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
         </div>
       </div>`;
   }
@@ -310,6 +326,9 @@ export function renderSchedule(container, state, dm) {
       requestAnimationFrame(() => {
         scrollMobileTimelineToNow(timeline);
       });
+
+      // Floating arrow for courses positioned low
+      setupScrollHintArrow(timeline);
     }
 
     // Desktop grid course cards
@@ -448,6 +467,36 @@ export function renderSchedule(container, state, dm) {
     if (firstCard) {
       timelineEl.scrollTop = Math.max(0, parseFloat(firstCard.style.top) - 20);
     }
+  }
+
+  function setupScrollHintArrow(timelineEl) {
+    if (!timelineEl) return;
+    const arrow = timelineEl.querySelector('#scroll-hint-arrow');
+    if (!arrow) return;
+
+    const firstCard = timelineEl.querySelector('.mobile-day-course-card');
+    if (!firstCard) return;
+
+    const firstCourseTop = parseFloat(firstCard.style.top) || 0;
+    const visibleHeight = timelineEl.clientHeight;
+    const SCROLL_THRESHOLD = 200;
+
+    function updateArrowVisibility() {
+      const scrollTop = timelineEl.scrollTop;
+      const courseVisiblePosition = firstCourseTop - scrollTop;
+      if (courseVisiblePosition > SCROLL_THRESHOLD) {
+        arrow.style.display = 'flex';
+      } else {
+        arrow.style.display = 'none';
+      }
+    }
+
+    arrow.addEventListener('click', () => {
+      timelineEl.scrollTo({ top: Math.max(0, firstCourseTop - 20), behavior: 'smooth' });
+    });
+
+    timelineEl.addEventListener('scroll', updateArrowVisibility, { passive: true });
+    updateArrowVisibility();
   }
 
   function rerender() {
