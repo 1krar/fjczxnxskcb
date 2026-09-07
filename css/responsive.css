@@ -239,7 +239,7 @@
 
   .mobile-day-timeline {
     position: relative;
-    padding-left: 56px;
+    padding-left: 0;
     min-height: 400px;
   }
 
@@ -251,7 +251,7 @@
 
   .mobile-day-timeline .time-label {
     position: absolute;
-    left: -56px;
+    left: 0;
     top: -8px;
     width: 48px;
     text-align: right;
@@ -269,7 +269,7 @@
 
   .mobile-day-timeline .section-label {
     position: absolute;
-    left: -56px;
+    left: 0;
     top: -10px;
     width: 48px;
     text-align: right;
@@ -282,10 +282,10 @@
   }
 
   .scroll-hint-arrow {
-    position: absolute;
-    top: 8px;
+    position: sticky;
+    bottom: 16px;
     left: 50%;
-    transform: translateX(-50%);
+    margin-left: -18px;
     width: 36px;
     height: 36px;
     background: var(--color-primary);
@@ -298,16 +298,18 @@
     z-index: 10;
     cursor: pointer;
     animation: bounceDown 1.5s ease infinite;
+    margin-bottom: -36px;
+    pointer-events: auto;
   }
 
   @keyframes bounceDown {
-    0%, 100% { transform: translateX(-50%) translateY(0); }
-    50% { transform: translateX(-50%) translateY(4px); }
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
   }
 
   .mobile-day-course-card {
     position: absolute;
-    left: 0;
+    left: 52px;
     right: 0;
     background: var(--color-primary-tint);
     border-left: 3px solid var(--color-primary);
@@ -346,7 +348,7 @@
 
   .mobile-day-now-line {
     position: absolute;
-    left: -56px;
+    left: 0;
     right: 0;
     height: 2px;
     background: var(--color-primary);
@@ -357,7 +359,7 @@
   .mobile-day-now-line::before {
     content: '';
     position: absolute;
-    left: 54px;
+    left: 48px;
     top: 50%;
     transform: translate(-50%, -50%);
     width: 10px;

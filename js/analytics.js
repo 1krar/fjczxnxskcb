@@ -129,7 +129,8 @@ function renderCourseStats(dm, className) {
   if (stats.length === 0) return emptyState('暂无课程数据');
 
   return `
-    <div class="card table-scroll" style="padding:0;overflow:hidden;">
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-scroll">
       <table class="stat-table sticky-table">
         <thead>
           <tr>
@@ -162,10 +163,11 @@ function renderCourseStats(dm, className) {
           }).join('')}
         </tbody>
       </table>
+      </div>
     </div>`;
-}
+  }
 
-function renderTeacherStats(dm, className) {
+  function renderTeacherStats(dm, className) {
   const stats = dm.getTeacherStats(className);
   return `
     <div style="margin-bottom:16px;">
@@ -175,8 +177,9 @@ function renderTeacherStats(dm, className) {
       </div>
       <div id="teacher-search-results"></div>
     </div>
-    <div class="card table-scroll" style="padding:0;overflow:hidden;">
+    <div class="card" style="padding:0;overflow:hidden;">
       ${stats.length === 0 ? emptyState('暂无教师数据') : `
+        <div class="table-scroll">
         <table class="stat-table sticky-table">
           <thead>
             <tr><th>教师</th><th>授课次数</th><th>主要教室</th></tr>
@@ -189,7 +192,8 @@ function renderTeacherStats(dm, className) {
                 <td>${t.locations.length > 0 ? t.locations.join('、') : '<span class="muted">—</span>'}</td>
               </tr>`).join('')}
           </tbody>
-        </table>`}
+        </table>
+        </div>`}
     </div>`;
 }
 
@@ -200,7 +204,8 @@ function renderRoomStats(dm, className) {
   const maxCount = Math.max(...stats.map(s => s.count));
 
   return `
-    <div class="card table-scroll" style="padding:0;overflow:hidden;">
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-scroll">
       <table class="stat-table sticky-table">
         <thead>
           <tr><th>教室</th><th>使用次数</th><th>使用频率</th></tr>
@@ -218,6 +223,7 @@ function renderRoomStats(dm, className) {
             </tr>`).join('')}
         </tbody>
       </table>
+      </div>
     </div>
     <div id="room-detail-container"></div>`;
 }

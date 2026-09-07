@@ -246,7 +246,7 @@ export function renderSchedule(container, state, dm) {
 
     return `
       ${dayPickerHTML}
-      <div class="timeline" style="padding: 16px 12px 16px 12px; margin-top: 8px; position: relative; overflow-y: auto; -webkit-overflow-scrolling: touch;" id="mobile-day-timeline">
+      <div class="timeline" style="padding: 16px 12px 16px 8px; margin-top: 8px; position: relative; overflow-y: auto; -webkit-overflow-scrolling: touch;" id="mobile-day-timeline">
         <div class="mobile-day-timeline" style="min-height: ${timelineHeight}px; height: ${timelineHeight}px;">
           ${hourMarkersHTML}
           ${sectionMarkersHTML}
@@ -478,8 +478,7 @@ export function renderSchedule(container, state, dm) {
     if (!firstCard) return;
 
     const firstCourseTop = parseFloat(firstCard.style.top) || 0;
-    const visibleHeight = timelineEl.clientHeight;
-    const SCROLL_THRESHOLD = 200;
+    const SCROLL_THRESHOLD = 150;
 
     function updateArrowVisibility() {
       const scrollTop = timelineEl.scrollTop;
@@ -492,7 +491,8 @@ export function renderSchedule(container, state, dm) {
     }
 
     arrow.addEventListener('click', () => {
-      timelineEl.scrollTo({ top: Math.max(0, firstCourseTop - 20), behavior: 'smooth' });
+      const targetTop = Math.max(0, firstCourseTop - timelineEl.clientHeight / 3);
+      timelineEl.scrollTo({ top: targetTop, behavior: 'smooth' });
     });
 
     timelineEl.addEventListener('scroll', updateArrowVisibility, { passive: true });
