@@ -466,6 +466,7 @@ input, select { font-family: inherit; }
 @media (max-width: 768px) {
   .desktop-only { display: none !important; }
   .mobile-only { display: block !important; }
+  .bottom-nav.mobile-only { display: flex !important; }
 }
 
 /* ===== Global defensive styles ===== */
@@ -491,7 +492,7 @@ img, svg, video, canvas {
 .mobile-header {
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 150;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
   height: var(--mobile-header-height);
@@ -561,8 +562,8 @@ img, svg, video, canvas {
   width: 100%;
   background: var(--color-surface);
   border-radius: var(--radius-xl) var(--radius-xl) 0 0;
-  padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
-  max-height: 70vh;
+  padding: 20px 16px calc(20px + var(--bottom-nav-height) + env(safe-area-inset-bottom, 0px));
+  max-height: 75vh;
   overflow-y: auto;
   transform: translateY(100%);
   transition: transform var(--transition-slow);
