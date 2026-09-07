@@ -1,0 +1,273 @@
+.schedule-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.week-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.week-nav-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.week-nav-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
+.week-nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.week-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 160px;
+  padding: 0 12px;
+}
+
+.week-info-main { font-size: 16px; font-weight: 600; color: var(--color-text); }
+.week-info-sub { font-size: 13px; color: var(--color-text-secondary); font-family: var(--font-mono); }
+
+.week-today-btn {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-primary);
+  padding: 8px 14px;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+
+.week-today-btn:hover { background: var(--color-primary-tint); }
+
+.schedule-grid-wrapper {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+
+.schedule-grid {
+  display: grid;
+  grid-template-columns: 64px repeat(5, 1fr);
+  position: relative;
+}
+
+.schedule-grid-header {
+  display: contents;
+}
+
+.schedule-day-header {
+  padding: 10px 8px;
+  text-align: center;
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border-light);
+  background: var(--color-bg);
+}
+
+.schedule-day-header:last-child { border-right: none; }
+
+.schedule-day-name { font-size: 13px; font-weight: 600; color: var(--color-text); }
+.schedule-day-date { font-size: 12px; color: var(--color-text-secondary); font-family: var(--font-mono); }
+.schedule-day-header.today { background: var(--color-primary-tint); }
+.schedule-day-header.today .schedule-day-name { color: var(--color-primary); }
+
+.schedule-corner {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--color-border);
+  border-right: 1px solid var(--color-border-light);
+  background: var(--color-bg);
+  font-size: 12px;
+  color: var(--color-text-tertiary);
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.schedule-section-label {
+  padding: 8px 4px;
+  text-align: center;
+  border-right: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.schedule-section-label .section-time {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+}
+
+.schedule-cell {
+  border-right: 1px solid var(--color-border-light);
+  border-bottom: 1px solid var(--color-border-light);
+  position: relative;
+  min-height: 56px;
+  padding: 3px;
+}
+
+.schedule-cell:last-child { border-right: none; }
+
+.course-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 2px;
+  overflow: hidden;
+}
+
+.course-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
+
+.course-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.course-card-meta {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.course-card-section {
+  font-size: 10px;
+  color: var(--color-text-tertiary);
+  font-family: var(--font-mono);
+  margin-top: auto;
+}
+
+.course-card.past { opacity: 0.5; border-left-color: var(--color-text-tertiary); }
+.course-card.today { border-left-color: var(--color-primary); }
+.course-card.current { border-left-color: var(--color-primary); box-shadow: 0 0 0 2px var(--color-primary-light); }
+
+.schedule-empty-week {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.search-box {
+  position: relative;
+  max-width: 320px;
+  flex: 1;
+}
+
+.search-input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  color: var(--color-text);
+  background: var(--color-surface);
+  transition: border-color var(--transition-fast);
+}
+
+.search-input:focus { outline: none; border-color: var(--color-primary); }
+.search-input::placeholder { color: var(--color-text-tertiary); }
+
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  color: var(--color-text-tertiary);
+}
+
+.search-results {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.search-result-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.search-result-item:hover { border-color: var(--color-primary); box-shadow: var(--shadow-sm); }
+
+.search-result-main { flex: 1; min-width: 0; }
+.search-result-name { font-size: 14px; font-weight: 600; color: var(--color-text); }
+.search-result-meta { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+
+/* ===== Mobile day timeline styles ===== */
+.mobile-day-course-card.past {
+  background: var(--color-border-light);
+  border-left-color: var(--color-text-tertiary);
+  opacity: 0.6;
+}
+
+.mobile-day-course-card.past .course-name {
+  color: var(--color-text-secondary);
+}
+
+.mobile-day-course-card.past .course-meta {
+  color: var(--color-text-tertiary);
+}
+
+.mobile-day-course-card.current {
+  background: var(--color-primary-tint);
+  border-left-color: var(--color-primary);
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.mobile-day-course-card.current .course-name {
+  color: var(--color-primary-dark);
+}

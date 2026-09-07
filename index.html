@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#FFFFFF">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>课程控制台</title>
+  <link rel="stylesheet" href="css/global.css">
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/schedule.css">
+  <link rel="stylesheet" href="css/analytics.css">
+  <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+  <div id="loading-screen" class="loading-screen">
+    <div class="loading-spinner"></div>
+    <div class="loading-text">正在加载课程数据…</div>
+  </div>
+
+  <div id="app" style="display:none">
+    <!-- Desktop Header -->
+    <header class="app-header desktop-only">
+      <div class="app-header-inner">
+        <div class="header-left">
+          <div class="class-selector" id="class-selector-desktop">
+            <button class="class-selector-btn" id="class-selector-btn-desktop">
+              <span id="current-class-name-desktop">—</span>
+              <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="class-selector-dropdown" id="class-selector-dropdown-desktop"></div>
+          </div>
+        </div>
+        <nav class="main-nav" id="main-nav-desktop">
+          <a class="nav-item" data-route="today">今日</a>
+          <a class="nav-item" data-route="schedule">课表</a>
+          <a class="nav-item" data-route="analytics">分析</a>
+          <a class="nav-item" data-route="compare">对比</a>
+          <a class="nav-item" data-route="data">数据</a>
+          <a class="nav-item" data-route="settings">设置</a>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Mobile Header -->
+    <header class="mobile-header mobile-only">
+      <div class="mobile-header-inner">
+        <div class="mobile-class-selector" id="class-selector-mobile">
+          <button class="mobile-class-btn" id="class-selector-btn-mobile">
+            <span class="mobile-class-name" id="current-class-name-mobile">—</span>
+            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="mobile-class-dropdown" id="class-selector-dropdown-mobile"></div>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-container">
+      <div class="page-view" id="view-today"></div>
+      <div class="page-view" id="view-schedule"></div>
+      <div class="page-view" id="view-analytics"></div>
+      <div class="page-view" id="view-compare"></div>
+      <div class="page-view" id="view-data"></div>
+      <div class="page-view" id="view-settings"></div>
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="bottom-nav mobile-only" id="bottom-nav">
+      <a class="bottom-nav-item" data-route="today">
+        <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"></circle>
+          <polyline points="12 7 12 12 15.5 14"></polyline>
+        </svg>
+        <span class="bottom-nav-label">今日</span>
+      </a>
+      <a class="bottom-nav-item" data-route="schedule">
+        <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+        <span class="bottom-nav-label">课表</span>
+      </a>
+      <a class="bottom-nav-item" data-route="analytics">
+        <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="20" x2="18" y2="10"></line>
+          <line x1="12" y1="20" x2="12" y2="4"></line>
+          <line x1="6" y1="20" x2="6" y2="14"></line>
+        </svg>
+        <span class="bottom-nav-label">分析</span>
+      </a>
+      <a class="bottom-nav-item" data-route="data">
+        <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+          <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+          <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+        </svg>
+        <span class="bottom-nav-label">数据</span>
+      </a>
+      <a class="bottom-nav-item" data-route="settings">
+        <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        <span class="bottom-nav-label">更多</span>
+      </a>
+    </nav>
+  </div>
+
+  <!-- Course Detail Bottom Sheet (Mobile) / Modal (Desktop) -->
+  <div class="detail-overlay" id="detail-overlay">
+    <div class="detail-panel" id="detail-panel"></div>
+  </div>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
