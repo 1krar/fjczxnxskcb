@@ -42,7 +42,7 @@ export function renderData(container, state, dm) {
       <div class="analytics-card" style="padding:0;overflow:hidden;">
         <div class="analytics-card-title" style="padding:20px 20px 0;">班级列表</div>
         <div class="table-scroll">
-          <table class="stat-table sticky-table">
+          <table class="stat-table sticky-table sticky-first-col" style="min-width:480px;">
             <thead><tr><th>班级名称</th><th>课程种类</th><th>上课次数</th><th>总节数</th><th>总课时</th></tr></thead>
             <tbody>
               ${classes.map(c => {

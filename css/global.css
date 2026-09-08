@@ -517,6 +517,7 @@ input, select { font-family: inherit; }
   .desktop-only { display: none !important; }
   .mobile-only { display: block !important; }
   .bottom-nav.mobile-only { display: flex !important; }
+  .mobile-class-dropdown.mobile-only { display: flex !important; }
 }
 
 /* ===== Global defensive styles ===== */
@@ -796,7 +797,7 @@ img, svg, video, canvas {
 }
 
 .sticky-table.sticky-first-col thead th:first-child {
-  z-index: 3;
+  z-index: 4;
   box-shadow: 1px 0 0 var(--color-border), inset 0 -1px 0 var(--color-border);
 }
 
@@ -816,6 +817,9 @@ img, svg, video, canvas {
     width: 100%;
     transition: transform var(--duration-slow) var(--ease-out);
     padding-bottom: env(safe-area-inset-bottom, 0px);
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
   }
 
   .detail-overlay.open .detail-panel {

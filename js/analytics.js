@@ -131,7 +131,7 @@ function renderCourseStats(dm, className) {
   return `
     <div class="card" style="padding:0;overflow:hidden;">
       <div class="table-scroll">
-      <table class="stat-table sticky-table">
+      <table class="stat-table sticky-table sticky-first-col" style="min-width:560px;">
         <thead>
           <tr>
             <th>课程名称</th>

@@ -129,7 +129,7 @@ export function renderCompare(container, state, dm) {
     let html = `
       <div class="card" style="padding:0;overflow:hidden;">
         <div class="table-scroll">
-        <table class="stat-table sticky-table" style="min-width:500px;">
+        <table class="stat-table sticky-table sticky-first-col" style="min-width:500px;">
           <thead><tr><th>课程名称</th>`;
 
     for (let i = 0; i < 3; i++) {
@@ -138,7 +138,7 @@ export function renderCompare(container, state, dm) {
     html += `</tr></thead><tbody>`;
 
     for (const name of sortedNames) {
-      html += `<tr><td style="font-weight:600;">${name}</td>`;
+      html += `<tr><td style="font-weight:600;white-space:nowrap;">${name}</td>`;
       for (let i = 0; i < 3; i++) {
         const cn = compareState.classes[i];
         if (!cn) { html += `<td></td>`; continue; }
@@ -161,7 +161,7 @@ export function renderCompare(container, state, dm) {
     let html = `
       <div class="card" style="padding:0;overflow:hidden;">
         <div class="table-scroll">
-        <table class="stat-table sticky-table" style="min-width:500px;">
+        <table class="stat-table sticky-table sticky-first-col" style="min-width:500px;">
           <thead><tr><th>周次</th>`;
 
     for (let i = 0; i < 3; i++) {
@@ -170,7 +170,7 @@ export function renderCompare(container, state, dm) {
     html += `</tr></thead><tbody>`;
 
     for (let w = info.firstWeek; w <= info.lastWeek; w++) {
-      html += `<tr><td class="mono" style="font-weight:600;">第${w}周</td>`;
+      html += `<tr><td class="mono" style="font-weight:600;white-space:nowrap;">第${w}周</td>`;
       for (let i = 0; i < 3; i++) {
         const cn = compareState.classes[i];
         if (!cn) { html += `<td></td>`; continue; }

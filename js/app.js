@@ -270,11 +270,119 @@ export function showCourseDetail(course) {
   $('detail-close-btn').addEventListener('click', closeDetailPanel);
   $('detail-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+
+  setupSheetDragGesture(panel);
 }
 
 function closeDetailPanel() {
   $('detail-overlay').classList.remove('open');
   document.body.style.overflow = '';
+}
+
+function setupSheetDragGesture(panel) {
+  if (window.innerWidth > 768) return;
+
+  const overlay = $('detail-overlay');
+  const CLOSE_THRESHOLD = 0.25;
+  const VELOCITY_THRESHOLD = 500;
+  let startY = 0;
+  let currentY = 0;
+  let isDragging = false;
+  let dragMode = null;
+  let startTime = 0;
+  let lastDelta = 0;
+  let lastTime = 0;
+
+  function onTouchStart(e) {
+    if (e.target.closest('.detail-close') || e.target.closest('button') || e.target.closest('a')) return;
+    startY = e.touches[0].clientY;
+    isDragging = true;
+    dragMode = null;
+    startTime = Date.now();
+    lastDelta = 0;
+    lastTime = Date.now();
+    panel.style.transition = 'none';
+  }
+
+  function onTouchMove(e) {
+    if (!isDragging) return;
+    const delta = e.touches[0].clientY - startY;
+
+    if (dragMode === null) {
+      const scrollTop = panel.scrollTop;
+      if (delta > 0 && scrollTop > 0) {
+        dragMode = 'scroll';
+        return;
+      }
+      if (delta < 0 && scrollTop < panel.scrollHeight - panel.clientHeight - 1) {
+        dragMode = 'scroll';
+        return;
+      }
+      if (Math.abs(delta) > 5) {
+        dragMode = 'drag';
+      } else {
+        return;
+      }
+    }
+
+    if (dragMode === 'drag') {
+      e.preventDefault();
+      currentY = Math.max(0, delta);
+      panel.style.transform = `translateY(${currentY}px)`;
+      const progress = currentY / panel.clientHeight;
+      overlay.style.background = `rgba(15, 23, 42, ${0.35 * (1 - progress * 0.5)})`;
+
+      const now = Date.now();
+      const dt = now - lastTime;
+      if (dt > 0) {
+        lastDelta = delta;
+        lastTime = now;
+      }
+    }
+  }
+
+  function onTouchEnd() {
+    if (!isDragging) return;
+    isDragging = false;
+
+    if (dragMode !== 'drag') {
+      panel.style.transition = '';
+      return;
+    }
+
+    const elapsed = Date.now() - startTime;
+    const velocity = elapsed > 0 ? (currentY / elapsed) * 1000 : 0;
+    const progress = currentY / panel.clientHeight;
+
+    panel.style.transition = 'transform var(--duration-slow) var(--ease-out)';
+    overlay.style.transition = 'background var(--duration-slow) var(--ease-out)';
+
+    if (progress > CLOSE_THRESHOLD || velocity > VELOCITY_THRESHOLD) {
+      panel.style.transform = 'translateY(100%)';
+      overlay.style.background = 'rgba(15, 23, 42, 0)';
+      setTimeout(() => {
+        closeDetailPanel();
+        panel.style.transform = '';
+        panel.style.transition = '';
+        overlay.style.transition = '';
+        overlay.style.background = '';
+      }, 300);
+    } else {
+      panel.style.transform = 'translateY(0)';
+      overlay.style.background = '';
+      setTimeout(() => {
+        panel.style.transition = '';
+        overlay.style.transition = '';
+      }, 300);
+    }
+
+    dragMode = null;
+  }
+
+  panel.addEventListener('touchstart', onTouchStart, { passive: true });
+  panel.addEventListener('touchmove', onTouchMove, { passive: false });
+  panel.addEventListener('touchend', onTouchEnd, { passive: true });
+  panel.addEventListener('touchcancel', onTouchEnd, { passive: true });
 }
 
 function handleRoute() {
