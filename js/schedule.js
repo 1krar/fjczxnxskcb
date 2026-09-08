@@ -474,16 +474,23 @@ export function renderSchedule(container, state, dm) {
     const arrow = timelineEl.querySelector('#scroll-hint-arrow');
     if (!arrow) return;
 
-    const firstCard = timelineEl.querySelector('.mobile-day-course-card');
-    if (!firstCard) return;
-
-    const firstCourseTop = parseFloat(firstCard.style.top) || 0;
-    const SCROLL_THRESHOLD = 150;
+    const cards = timelineEl.querySelectorAll('.mobile-day-course-card');
+    if (cards.length === 0) return;
 
     function updateArrowVisibility() {
       const scrollTop = timelineEl.scrollTop;
-      const courseVisiblePosition = firstCourseTop - scrollTop;
-      if (courseVisiblePosition > SCROLL_THRESHOLD) {
+      const viewportBottom = scrollTop + timelineEl.clientHeight;
+      
+      let hasUnseenCourse = false;
+      for (let i = 0; i < cards.length; i++) {
+        const top = parseFloat(cards[i].style.top) || 0;
+        if (top > viewportBottom - 40) {
+          hasUnseenCourse = true;
+          break;
+        }
+      }
+
+      if (hasUnseenCourse) {
         arrow.style.display = 'flex';
       } else {
         arrow.style.display = 'none';
@@ -491,7 +498,16 @@ export function renderSchedule(container, state, dm) {
     }
 
     arrow.addEventListener('click', () => {
-      const targetTop = Math.max(0, firstCourseTop - timelineEl.clientHeight / 3);
+      const scrollTop = timelineEl.scrollTop;
+      const viewportBottom = scrollTop + timelineEl.clientHeight;
+      let targetTop = 0;
+      for (let i = 0; i < cards.length; i++) {
+        const top = parseFloat(cards[i].style.top) || 0;
+        if (top > viewportBottom - 40) {
+          targetTop = Math.max(0, top - timelineEl.clientHeight / 3);
+          break;
+        }
+      }
       timelineEl.scrollTo({ top: targetTop, behavior: 'smooth' });
     });
 
@@ -545,10 +561,39 @@ export function renderSchedule(container, state, dm) {
         if (timeSpan) timeSpan.textContent = timeStr;
       }
 
-      // Also re-render desktop grid for status updates (throttled to minute changes)
-      if (!isMobile()) {
-        rerender();
-      }
+      // Update status classes for desktop cards
+      container.querySelectorAll('.course-card').forEach(card => {
+        if (!card.dataset.courseId) return;
+        const [day, section] = card.dataset.courseId.split('-').map(Number);
+        const courses = dm.getCoursesByWeekday(state.currentClass, scheduleState.week, day);
+        const c = courses.find(course => course.startSection === section);
+        if (c) {
+          const isPast = c.endDateTime && now >= c.endDateTime;
+          const isCurrent = c.startDateTime && c.endDateTime && now >= c.startDateTime && now < c.endDateTime;
+          const isToday = c.date === now.toISOString().slice(0, 10);
+          
+          card.classList.remove('past', 'today', 'current');
+          if (isPast) card.classList.add('past');
+          if (isToday && !isPast) card.classList.add('today');
+          if (isCurrent) card.classList.add('current');
+        }
+      });
+
+      // Update status classes for mobile cards
+      container.querySelectorAll('.mobile-day-course-card').forEach(card => {
+        if (card.dataset.courseIdx == null) return;
+        const idx = parseInt(card.dataset.courseIdx);
+        const dayCourses = dm.getCoursesByWeekday(state.currentClass, scheduleState.week, scheduleState.selectedDay);
+        const c = dayCourses[idx];
+        if (c) {
+          const isPast = c.endDateTime && now >= c.endDateTime;
+          const isCurrent = c.startDateTime && c.endDateTime && now >= c.startDateTime && now < c.endDateTime;
+          
+          card.classList.remove('past', 'current');
+          if (isPast) card.classList.add('past');
+          if (isCurrent) card.classList.add('current');
+        }
+      });
     }
   };
   document.addEventListener('app:tick', tickHandler);
