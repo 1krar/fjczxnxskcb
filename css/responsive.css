@@ -171,18 +171,18 @@
   }
 
   .summary-chip {
-    padding: 6px 8px;
+    padding: 4px 10px 4px 0;
     min-width: 0;
-    flex: 1 1 40%;
-    border-radius: var(--radius-sm);
+    flex: 1 1 30%;
+    border-radius: 0;
   }
 
   .summary-chip-value {
-    font-size: 14px;
+    font-size: var(--text-body);
   }
 
   .summary-chip-label {
-    font-size: 10px;
+    font-size: 9px;
   }
 
   /* ========== Schedule ========== */
@@ -283,6 +283,12 @@
     gap: 8px;
     margin-bottom: 8px;
     align-items: center;
+    animation: searchExpand var(--duration-normal) var(--ease-out);
+  }
+
+  @keyframes searchExpand {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .m-search-input {
@@ -326,9 +332,14 @@
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     color: var(--color-text-secondary);
-    transition: all var(--transition-fast);
+    transition: border-color var(--duration-fast) var(--ease-out),
+                background var(--duration-fast) var(--ease-out),
+                color var(--duration-fast) var(--ease-out);
     min-height: 40px;
   }
+
+  .m-day-chip:active { transform: scale(0.96); }
+  .m-day-chip:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 1px; }
 
   .m-day-chip.today {
     border-color: var(--color-primary);
@@ -374,11 +385,23 @@
     padding: 12px 0;
     cursor: pointer;
     border-bottom: 1px solid var(--color-border-light);
-    transition: opacity var(--transition-fast);
+    transition: opacity var(--duration-fast) var(--ease-out), background var(--duration-fast) var(--ease-out);
+    animation: agendaEnter var(--duration-normal) var(--ease-out);
+  }
+
+  @keyframes agendaEnter {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
   }
 
   .m-agenda-item:active {
-    background: var(--color-primary-tint);
+    background: var(--color-surface-subtle);
+  }
+
+  .m-agenda-item:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: -2px;
+    border-radius: var(--radius-sm);
   }
 
   .m-agenda-item.past {
@@ -624,20 +647,22 @@
   /* ========== Data page ========== */
   .data-info-grid {
     grid-template-columns: 1fr 1fr;
-    gap: 8px;
+    gap: 0;
   }
 
   .data-info-item {
-    padding: 10px 12px;
-    border-radius: var(--radius);
+    padding: 8px 0;
   }
 
+  .data-info-item:nth-child(odd) { padding-right: 8px; }
+  .data-info-item:nth-child(even) { padding-left: 8px; }
+
   .data-info-label {
-    font-size: 12px;
+    font-size: var(--text-sm);
   }
 
   .data-info-value {
-    font-size: 13px;
+    font-size: var(--text-base);
   }
 
   /* ========== Settings ========== */
@@ -808,7 +833,7 @@
 /* ===== Touch device optimizations ===== */
 @media (hover: none) and (pointer: coarse) {
   .course-card:hover {
-    transform: none;
+    border-color: var(--color-border);
     box-shadow: none;
   }
 
@@ -819,15 +844,18 @@
 
   .nav-item.active:hover {
     color: var(--color-primary);
-    background: var(--color-primary-tint);
-  }
-
-  .bottom-nav-item:active {
-    opacity: 0.7;
   }
 
   .btn:active {
-    transform: scale(0.97);
+    transform: scale(0.98);
+  }
+
+  .week-nav-btn:active {
+    transform: scale(0.95);
+  }
+
+  .tab-bar-item:active {
+    opacity: 0.6;
   }
 }
 
@@ -858,5 +886,30 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .page-view.active {
+    animation: none;
+  }
+
+  .m-agenda-item {
+    animation: none;
+  }
+
+  .m-search-bar {
+    animation: none;
+  }
+
+  .bottom-nav-item.active::before {
+    animation: none;
+  }
+
+  .timeline-now-dot {
+    animation: none;
+  }
+
+  .m-agenda-now-marker::before {
+    animation: none;
   }
 }
