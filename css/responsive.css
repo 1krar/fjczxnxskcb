@@ -44,144 +44,307 @@
   .app-header { display: none; }
   .main-nav { display: none; }
 
-  /* ========== TODAY / Dashboard ========== */
-  .today-header {
-    margin-bottom: 10px;
+  /* ========== TODAY 2.0 / Dashboard ========== */
+  .today-layout {
+    grid-template-columns: 1fr;
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .today-main {
+    gap: 10px;
+    order: 1;
+  }
+
+  .today-side {
+    gap: 12px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    order: 2;
+  }
+
+  .today-side > * {
+    flex: 1 1 45%;
+    min-width: 0;
+  }
+
+  .today-header-row {
     gap: 8px;
+    margin-bottom: 0;
   }
 
   .today-date-main {
-    font-size: 13px;
+    font-size: var(--text-sm);
+    font-weight: 600;
   }
 
   .today-date-sub {
-    font-size: 12px;
+    font-size: var(--text-xs);
   }
 
   .today-clock {
-    font-size: 20px;
+    font-size: var(--text-md);
+    font-weight: 700;
   }
 
   .today-clock .seconds {
-    font-size: 15px;
+    font-size: var(--text-xs);
   }
 
-  .status-card {
-    padding: 14px 14px;
-    margin-bottom: 10px;
-    border-radius: var(--radius);
+  /* Status block */
+  .today-status {
+    padding-left: 12px;
+    border-left-width: 2px;
   }
 
-  .status-label {
-    font-size: 11px;
-    margin-bottom: 4px;
+  .status-tag {
+    font-size: 9px;
+    margin-bottom: 1px;
+    letter-spacing: 0.06em;
   }
 
-  .status-course-name {
-    font-size: 17px;
-    line-height: 1.3;
-    margin-bottom: 4px;
-    display: -webkit-box;
+  .status-title {
+    font-size: var(--text-lg);
+    line-height: 1.25;
     -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
   }
 
-  .status-course-meta {
-    font-size: 12px;
+  .status-meta {
+    font-size: var(--text-xs);
     gap: 6px;
   }
 
-  .status-section-info {
-    font-size: 12px;
-    margin-top: 2px;
+  .status-section {
+    font-size: 10px;
+    margin-top: 0;
   }
 
   .status-countdown {
-    margin-top: 10px;
+    margin-top: 6px;
     gap: 6px;
   }
 
-  .countdown-label {
-    font-size: 12px;
+  .countdown-text {
+    font-size: 10px;
   }
 
   .countdown-value {
-    font-size: 22px;
-    letter-spacing: -0.01em;
+    font-size: var(--text-md);
   }
 
-  .status-progress {
-    margin-top: 10px;
-    height: 4px;
+  .countdown-sec {
+    font-size: 10px;
   }
 
-  .status-next-preview {
+  .status-progress-mini {
+    margin-top: 2px;
+    height: 2px;
+  }
+
+  .status-freetime-now {
+    margin-top: 6px;
+    padding-top: 6px;
+    gap: 4px;
+  }
+
+  .ft-now-value {
+    font-size: var(--text-sm);
+  }
+
+  .status-remaining {
+    font-size: var(--text-xs);
+    margin-top: 1px;
+  }
+
+  .status-next {
+    margin-top: 8px;
+    padding-top: 8px;
+    font-size: 11px;
+    gap: 6px;
+  }
+
+  .status-next-free {
+    margin-top: 4px;
+    font-size: 10px;
+  }
+
+  .status-sub {
+    font-size: var(--text-xs);
+    margin-top: 1px;
+  }
+
+  /* Stats row */
+  .today-stats-row {
+    padding: 6px 0;
+  }
+
+  .stat-inline {
+    padding: 0 6px;
+    gap: 1px;
+  }
+
+  .stat-inline-label {
+    font-size: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  .stat-inline-value {
+    font-size: var(--text-sm);
+  }
+
+  /* Semester */
+  .today-semester {
+    gap: 4px;
+  }
+
+  .semester-week-num {
+    font-size: var(--text-md);
+  }
+
+  .semester-percent {
+    font-size: 9px;
+  }
+
+  .semester-bar {
+    height: 3px;
+  }
+
+  .semester-date {
+    font-size: 9px;
+  }
+
+  /* Free time */
+  .today-freetime {
+    gap: 4px;
+  }
+
+  .freetime-row {
+    gap: 12px;
+  }
+
+  .freetime-value {
+    font-size: var(--text-sm);
+  }
+
+  /* Next class day */
+  .today-next-day {
+    gap: 4px;
+  }
+
+  .next-day-date {
+    font-size: var(--text-md);
+  }
+
+  .next-day-info {
+    font-size: var(--text-xs);
+  }
+
+  .next-day-first {
+    margin-top: 3px;
+    padding-top: 4px;
+    font-size: var(--text-xs);
+    gap: 6px;
+  }
+
+  /* Empty day section */
+  .today-empty-section {
+    padding: 28px 16px;
     gap: 8px;
-    padding-top: 10px;
-    margin-top: 10px;
+    margin-top: 4px;
   }
 
-  .next-course-name { font-size: 13px; }
-  .next-course-meta { font-size: 12px; }
-
-  .timeline {
-    padding: 12px 12px;
-    border-radius: var(--radius);
+  .empty-day-icon {
+    width: 32px;
+    height: 32px;
   }
 
-  .timeline-header {
-    margin-bottom: 10px;
+  .empty-day-title {
+    font-size: var(--text-sm);
   }
 
-  .timeline-title {
-    font-size: 13px;
+  .empty-day-sub {
+    font-size: var(--text-xs);
   }
 
-  .timeline-time {
-    width: 44px;
-    font-size: 12px;
+  /* Timeline */
+  .today-timeline-section {
+    margin-top: 2px;
   }
 
-  .timeline-item {
-    padding: 8px 0;
+  .section-label-row {
+    margin-bottom: 6px;
+  }
+
+  .tl-item {
+    padding: 5px 0;
     gap: 10px;
   }
 
-  .timeline-course-name {
-    font-size: 13px;
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
+  .tl-time {
+    width: 40px;
   }
 
-  .timeline-course-meta {
+  .tl-start {
     font-size: 11px;
-    margin-top: 2px;
-    line-height: 1.3;
-    word-break: break-all;
   }
 
-  .today-summary {
-    gap: 6px;
-    margin-top: 10px;
-    margin-bottom: 10px;
+  .tl-end {
+    font-size: 9px;
   }
 
-  .summary-chip {
-    padding: 4px 10px 4px 0;
-    min-width: 0;
-    flex: 1 1 30%;
-    border-radius: 0;
+  .tl-marker {
+    width: 7px;
+    height: 7px;
+    margin-top: 3px;
   }
 
-  .summary-chip-value {
-    font-size: var(--text-body);
+  .tl-name {
+    font-size: var(--text-sm);
   }
 
-  .summary-chip-label {
+  .tl-meta {
+    font-size: 10px;
+    gap: 3px 6px;
+    margin-top: 1px;
+  }
+
+  .tl-loc {
+    max-width: 110px;
+  }
+
+  .tl-item::after {
+    left: 47px;
+    top: 12px;
+    bottom: -5px;
+  }
+
+  .tl-gap {
+    padding-left: 50px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+  }
+
+  .tl-gap-text {
+    font-size: 9px;
+    gap: 4px;
+  }
+
+  .tl-end {
+    padding-top: 4px;
+    gap: 10px;
+  }
+
+  .tl-end-marker {
+    margin-left: 47px;
+    width: 7px;
+    height: 7px;
+  }
+
+  .tl-end-text {
+    font-size: 11px;
+  }
+
+  .tl-end-time {
     font-size: 9px;
   }
 
