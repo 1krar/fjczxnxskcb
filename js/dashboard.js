@@ -18,8 +18,8 @@ export function renderDashboard(container, state, dm) {
       <div class="today-clock" id="dash-clock"></div>
     </div>
     <div id="dash-status"></div>
-    <div id="dash-timeline"></div>
     <div id="dash-summary"></div>
+    <div id="dash-timeline"></div>
   `;
 
   function updateClock() {
@@ -32,8 +32,8 @@ export function renderDashboard(container, state, dm) {
   function updateAll() {
     updateClock();
     updateStatus();
-    updateTimeline();
     updateSummary();
+    updateTimeline();
   }
 
   function updateStatus() {

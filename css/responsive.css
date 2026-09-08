@@ -46,27 +46,41 @@
 
   /* ========== TODAY / Dashboard ========== */
   .today-header {
-    margin-bottom: 16px;
-    gap: 12px;
+    margin-bottom: 10px;
+    gap: 8px;
+  }
+
+  .today-date-main {
+    font-size: 13px;
+  }
+
+  .today-date-sub {
+    font-size: 12px;
   }
 
   .today-clock {
-    font-size: 24px;
+    font-size: 20px;
   }
 
   .today-clock .seconds {
-    font-size: 18px;
+    font-size: 15px;
   }
 
   .status-card {
-    padding: 20px 18px;
-    margin-bottom: 16px;
-    border-radius: var(--radius-lg);
+    padding: 14px 14px;
+    margin-bottom: 10px;
+    border-radius: var(--radius);
+  }
+
+  .status-label {
+    font-size: 11px;
+    margin-bottom: 4px;
   }
 
   .status-course-name {
-    font-size: 20px;
-    line-height: 1.35;
+    font-size: 17px;
+    line-height: 1.3;
+    margin-bottom: 4px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -74,43 +88,69 @@
   }
 
   .status-course-meta {
-    font-size: 13px;
-    gap: 8px;
+    font-size: 12px;
+    gap: 6px;
+  }
+
+  .status-section-info {
+    font-size: 12px;
+    margin-top: 2px;
+  }
+
+  .status-countdown {
+    margin-top: 10px;
+    gap: 6px;
+  }
+
+  .countdown-label {
+    font-size: 12px;
   }
 
   .countdown-value {
-    font-size: 28px;
+    font-size: 22px;
     letter-spacing: -0.01em;
   }
 
-  .status-next-preview {
-    gap: 10px;
-    padding-top: 14px;
-    margin-top: 16px;
+  .status-progress {
+    margin-top: 10px;
+    height: 4px;
   }
 
+  .status-next-preview {
+    gap: 8px;
+    padding-top: 10px;
+    margin-top: 10px;
+  }
+
+  .next-course-name { font-size: 13px; }
+  .next-course-meta { font-size: 12px; }
+
   .timeline {
-    padding: 16px 14px;
-    border-radius: var(--radius-lg);
+    padding: 12px 12px;
+    border-radius: var(--radius);
   }
 
   .timeline-header {
-    margin-bottom: 14px;
+    margin-bottom: 10px;
   }
 
-  .timeline-time {
-    width: 48px;
+  .timeline-title {
     font-size: 13px;
   }
 
+  .timeline-time {
+    width: 44px;
+    font-size: 12px;
+  }
+
   .timeline-item {
-    padding: 10px 0;
-    gap: 12px;
+    padding: 8px 0;
+    gap: 10px;
   }
 
   .timeline-course-name {
-    font-size: 14px;
-    line-height: 1.4;
+    font-size: 13px;
+    line-height: 1.3;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -118,29 +158,31 @@
   }
 
   .timeline-course-meta {
-    font-size: 12px;
-    margin-top: 3px;
-    line-height: 1.4;
+    font-size: 11px;
+    margin-top: 2px;
+    line-height: 1.3;
     word-break: break-all;
   }
 
   .today-summary {
-    gap: 8px;
-    margin-top: 16px;
+    gap: 6px;
+    margin-top: 10px;
+    margin-bottom: 10px;
   }
 
   .summary-chip {
-    padding: 10px 12px;
+    padding: 6px 8px;
     min-width: 0;
     flex: 1 1 40%;
+    border-radius: var(--radius-sm);
   }
 
   .summary-chip-value {
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .summary-chip-label {
-    font-size: 11px;
+    font-size: 10px;
   }
 
   /* ========== Schedule ========== */
@@ -179,206 +221,287 @@
   }
 
   /* Mobile schedule day view */
-  .mobile-schedule-day-view {
-    display: block;
-  }
-
-  .mobile-day-picker {
+  .m-schedule-toolbar {
     display: flex;
-    gap: 4px;
-    padding: 8px 0 12px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    margin: 0 -14px;
-    padding-left: 14px;
-    padding-right: 14px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
   }
 
-  .mobile-day-picker::-webkit-scrollbar { display: none; }
-
-  .mobile-day-chip {
-    flex-shrink: 0;
+  .m-week-info {
+    flex: 1;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 2px;
-    padding: 8px 10px;
-    border-radius: var(--radius);
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    color: var(--color-text-secondary);
-    min-width: 48px;
-    transition: all var(--transition-fast);
-    min-height: 44px;
+    min-width: 0;
   }
 
-  .mobile-day-chip.today {
-    border-color: var(--color-primary);
-    background: var(--color-primary-tint);
-    color: var(--color-primary);
-  }
-
-  .mobile-day-chip.active {
-    background: var(--color-primary);
-    border-color: var(--color-primary);
-    color: #fff;
-  }
-
-  .mobile-day-chip-name {
-    font-size: 11px;
-    font-weight: 500;
-  }
-
-  .mobile-day-chip-date {
+  .m-week-main {
     font-size: 14px;
-    font-weight: 700;
-    font-family: var(--font-mono);
+    font-weight: 600;
+    color: var(--color-text);
+    white-space: nowrap;
   }
 
-  .mobile-day-timeline {
-    position: relative;
-    padding-left: 0;
-    min-height: 400px;
-  }
-
-  .mobile-day-timeline .time-slot {
-    position: relative;
-    height: 60px;
-    border-bottom: 1px solid var(--color-border-light);
-  }
-
-  .mobile-day-timeline .time-label {
-    position: absolute;
-    left: 0;
-    top: -8px;
-    width: 48px;
-    text-align: right;
+  .m-week-sub {
     font-size: 11px;
+    color: var(--color-text-secondary);
     font-family: var(--font-mono);
-    color: var(--color-text-tertiary);
+    white-space: nowrap;
+  }
+
+  .m-today-btn {
+    font-size: 12px;
     font-weight: 500;
-  }
-
-  .mobile-day-timeline .section-marker {
-    border-top: 1px dashed var(--color-border);
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  .mobile-day-timeline .section-label {
-    position: absolute;
-    left: 0;
-    top: -10px;
-    width: 48px;
-    text-align: right;
-    font-size: 10px;
-    font-weight: 700;
     color: var(--color-primary);
-    background: var(--color-bg);
-    padding: 0 2px;
-    border-radius: 2px;
+    padding: 4px 10px;
+    border: 1px solid var(--color-primary);
+    border-radius: var(--radius-sm);
+    flex-shrink: 0;
   }
 
-  .scroll-hint-arrow {
-    position: sticky;
-    bottom: 16px;
-    left: 50%;
-    margin-left: -18px;
+  .m-search-toggle {
     width: 36px;
     height: 36px;
-    background: var(--color-primary);
-    color: #fff;
-    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: var(--shadow-lg);
-    z-index: 10;
-    cursor: pointer;
-    animation: bounceDown 1.5s ease infinite;
-    margin-bottom: -36px;
-    pointer-events: auto;
-  }
-
-  @keyframes bounceDown {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(4px); }
-  }
-
-  .mobile-day-course-card {
-    position: absolute;
-    left: 52px;
-    right: 0;
-    background: var(--color-primary-tint);
-    border-left: 3px solid var(--color-primary);
+    border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
-    padding: 6px 8px;
-    cursor: pointer;
-    overflow: hidden;
-    z-index: 1;
+    color: var(--color-text-secondary);
+    flex-shrink: 0;
     transition: all var(--transition-fast);
   }
 
-  .mobile-day-course-card:active {
-    transform: scale(0.98);
+  .m-search-toggle:active {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
   }
 
-  .mobile-day-course-card .course-name {
-    font-size: 12px;
+  .m-search-bar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+    align-items: center;
+  }
+
+  .m-search-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    font-size: 16px;
+    color: var(--color-text);
+    background: var(--color-surface);
+  }
+
+  .m-search-input:focus { outline: none; border-color: var(--color-primary); }
+
+  .m-search-close {
+    font-size: 14px;
+    color: var(--color-primary);
+    padding: 4px 8px;
+    flex-shrink: 0;
+  }
+
+  .m-day-picker {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 12px;
+    position: sticky;
+    top: var(--mobile-header-height);
+    z-index: 5;
+    background: var(--color-bg);
+    padding: 6px 0;
+  }
+
+  .m-day-chip {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+    padding: 4px 0;
+    border-radius: var(--radius-sm);
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-secondary);
+    transition: all var(--transition-fast);
+    min-height: 40px;
+  }
+
+  .m-day-chip.today {
+    border-color: var(--color-primary);
+    background: var(--color-primary-tint);
+    color: var(--color-primary);
+  }
+
+  .m-day-chip.active {
+    background: var(--color-primary);
+    border-color: var(--color-primary);
+    color: #fff;
+  }
+
+  .m-day-chip-name {
+    font-size: 10px;
+    font-weight: 500;
+  }
+
+  .m-day-chip-date {
+    font-size: 13px;
+    font-weight: 700;
+    font-family: var(--font-mono);
+  }
+
+  .m-agenda {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .m-agenda-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 16px;
+    text-align: center;
+  }
+
+  .m-agenda-item {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 0;
+    cursor: pointer;
+    border-bottom: 1px solid var(--color-border-light);
+    transition: opacity var(--transition-fast);
+  }
+
+  .m-agenda-item:active {
+    background: var(--color-primary-tint);
+  }
+
+  .m-agenda-item.past {
+    opacity: 0.45;
+  }
+
+  .m-agenda-item.current {
+    opacity: 1;
+  }
+
+  .m-agenda-time {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    width: 42px;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  .m-agenda-start {
+    font-size: 13px;
     font-weight: 600;
-    color: var(--color-primary-dark);
+    font-family: var(--font-mono);
+    color: var(--color-text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+
+  .m-agenda-end {
+    font-size: 10px;
+    font-family: var(--font-mono);
+    color: var(--color-text-tertiary);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.2;
+  }
+
+  .m-agenda-dot {
+    width: 8px;
+    border-left: 2px solid var(--color-border);
+    margin: 2px 0;
+    flex-shrink: 0;
+  }
+
+  .m-agenda-item.current .m-agenda-dot {
+    border-left-color: var(--color-primary);
+    width: 8px;
+  }
+
+  .m-agenda-item.past .m-agenda-dot {
+    border-left-color: var(--color-text-tertiary);
+  }
+
+  .m-agenda-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .m-agenda-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text);
     line-height: 1.3;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    word-break: break-word;
   }
 
-  .mobile-day-course-card .course-meta {
-    font-size: 10px;
+  .m-agenda-item.current .m-agenda-name {
     color: var(--color-primary);
-    margin-top: 2px;
-    opacity: 0.8;
-    white-space: nowrap;
+  }
+
+  .m-agenda-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    margin-top: 3px;
+    font-size: 11px;
+    color: var(--color-text-secondary);
+  }
+
+  .m-agenda-section {
+    font-family: var(--font-mono);
+    color: var(--color-text);
+    font-weight: 500;
+  }
+
+  .m-agenda-loc {
+    color: var(--color-text-secondary);
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
   }
 
-  .mobile-day-now-line {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--color-primary);
-    z-index: 5;
-    pointer-events: none;
+  .m-agenda-teacher {
+    color: var(--color-text-tertiary);
   }
 
-  .mobile-day-now-line::before {
+  .m-agenda-now-marker {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0 2px 52px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-primary);
+  }
+
+  .m-agenda-now-marker::before {
     content: '';
-    position: absolute;
-    left: 48px;
-    top: 50%;
-    transform: translate(-50%, -50%);
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: var(--color-primary);
-    box-shadow: 0 0 0 4px var(--color-primary-light);
+    box-shadow: 0 0 0 3px var(--color-primary-light);
+    animation: mPulse 2s infinite;
   }
 
-  .mobile-day-now-line .now-time {
-    position: absolute;
-    left: 0;
-    top: -10px;
-    font-size: 10px;
-    font-weight: 700;
-    font-family: var(--font-mono);
-    color: var(--color-primary);
-    background: var(--color-bg);
-    padding: 0 4px 0 0;
+  @keyframes mPulse {
+    0%, 100% { box-shadow: 0 0 0 3px var(--color-primary-light); }
+    50% { box-shadow: 0 0 0 6px rgba(37, 99, 235, 0.1); }
   }
 
   /* Desktop grid schedule hidden on mobile */
@@ -711,19 +834,19 @@
 /* ===== Landscape mobile ===== */
 @media (max-width: 768px) and (orientation: landscape) {
   .bottom-nav {
-    height: 52px;
+    height: 48px;
   }
 
   :root {
-    --bottom-nav-height: 52px;
+    --bottom-nav-height: 48px;
   }
 
   .mobile-header {
-    height: 44px;
+    height: 38px;
   }
 
   :root {
-    --mobile-header-height: 44px;
+    --mobile-header-height: 38px;
   }
 }
 

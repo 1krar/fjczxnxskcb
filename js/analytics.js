@@ -135,9 +135,9 @@ function renderCourseStats(dm, className) {
         <thead>
           <tr>
             <th>课程名称</th>
-            <th>出现次数</th>
+            <th>上课次数</th>
             <th>总节数</th>
-            <th>总时长</th>
+            <th>总课时</th>
             <th>主要教师</th>
             <th>主要教室</th>
           </tr>
@@ -153,7 +153,7 @@ function renderCourseStats(dm, className) {
               <td style="font-weight:600;">${s.courseName}</td>
               <td class="mono">${s.count}</td>
               <td class="mono">${s.totalSections}</td>
-              <td class="mono">${s.totalHours}小时</td>
+              <td class="mono">${s.totalHours}h</td>
               <td>${s.teachers.length > 0 ? s.teachers.join('、') : '<span class="muted">未提供</span>'}</td>
               <td class="locations-cell">
                 <span class="loc-first">${firstLoc}</span>

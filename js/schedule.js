@@ -2,13 +2,12 @@ import { getCurrentWeek, getWeekDates, formatClockDisplay, formatDateShort, getD
 import { showCourseDetail } from './app.js';
 
 let tickHandler = null;
-let scheduleState = { week: 1, selectedDay: 1 };
+let scheduleState = { week: 1, selectedDay: 1, searchOpen: false };
 
 export function renderSchedule(container, state, dm) {
   const info = dm.getSemesterInfo();
   scheduleState.week = state.scheduleWeek || Math.max(info.firstWeek, Math.min(info.lastWeek, getCurrentWeek(info.semesterStart)));
 
-  // Default selected day to today if current week, else Monday
   const currentWeek = Math.max(1, getCurrentWeek(info.semesterStart));
   if (scheduleState.week === currentWeek) {
     const today = new Date();
@@ -26,6 +25,14 @@ export function renderSchedule(container, state, dm) {
     const isCurrentWeek = week === currentWeek;
     const mobile = isMobile();
 
+    if (mobile) {
+      return buildMobileView(week, weekDates, todayStr, dm, state, info, isCurrentWeek, currentWeek);
+    } else {
+      return buildDesktopView(week, weekDates, todayStr, dm, state, info, isCurrentWeek, currentWeek);
+    }
+  }
+
+  function buildDesktopView(week, weekDates, todayStr, dm, state, info, isCurrentWeek, currentWeek) {
     let html = `
       <div class="schedule-toolbar">
         <div class="week-nav">
@@ -47,12 +54,100 @@ export function renderSchedule(container, state, dm) {
         </div>
       </div>`;
 
-    if (mobile) {
-      html += buildMobileDayView(week, weekDates, todayStr, dm, state, info);
-    } else {
-      html += buildDesktopWeekGrid(week, weekDates, todayStr, dm, state, info);
+    html += buildDesktopWeekGrid(week, weekDates, todayStr, dm, state, info);
+    html += `<div id="search-results-container"></div>`;
+    return html;
+  }
+
+  function buildMobileView(week, weekDates, todayStr, dm, state, info, isCurrentWeek, currentWeek) {
+    const dayNames = ['一', '二', '三', '四', '五'];
+    const selectedDay = scheduleState.selectedDay;
+    const courses = dm.getCoursesByWeekday(state.currentClass, week, selectedDay);
+    const now = new Date();
+
+    let html = `
+      <div class="m-schedule-toolbar">
+        <button class="week-nav-btn" id="week-prev" ${week <= 1 ? 'disabled' : ''}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+        </button>
+        <div class="m-week-info">
+          <span class="m-week-main">第${week}周</span>
+          <span class="m-week-sub">${weekDates[0].slice(5)}—${weekDates[4].slice(5)}</span>
+        </div>
+        <button class="week-nav-btn" id="week-next" ${week >= info.lastWeek ? 'disabled' : ''}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </button>
+        ${!isCurrentWeek ? `<button class="m-today-btn" id="week-today">本周</button>` : ''}
+        <button class="m-search-toggle" id="search-toggle-btn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </button>
+      </div>`;
+
+    if (scheduleState.searchOpen) {
+      html += `
+        <div class="m-search-bar" id="m-search-bar">
+          <input type="text" class="m-search-input" id="schedule-search" placeholder="搜索课程、教师、教室…" />
+          <button class="m-search-close" id="search-close-btn">取消</button>
+        </div>`;
     }
 
+    html += `<div class="m-day-picker" id="mobile-day-picker">`;
+    for (let d = 0; d < 5; d++) {
+      const dateStr = weekDates[d];
+      const isDayToday = dateStr === todayStr;
+      const isActive = (d + 1) === selectedDay;
+      const dayNum = dateStr.slice(8);
+      html += `
+        <button class="m-day-chip ${isDayToday ? 'today' : ''} ${isActive ? 'active' : ''}" data-day="${d + 1}">
+          <span class="m-day-chip-name">${dayNames[d]}</span>
+          <span class="m-day-chip-date">${parseInt(dayNum)}</span>
+        </button>`;
+    }
+    html += `</div>`;
+
+    html += `<div class="m-agenda" id="m-agenda">`;
+
+    if (courses.length === 0) {
+      html += `
+        <div class="m-agenda-empty">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--color-text-tertiary);margin-bottom:8px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <div style="font-size:14px;color:var(--color-text-secondary);">周${dayNames[selectedDay - 1]}没有课程</div>
+          <div style="font-size:12px;color:var(--color-text-tertiary);margin-top:4px;">${weekDates[selectedDay - 1]}</div>
+        </div>`;
+    } else {
+      for (let i = 0; i < courses.length; i++) {
+        const c = courses[i];
+        const isPast = c.endDateTime && now >= c.endDateTime;
+        const isCurrent = c.startDateTime && c.endDateTime && now >= c.startDateTime && now < c.endDateTime;
+
+        let itemClass = 'm-agenda-item';
+        if (isPast) itemClass += ' past';
+        if (isCurrent) itemClass += ' current';
+
+        html += `
+          <div class="${itemClass}" data-course-idx="${i}">
+            <div class="m-agenda-time">
+              <span class="m-agenda-start">${c.startTime || ''}</span>
+              <span class="m-agenda-end">${c.endTime || ''}</span>
+            </div>
+            <div class="m-agenda-dot ${isCurrent ? 'now' : ''}"></div>
+            <div class="m-agenda-body">
+              <div class="m-agenda-name">${c.courseName}</div>
+              <div class="m-agenda-meta">
+                <span class="m-agenda-section">第${c.startSection}-${c.endSection}节</span>
+                ${c.location ? `<span class="m-agenda-loc">${c.location}</span>` : ''}
+                ${c.teacher && state.settings.showTeacher ? `<span class="m-agenda-teacher">${c.teacher}</span>` : ''}
+              </div>
+            </div>
+          </div>`;
+
+        if (isCurrent && i < courses.length - 1) {
+          html += `<div class="m-agenda-now-marker"><span>现在</span></div>`;
+        }
+      }
+    }
+
+    html += `</div>`;
     html += `<div id="search-results-container"></div>`;
     return html;
   }
@@ -132,138 +227,9 @@ export function renderSchedule(container, state, dm) {
     }
   }
 
-  function buildMobileDayView(week, weekDates, todayStr, dm, state, info) {
-    const sectionTimes = dm.getSectionTimes();
-    const selectedDay = scheduleState.selectedDay;
-    const isToday = weekDates[selectedDay - 1] === todayStr;
-    const courses = dm.getCoursesByWeekday(state.currentClass, week, selectedDay);
-    const season = courses[0]?.season || 'summer';
-    const times = sectionTimes[season] || {};
-
-    // Day picker chips (Mon-Fri only for now, since data has 5 days)
-    const dayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    let dayPickerHTML = `<div class="mobile-day-picker" id="mobile-day-picker">`;
-    for (let d = 1; d <= 5; d++) {
-      const dateStr = weekDates[d - 1];
-      const isDayToday = dateStr === todayStr;
-      const isActive = d === selectedDay;
-      const dayNum = dateStr.slice(8);
-      dayPickerHTML += `
-        <button class="mobile-day-chip ${isDayToday ? 'today' : ''} ${isActive ? 'active' : ''}" data-day="${d}">
-          <span class="mobile-day-chip-name">${dayNames[d - 1]}</span>
-          <span class="mobile-day-chip-date">${parseInt(dayNum)}</span>
-        </button>`;
-    }
-    dayPickerHTML += `</div>`;
-
-    // Timeline
-    const dayStartMinutes = 8 * 60; // 08:00
-    const dayEndMinutes = 21 * 60; // 21:00
-    const totalMinutes = dayEndMinutes - dayStartMinutes;
-    const pixelsPerMinute = 1.1; // scale factor
-    const timelineHeight = totalMinutes * pixelsPerMinute;
-
-    function timeToTop(timeStr) {
-      if (!timeStr) return 0;
-      const [h, m] = timeStr.split(':').map(Number);
-      const mins = h * 60 + m;
-      return (mins - dayStartMinutes) * pixelsPerMinute;
-    }
-
-    // Hour markers
-    let hourMarkersHTML = '';
-    for (let h = 8; h <= 21; h++) {
-      const top = (h * 60 - dayStartMinutes) * pixelsPerMinute;
-      hourMarkersHTML += `
-        <div class="time-slot" style="position:absolute;top:${top}px;left:0;right:0;">
-          <span class="time-label">${String(h).padStart(2, '0')}:00</span>
-        </div>`;
-    }
-
-    // Section markers
-    let sectionMarkersHTML = '';
-    for (const [secNum, secTime] of Object.entries(times)) {
-      const top = timeToTop(secTime.start);
-      if (top >= 0 && top <= timelineHeight) {
-        sectionMarkersHTML += `
-          <div class="section-marker" style="position:absolute;top:${top}px;left:0;right:0;">
-            <span class="section-label">第${secNum}节</span>
-          </div>`;
-      }
-    }
-
-    // Course cards
-    let courseCardsHTML = '';
-    for (let i = 0; i < courses.length; i++) {
-      const c = courses[i];
-      const top = timeToTop(c.startTime);
-      const bottom = timeToTop(c.endTime);
-      const height = bottom - top;
-
-      const now = new Date();
-      const isPast = c.endDateTime && now >= c.endDateTime;
-      const isCurrent = c.startDateTime && c.endDateTime && now >= c.startDateTime && now < c.endDateTime;
-
-      let cardClass = 'mobile-day-course-card';
-      if (isPast) cardClass += ' past';
-      if (isCurrent) cardClass += ' current';
-
-      courseCardsHTML += `
-        <div class="${cardClass}" style="top:${top}px;height:${Math.max(height - 2, 28)}px;" data-course-idx="${i}">
-          <div class="course-name">${c.courseName}</div>
-          <div class="course-meta">${c.location || ''}</div>
-        </div>`;
-    }
-
-    // Current time line (only for today)
-    let nowLineHTML = '';
-    if (isToday) {
-      const now = new Date();
-      const nowMins = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
-      const nowTop = (nowMins - dayStartMinutes) * pixelsPerMinute;
-      if (nowTop >= 0 && nowTop <= timelineHeight) {
-        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        nowLineHTML = `
-          <div class="mobile-day-now-line" id="mobile-now-line" style="top:${nowTop}px;">
-            <span class="now-time">${timeStr}</span>
-          </div>`;
-      }
-    }
-
-    // Empty state
-    if (courses.length === 0) {
-      const weekdayName = dayNames[selectedDay - 1];
-      return `
-        ${dayPickerHTML}
-        <div class="timeline" style="margin-top:8px;">
-          <div class="empty-state">
-            <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            <div class="empty-state-text">${weekdayName}没有课程</div>
-            <div class="empty-state-sub">${weekDates[selectedDay - 1]}</div>
-          </div>
-        </div>`;
-    }
-
-    return `
-      ${dayPickerHTML}
-      <div class="timeline" style="padding: 16px 12px 16px 8px; margin-top: 8px; position: relative; overflow-y: auto; -webkit-overflow-scrolling: touch;" id="mobile-day-timeline">
-        <div class="mobile-day-timeline" style="min-height: ${timelineHeight}px; height: ${timelineHeight}px;">
-          ${hourMarkersHTML}
-          ${sectionMarkersHTML}
-          ${courseCardsHTML}
-          ${nowLineHTML}
-        </div>
-        <div class="scroll-hint-arrow" id="scroll-hint-arrow" style="display:none;">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-        </div>
-      </div>`;
-  }
-
   container.innerHTML = buildHTML();
 
-  // ===== Event listeners =====
   function attachEvents() {
-    // Week nav
     const prevBtn = document.getElementById('week-prev');
     const nextBtn = document.getElementById('week-next');
     const todayBtn = document.getElementById('week-today');
@@ -292,46 +258,53 @@ export function renderSchedule(container, state, dm) {
       rerender();
     });
 
-    // Mobile day picker
+    const searchToggleBtn = document.getElementById('search-toggle-btn');
+    if (searchToggleBtn) {
+      searchToggleBtn.addEventListener('click', () => {
+        scheduleState.searchOpen = !scheduleState.searchOpen;
+        rerender();
+        if (scheduleState.searchOpen) {
+          setTimeout(() => {
+            const input = document.getElementById('schedule-search');
+            if (input) input.focus();
+          }, 100);
+        }
+      });
+    }
+
+    const searchCloseBtn = document.getElementById('search-close-btn');
+    if (searchCloseBtn) {
+      searchCloseBtn.addEventListener('click', () => {
+        scheduleState.searchOpen = false;
+        rerender();
+      });
+    }
+
     const dayPicker = document.getElementById('mobile-day-picker');
     if (dayPicker) {
-      dayPicker.querySelectorAll('.mobile-day-chip').forEach(chip => {
+      dayPicker.querySelectorAll('.m-day-chip').forEach(chip => {
         chip.addEventListener('click', () => {
           scheduleState.selectedDay = parseInt(chip.dataset.day);
           rerender();
         });
       });
-
-      // Scroll active chip into view
-      requestAnimationFrame(() => {
-        const activeChip = dayPicker.querySelector('.mobile-day-chip.active');
-        if (activeChip) {
-          activeChip.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
-        }
-      });
     }
 
-    // Mobile timeline course cards
-    const timeline = document.getElementById('mobile-day-timeline');
-    if (timeline) {
-      timeline.querySelectorAll('.mobile-day-course-card').forEach(card => {
-        card.addEventListener('click', () => {
-          const idx = parseInt(card.dataset.courseIdx);
+    const agenda = document.getElementById('m-agenda');
+    if (agenda) {
+      agenda.querySelectorAll('.m-agenda-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const idx = parseInt(item.dataset.courseIdx);
           const dayCourses = dm.getCoursesByWeekday(state.currentClass, scheduleState.week, scheduleState.selectedDay);
           if (dayCourses[idx]) showCourseDetail(dayCourses[idx]);
         });
       });
 
-      // Auto-scroll to current time
-      requestAnimationFrame(() => {
-        scrollMobileTimelineToNow(timeline);
-      });
-
-      // Floating arrow for courses positioned low
-      setupScrollHintArrow(timeline);
+      if (isMobile()) {
+        attachSwipeGestures(agenda);
+      }
     }
 
-    // Desktop grid course cards
     container.querySelectorAll('.course-card').forEach(card => {
       card.addEventListener('click', () => {
         const [day, section] = card.dataset.courseId.split('-').map(Number);
@@ -341,7 +314,6 @@ export function renderSchedule(container, state, dm) {
       });
     });
 
-    // Search
     const searchInput = document.getElementById('schedule-search');
     if (searchInput) {
       let searchTimer;
@@ -363,16 +335,12 @@ export function renderSchedule(container, state, dm) {
               scheduleState.week = r.week;
               state.scheduleWeek = scheduleState.week;
               scheduleState.selectedDay = r.weekday || 1;
+              scheduleState.searchOpen = false;
               rerender();
             });
           });
         }, 250);
       });
-    }
-
-    // Swipe gestures for mobile day view
-    if (isMobile() && timeline) {
-      attachSwipeGestures(timeline);
     }
   }
 
@@ -380,13 +348,11 @@ export function renderSchedule(container, state, dm) {
     let startX = 0;
     let startY = 0;
     let isDragging = false;
-    let gestureType = null; // 'horizontal' | 'vertical'
+    let gestureType = null;
     const SWIPE_THRESHOLD = 50;
 
     function onTouchStart(e) {
-      // Ignore if starting on a course card (let click work)
-      if (e.target.closest('.mobile-day-course-card')) return;
-
+      if (e.target.closest('.m-agenda-item')) return;
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       isDragging = true;
@@ -395,16 +361,11 @@ export function renderSchedule(container, state, dm) {
 
     function onTouchMove(e) {
       if (!isDragging) return;
-
       const dx = e.touches[0].clientX - startX;
       const dy = e.touches[0].clientY - startY;
-
-      // Determine gesture direction on first significant movement
       if (!gestureType && Math.max(Math.abs(dx), Math.abs(dy)) > 10) {
         gestureType = Math.abs(dx) > Math.abs(dy) ? 'horizontal' : 'vertical';
       }
-
-      // Prevent default only for horizontal swipes
       if (gestureType === 'horizontal') {
         e.preventDefault();
       }
@@ -413,33 +374,26 @@ export function renderSchedule(container, state, dm) {
     function onTouchEnd(e) {
       if (!isDragging) return;
       isDragging = false;
-
       if (gestureType !== 'horizontal') return;
-
       const endX = e.changedTouches[0].clientX;
       const dx = endX - startX;
-
       if (Math.abs(dx) < SWIPE_THRESHOLD) return;
 
       if (dx > 0) {
-        // Swipe right → previous day
         if (scheduleState.selectedDay > 1) {
           scheduleState.selectedDay--;
           rerender();
         } else if (scheduleState.week > 1) {
-          // Go to previous week, last day
           scheduleState.week--;
           state.scheduleWeek = scheduleState.week;
           scheduleState.selectedDay = 5;
           rerender();
         }
       } else {
-        // Swipe left → next day
         if (scheduleState.selectedDay < 5) {
           scheduleState.selectedDay++;
           rerender();
         } else if (scheduleState.week < info.lastWeek) {
-          // Go to next week, first day
           scheduleState.week++;
           state.scheduleWeek = scheduleState.week;
           scheduleState.selectedDay = 1;
@@ -451,73 +405,6 @@ export function renderSchedule(container, state, dm) {
     el.addEventListener('touchstart', onTouchStart, { passive: true });
     el.addEventListener('touchmove', onTouchMove, { passive: false });
     el.addEventListener('touchend', onTouchEnd, { passive: true });
-  }
-
-  function scrollMobileTimelineToNow(timelineEl) {
-    if (!timelineEl) return;
-    const nowLine = timelineEl.querySelector('#mobile-now-line');
-    if (nowLine) {
-      const top = parseFloat(nowLine.style.top) || 0;
-      timelineEl.scrollTop = Math.max(0, top - timelineEl.clientHeight / 3);
-      return;
-    }
-
-    // If no now line, scroll to first course
-    const firstCard = timelineEl.querySelector('.mobile-day-course-card');
-    if (firstCard) {
-      timelineEl.scrollTop = Math.max(0, parseFloat(firstCard.style.top) - 20);
-    }
-  }
-
-  function setupScrollHintArrow(timelineEl) {
-    if (!timelineEl) return;
-    const arrow = timelineEl.querySelector('#scroll-hint-arrow');
-    if (!arrow) return;
-
-    const cards = timelineEl.querySelectorAll('.mobile-day-course-card');
-    if (cards.length === 0) return;
-
-    function updateArrowVisibility() {
-      const scrollTop = timelineEl.scrollTop;
-      const viewportBottom = scrollTop + timelineEl.clientHeight;
-      
-      let hasUnseenCourse = false;
-      for (let i = 0; i < cards.length; i++) {
-        const top = parseFloat(cards[i].style.top) || 0;
-        if (top > viewportBottom - 40) {
-          hasUnseenCourse = true;
-          break;
-        }
-      }
-
-      if (hasUnseenCourse) {
-        arrow.style.display = 'flex';
-      } else {
-        arrow.style.display = 'none';
-      }
-    }
-
-    arrow.addEventListener('click', () => {
-      const scrollTop = timelineEl.scrollTop;
-      const viewportBottom = scrollTop + timelineEl.clientHeight;
-      let targetTop = 0;
-      for (let i = 0; i < cards.length; i++) {
-        const top = parseFloat(cards[i].style.top) || 0;
-        if (top > viewportBottom - 40) {
-          targetTop = Math.max(0, top - timelineEl.clientHeight / 3);
-          break;
-        }
-      }
-      timelineEl.scrollTo({ top: targetTop, behavior: 'smooth' });
-    });
-
-    timelineEl.addEventListener('scroll', updateArrowVisibility, { passive: true });
-    updateArrowVisibility();
-  }
-
-  function rerender() {
-    container.innerHTML = buildHTML();
-    attachEvents();
   }
 
   function renderSearchResults(results) {
@@ -539,29 +426,19 @@ export function renderSchedule(container, state, dm) {
       </div>`).join('')}</div>`;
   }
 
+  function rerender() {
+    container.innerHTML = buildHTML();
+    attachEvents();
+  }
+
   attachEvents();
 
-  // Tick handler - update now line every minute (mobile) or highlight current course (desktop)
   let lastMinute = new Date().getMinutes();
   tickHandler = () => {
     const now = new Date();
     if (now.getMinutes() !== lastMinute && scheduleState.week === Math.max(1, getCurrentWeek(info.semesterStart))) {
       lastMinute = now.getMinutes();
 
-      // Update now line position on mobile
-      const nowLine = document.getElementById('mobile-now-line');
-      if (nowLine) {
-        const dayStartMinutes = 8 * 60;
-        const pixelsPerMinute = 1.1;
-        const nowMins = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
-        const nowTop = (nowMins - dayStartMinutes) * pixelsPerMinute;
-        nowLine.style.top = `${nowTop}px`;
-        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-        const timeSpan = nowLine.querySelector('.now-time');
-        if (timeSpan) timeSpan.textContent = timeStr;
-      }
-
-      // Update status classes for desktop cards
       container.querySelectorAll('.course-card').forEach(card => {
         if (!card.dataset.courseId) return;
         const [day, section] = card.dataset.courseId.split('-').map(Number);
@@ -571,7 +448,7 @@ export function renderSchedule(container, state, dm) {
           const isPast = c.endDateTime && now >= c.endDateTime;
           const isCurrent = c.startDateTime && c.endDateTime && now >= c.startDateTime && now < c.endDateTime;
           const isToday = c.date === now.toISOString().slice(0, 10);
-          
+
           card.classList.remove('past', 'today', 'current');
           if (isPast) card.classList.add('past');
           if (isToday && !isPast) card.classList.add('today');
@@ -579,19 +456,18 @@ export function renderSchedule(container, state, dm) {
         }
       });
 
-      // Update status classes for mobile cards
-      container.querySelectorAll('.mobile-day-course-card').forEach(card => {
-        if (card.dataset.courseIdx == null) return;
-        const idx = parseInt(card.dataset.courseIdx);
+      container.querySelectorAll('.m-agenda-item').forEach(item => {
+        if (item.dataset.courseIdx == null) return;
+        const idx = parseInt(item.dataset.courseIdx);
         const dayCourses = dm.getCoursesByWeekday(state.currentClass, scheduleState.week, scheduleState.selectedDay);
         const c = dayCourses[idx];
         if (c) {
           const isPast = c.endDateTime && now >= c.endDateTime;
           const isCurrent = c.startDateTime && c.endDateTime && now >= c.startDateTime && now < c.endDateTime;
-          
-          card.classList.remove('past', 'current');
-          if (isPast) card.classList.add('past');
-          if (isCurrent) card.classList.add('current');
+
+          item.classList.remove('past', 'current');
+          if (isPast) item.classList.add('past');
+          if (isCurrent) item.classList.add('current');
         }
       });
     }
