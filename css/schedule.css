@@ -9,12 +9,13 @@
   justify-content: space-between;
   gap: 16px;
   margin-bottom: 16px;
+  min-width: 0;
 }
 
 .sch-header-left {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -137,6 +138,7 @@
   border-radius: var(--radius-sm);
   margin-bottom: 16px;
   animation: searchSlideDown var(--duration-fast) var(--ease-out);
+  min-width: 0;
 }
 
 @keyframes searchSlideDown {
@@ -159,6 +161,7 @@
   font-size: 13px;
   color: var(--color-text);
   padding: 2px 0;
+  min-width: 0;
 }
 
 .sch-search-input::placeholder { color: var(--color-text-tertiary); }
@@ -182,6 +185,7 @@
   border-radius: var(--radius-md);
   overflow: hidden;
   margin-bottom: 20px;
+  max-width: 100%;
 }
 
 .sch-grid {
@@ -189,6 +193,7 @@
   grid-template-columns: 52px repeat(5, 1fr);
   position: relative;
   background: var(--color-surface);
+  min-width: 0;
 }
 
 .sch-grid-corner {
@@ -303,6 +308,7 @@
   border-right: 1px solid var(--color-border-light);
   border-bottom: 1px solid var(--color-border-light);
   background: var(--color-surface);
+  min-width: 0;
 }
 
 .sch-course:hover {
@@ -367,24 +373,24 @@
 }
 
 /* Course states */
-.sch-course.past {
+.sch-course.finished {
   opacity: 0.35;
 }
 
-.sch-course.past .sch-course-bar {
+.sch-course.finished .sch-course-bar {
   background: var(--color-text-tertiary);
 }
 
-.sch-course.current {
+.sch-course.in-progress {
   background: hsl(var(--course-hue), 80%, 96%);
   z-index: 2;
 }
 
-.sch-course.current .sch-course-bar {
+.sch-course.in-progress .sch-course-bar {
   width: 4px;
 }
 
-.sch-course.current .sch-course-name {
+.sch-course.in-progress .sch-course-name {
   color: hsl(var(--course-hue), 80%, 35%);
 }
 
@@ -487,6 +493,7 @@
   border-top: 1px solid var(--color-border);
   padding-top: 16px;
   margin-top: 8px;
+  min-width: 0;
 }
 
 .sch-summary-label {
@@ -503,16 +510,18 @@
   grid-template-columns: repeat(5, 1fr);
   gap: 8px;
   margin-bottom: 16px;
+  min-width: 0;
 }
 
 .sch-stat-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   padding: 8px;
   background: var(--color-surface);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-sm);
+  min-width: 0;
 }
 
 .sch-stat-num {
@@ -521,6 +530,7 @@
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
+  white-space: nowrap;
 }
 
 .sch-stat-label {
@@ -534,6 +544,7 @@
 /* Week Load */
 .sch-load {
   margin-bottom: 16px;
+  min-width: 0;
 }
 
 .sch-load-label {
@@ -551,6 +562,7 @@
   gap: 4px;
   align-items: end;
   height: 60px;
+  min-width: 0;
 }
 
 .sch-load-col {
@@ -560,6 +572,7 @@
   height: 100%;
   justify-content: flex-end;
   gap: 4px;
+  min-width: 0;
 }
 
 .sch-load-bar {
@@ -591,6 +604,7 @@
   background: rgba(239, 68, 68, 0.05);
   border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: var(--radius-sm);
+  min-width: 0;
 }
 
 .sch-conflict-label {
@@ -764,6 +778,7 @@
   padding-bottom: 4px;
   margin-bottom: 12px;
   scrollbar-width: none;
+  max-width: 100%;
 }
 
 .m-day-picker::-webkit-scrollbar { display: none; }
@@ -853,6 +868,7 @@
   display: flex;
   flex-direction: column;
   position: relative;
+  min-width: 0;
 }
 
 .m-agenda-item {
@@ -862,6 +878,7 @@
   cursor: pointer;
   position: relative;
   transition: opacity var(--transition-fast);
+  min-width: 0;
 }
 
 .m-agenda-item:active {
@@ -967,15 +984,15 @@
 }
 
 /* Agenda item states */
-.m-agenda-item.past {
+.m-agenda-item.finished {
   opacity: 0.4;
 }
 
-.m-agenda-item.past .m-ag-bar {
+.m-agenda-item.finished .m-ag-bar {
   background: var(--color-text-tertiary);
 }
 
-.m-agenda-item.current .m-ag-name {
+.m-agenda-item.in-progress .m-ag-name {
   color: hsl(var(--course-hue), 80%, 35%);
 }
 

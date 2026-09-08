@@ -9,14 +9,15 @@
 .today-main {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 16px;
   min-width: 0;
 }
 
 .today-side {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 16px;
+  min-width: 0;
 }
 
 /* ===== Section Labels ===== */
@@ -33,7 +34,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
+  min-width: 0;
 }
 
 /* ===== Header Row ===== */
@@ -83,6 +85,7 @@
   border-left: 2px solid var(--color-border);
   padding-left: 16px;
   transition: border-color var(--transition-fast);
+  min-width: 0;
 }
 
 .today-status.accent-primary { border-left-color: var(--color-primary); }
@@ -100,7 +103,8 @@
 .status-main {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
+  min-width: 0;
 }
 
 .status-tag {
@@ -338,14 +342,15 @@
   border-top: 1px solid var(--color-border);
   border-bottom: 1px solid var(--color-border);
   padding: 8px 0;
+  min-width: 0;
 }
 
 .stat-inline {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  padding: 0 10px;
+  gap: 4px;
+  padding: 0 12px;
   border-right: 1px solid var(--color-border-light);
   min-width: 0;
 }
@@ -368,13 +373,15 @@
   font-weight: 700;
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* ===== Semester Progress ===== */
 .today-semester {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .semester-week {
@@ -382,6 +389,7 @@
   align-items: baseline;
   gap: 4px;
   flex-wrap: wrap;
+  min-width: 0;
 }
 
 .semester-week-num {
@@ -434,19 +442,22 @@
 .today-freetime {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .freetime-row {
   display: flex;
   gap: 16px;
+  min-width: 0;
 }
 
 .freetime-item {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 4px;
+  min-width: 0;
 }
 
 .freetime-label {
@@ -459,13 +470,15 @@
   font-weight: 700;
   color: var(--color-text);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* ===== Next class day (no class today) ===== */
 .today-next-day {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
+  min-width: 0;
 }
 
 .next-day-date {
@@ -544,12 +557,14 @@
 /* ===== Timeline ===== */
 .today-timeline-section {
   margin-top: 4px;
+  min-width: 0;
 }
 
 .today-timeline {
   display: flex;
   flex-direction: column;
   position: relative;
+  min-width: 0;
 }
 
 .tl-empty {
@@ -563,11 +578,12 @@
   display: flex;
   align-items: stretch;
   gap: 12px;
-  padding: 7px 0;
+  padding: 8px 0;
   cursor: pointer;
   transition: background var(--transition-fast);
   border-radius: var(--radius-sm);
   position: relative;
+  min-width: 0;
 }
 
 .tl-item:active {
@@ -673,17 +689,17 @@
   color: var(--color-text-tertiary);
 }
 
-/* Past state */
-.tl-item.tl-past {
+/* Past / Finished state */
+.tl-item.tl-finished {
   opacity: 0.4;
 }
 
-.tl-item.tl-past .tl-marker {
+.tl-item.tl-finished .tl-marker {
   background: var(--color-text-tertiary);
 }
 
-/* Current state */
-.tl-item.tl-current .tl-name {
+/* Current / In-progress state */
+.tl-item.tl-in-progress .tl-name {
   color: var(--color-primary);
 }
 

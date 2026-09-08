@@ -51,7 +51,7 @@ export function renderCompare(container, state, dm) {
     for (let i = 0; i < 3; i++) {
       html += `
         <div class="compare-selector">
-          <label>班级 ${String.fromCharCode(65 + i)}</label>
+          <label>${['一班', '二班', '三班'][i]}</label>
           <select class="compare-select" data-idx="${i}">
             ${allClasses.map(c => `<option value="${c.className}" ${c.className === compareState.classes[i] ? 'selected' : ''}>${c.className}</option>`).join('')}
           </select>
@@ -103,11 +103,11 @@ export function renderCompare(container, state, dm) {
         <div class="analytics-card">
           <div class="analytics-card-title">${cn}</div>
           <div class="compare-stats-list">
-            <div class="compare-stat-row"><span>课程种类</span><span class="mono">${courseTypes}</span></div>
-            <div class="compare-stat-row"><span>上课次数</span><span class="mono">${totalSessions}</span></div>
-            <div class="compare-stat-row"><span>总节数</span><span class="mono">${totalSections}</span></div>
-            <div class="compare-stat-row"><span>总课时</span><span class="mono">${totalHours}h</span></div>
-            <div class="compare-stat-row"><span>平均每周</span><span class="mono">${avgHours}h</span></div>
+            <div class="compare-stat-row"><span>课程类型 / 门</span><span class="mono">${courseTypes}</span></div>
+            <div class="compare-stat-row"><span>课程安排 / 次</span><span class="mono">${totalSessions}</span></div>
+            <div class="compare-stat-row"><span>总节次 / 节</span><span class="mono">${totalSections}</span></div>
+            <div class="compare-stat-row"><span>教学时长 / 小时</span><span class="mono">${totalHours}</span></div>
+            <div class="compare-stat-row"><span>平均每周 / 小时</span><span class="mono">${avgHours}</span></div>
           </div>
         </div>`;
     }
@@ -175,7 +175,7 @@ export function renderCompare(container, state, dm) {
         const cn = compareState.classes[i];
         if (!cn) { html += `<td></td>`; continue; }
         const stats = dm.getWeekStats(cn, w);
-        html += `<td class="mono">${stats.courseCount}课 · ${stats.totalSections}节 · ${stats.totalHours}h</td>`;
+        html += `<td class="mono">${stats.courseCount}课 · ${stats.totalSections}节 · ${stats.totalHours}小时</td>`;
       }
       html += `</tr>`;
     }
@@ -207,9 +207,9 @@ export function renderCompare(container, state, dm) {
         <div class="analytics-card">
           <div class="analytics-card-title">${cn}</div>
           <div class="compare-stats-list">
-            <div class="compare-stat-row"><span>本周无课</span><span class="mono">${summary.totalFreeHours}h</span></div>
-            <div class="compare-stat-row"><span>最忙</span><span>${busiest || '—'}</span></div>
-            <div class="compare-stat-row"><span>最轻松</span><span>${lightest || '—'}</span></div>
+            <div class="compare-stat-row"><span>本周无课 / 小时</span><span class="mono">${summary.totalFreeHours}</span></div>
+            <div class="compare-stat-row"><span>最忙日</span><span>${busiest || '—'}</span></div>
+            <div class="compare-stat-row"><span>最轻松日</span><span>${lightest || '—'}</span></div>
           </div>
         </div>`;
     }

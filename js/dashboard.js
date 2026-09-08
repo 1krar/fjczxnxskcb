@@ -1,4 +1,4 @@
-import { formatClockDisplay, formatCountdown, getTodayStr, getDayName, formatDate, getCurrentWeek, getWeekDates } from './time.js';
+import { formatClockDisplay, formatCountdown, getTodayStr, getDayName, formatDate, getCurrentWeek, getWeekDates, getCourseState, getNextCourse, getCurrentCourse } from './time.js';
 import { showCourseDetail } from './app.js';
 
 let tickHandler = null;
@@ -24,10 +24,10 @@ function getTodayState(courses, now) {
   }
 
   // Current course
-  const current = courses.find(c => c.startDateTime && c.endDateTime && now >= c.startDateTime && now < c.endDateTime);
+  const current = getCurrentCourse(courses, now);
   if (current) {
     const idx = courses.indexOf(current);
-    const next = idx < courses.length - 1 ? courses[idx + 1] : null;
+    const next = getNextCourse(courses, now);
     const prev = idx > 0 ? courses[idx - 1] : null;
     const remaining = courses.length - idx - 1;
     return {
@@ -41,7 +41,7 @@ function getTodayState(courses, now) {
   }
 
   // Find next and previous courses
-  const next = courses.find(c => c.startDateTime && c.startDateTime > now);
+  const next = getNextCourse(courses, now);
   const past = courses.filter(c => c.endDateTime && c.endDateTime <= now);
   const prev = past.length > 0 ? past[past.length - 1] : null;
 
@@ -168,7 +168,7 @@ function calculateFreeTime(courses, now) {
   }
 
   // Next free time (when currently in class)
-  const current = courses.find(c => c.startDateTime && c.endDateTime && now >= c.startDateTime && now < c.endDateTime);
+  const current = getCurrentCourse(courses, now);
   if (current) {
     const idx = courses.indexOf(current);
     if (idx < courses.length - 1) {
@@ -360,7 +360,7 @@ function buildTodayHTML({ courses, dashState, freeTimeInfo, semProgress, todaySt
       <!-- RIGHT COLUMN: Progress + Info -->
       <div class="today-side">
         <div class="today-semester">
-          <div class="section-label">SEMESTER</div>
+          <div class="section-label">学期</div>
           <div class="semester-week">
             <span class="mono semester-week-num">${String(semProgress.currentWeek).padStart(2, '0')}</span>
             <span class="semester-week-divider">/</span>
@@ -535,14 +535,14 @@ function renderTimeline(courses, dashState, now, state) {
 
   for (let i = 0; i < courses.length; i++) {
     const c = courses[i];
-    const isPast = c.endDateTime && now >= c.endDateTime;
-    const isCurrent = c.startDateTime && c.endDateTime && now >= c.startDateTime && now < c.endDateTime;
+    const courseState = getCourseState(c, now);
     const next = i < courses.length - 1 ? courses[i + 1] : null;
-    const isNext = !isCurrent && !isPast && c === dashState.nextCourse;
+    const nextCourse = getNextCourse(courses, now);
+    const isNext = courseState === 'before' && c === nextCourse;
 
-    let stateClass = 'tl-upcoming';
-    if (isPast) stateClass = 'tl-past';
-    if (isCurrent) stateClass = 'tl-current';
+    let stateClass = 'tl-before';
+    if (courseState === 'finished') stateClass = 'tl-finished';
+    if (courseState === 'in_progress') stateClass = 'tl-in-progress';
     if (isNext) stateClass += ' tl-next';
 
     items.push(`
@@ -551,7 +551,7 @@ function renderTimeline(courses, dashState, now, state) {
           <span class="tl-start">${c.startTime}</span>
           <span class="tl-end">${c.endTime}</span>
         </div>
-        <div class="tl-marker ${isCurrent ? 'active' : ''}"></div>
+        <div class="tl-marker ${courseState === 'in_progress' ? 'active' : ''}"></div>
         <div class="tl-content">
           <div class="tl-name">${c.courseName}</div>
           <div class="tl-meta">
@@ -732,16 +732,15 @@ function tick(container, state, dm) {
     itemEls.forEach((itemEl, idx) => {
       const c = courses[idx];
       if (!c) return;
-      const isPast = c.endDateTime && now >= c.endDateTime;
-      const isCurrent = c.startDateTime && c.endDateTime && now >= c.startDateTime && now < c.endDateTime;
+      const courseState = getCourseState(c, now);
 
-      itemEl.classList.remove('tl-past', 'tl-current', 'tl-upcoming');
-      if (isPast) itemEl.classList.add('tl-past');
-      else if (isCurrent) itemEl.classList.add('tl-current');
-      else itemEl.classList.add('tl-upcoming');
+      itemEl.classList.remove('tl-finished', 'tl-in-progress', 'tl-before');
+      if (courseState === 'finished') itemEl.classList.add('tl-finished');
+      else if (courseState === 'in_progress') itemEl.classList.add('tl-in-progress');
+      else itemEl.classList.add('tl-before');
 
       const marker = itemEl.querySelector('.tl-marker');
-      if (marker) marker.classList.toggle('active', isCurrent);
+      if (marker) marker.classList.toggle('active', courseState === 'in_progress');
     });
 
     // Update end state

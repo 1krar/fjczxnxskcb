@@ -129,3 +129,34 @@ export function isSameDay(dateStr1, dateStr2) {
 export function clampWeek(week, firstWeek, lastWeek) {
   return Math.max(firstWeek, Math.min(lastWeek, week));
 }
+
+// ========== Course State (shared between TODAY and SCHEDULE) ==========
+// Unified course state logic: before / in_progress / finished
+// Plus: getNextCourse — find the first upcoming course after now
+
+export function getCourseState(course, now) {
+  if (!course || !course.startDateTime || !course.endDateTime) return 'before';
+  if (now >= course.endDateTime) return 'finished';
+  if (now >= course.startDateTime && now < course.endDateTime) return 'in_progress';
+  return 'before';
+}
+
+export function getNextCourse(courses, now) {
+  if (!courses || courses.length === 0) return null;
+  const upcoming = courses.filter(c => {
+    if (!c.startDateTime) return false;
+    return c.startDateTime > now;
+  });
+  if (upcoming.length === 0) return null;
+  return upcoming.reduce((earliest, c) =>
+    !earliest || c.startDateTime < earliest.startDateTime ? c : earliest
+  , null);
+}
+
+export function getCurrentCourse(courses, now) {
+  if (!courses || courses.length === 0) return null;
+  return courses.find(c => {
+    if (!c.startDateTime || !c.endDateTime) return false;
+    return now >= c.startDateTime && now < c.endDateTime;
+  }) || null;
+}

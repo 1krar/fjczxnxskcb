@@ -1,4 +1,4 @@
-import { getCurrentWeek, getWeekDates, formatClockDisplay, formatDateShort, getDayName, getSectionTime } from './time.js';
+import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse } from './time.js';
 import { showCourseDetail } from './app.js';
 
 let tickHandler = null;
@@ -13,7 +13,6 @@ function getCourseColor(courseName) {
     hash = ((hash << 5) - hash) + courseName.charCodeAt(i);
     hash |= 0;
   }
-  // Blue palette: hue 200-230 (variations of blue)
   return 200 + (Math.abs(hash) % 31);
 }
 
@@ -167,18 +166,9 @@ function getCurrentTimePosition(sectionTimes, season, now) {
   return { topPercent: Math.max(0, Math.min(100, topPercent)), visible: true };
 }
 
-// ========== Course State ==========
-function getCourseState(course, now) {
-  if (!course.startDateTime || !course.endDateTime) return 'upcoming';
-  if (now >= course.endDateTime) return 'past';
-  if (now >= course.startDateTime && now < course.endDateTime) return 'current';
-  return 'upcoming';
-}
-
-// ========== Next Course for the day ==========
+// ========== Next Course (uses unified getNextCourse from time.js) ==========
 function getNextCourseOfDay(courses, now) {
-  const upcoming = courses.filter(c => c.startDateTime && c.startDateTime > now);
-  return upcoming.length > 0 ? upcoming[0] : null;
+  return getNextCourse(courses, now);
 }
 
 // ========== Main Render ==========
@@ -241,7 +231,7 @@ export function renderSchedule(container, state, dm) {
     let html = `
       <div class="sch-header">
         <div class="sch-header-left">
-          <div class="sch-title-label">SCHEDULE</div>
+          <div class="sch-title-label">课表</div>
           <div class="sch-class-name">${state.currentClass}</div>
         </div>
         <div class="sch-week-nav">
@@ -249,7 +239,7 @@ export function renderSchedule(container, state, dm) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
           </button>
           <div class="sch-week-info">
-            <div class="sch-week-main">WEEK ${String(week).padStart(2, '0')}</div>
+            <div class="sch-week-main">第 ${week} 周</div>
             <div class="sch-week-sub mono">${weekDates[0].slice(5)} — ${weekDates[4].slice(5)}</div>
           </div>
           <button class="sch-week-btn" id="week-next" ${week >= info.lastWeek ? 'disabled' : ''}>
@@ -258,7 +248,7 @@ export function renderSchedule(container, state, dm) {
           ${!isCurrentWeek ? `<button class="sch-today-btn" id="week-today">本周</button>` : ''}
         </div>
         <div class="sch-header-right">
-          <button class="sch-search-btn" id="search-toggle-btn">
+          <button class="sch-search-btn" id="search-toggle-btn" title="搜索">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           </button>
         </div>
@@ -269,7 +259,7 @@ export function renderSchedule(container, state, dm) {
         <div class="sch-search-bar" id="sch-search-bar">
           <svg class="sch-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           <input type="text" class="sch-search-input" id="schedule-search" placeholder="搜索课程、教师、教室…" />
-          <button class="sch-search-close" id="search-close-btn">✕</button>
+          <button class="sch-search-close" id="search-close-btn">关闭</button>
         </div>`;
     }
 
@@ -325,15 +315,16 @@ export function renderSchedule(container, state, dm) {
         const course = coursesByDay[d].find(c => c.startSection === s);
         if (course) {
           const span = course.endSection - course.startSection + 1;
-          const courseState = getCourseState(course, now);
-          const isNext = courseState === 'upcoming' && course === getNextCourseOfDay(coursesByDay[d], now);
+          const cState = getCourseState(course, now);
+          const nextCourse = getNextCourse(coursesByDay[d], now);
+          const isNext = nextCourse && course === nextCourse;
           const hasConflict = conflicts.some(c => c.day === d && c.courses.includes(course));
           const hue = getCourseColor(course.courseName);
 
           let cardClass = 'sch-course';
-          if (courseState === 'past') cardClass += ' past';
-          if (courseState === 'current') cardClass += ' current';
-          if (isNext && courseState === 'upcoming') cardClass += ' next';
+          if (cState === 'finished') cardClass += ' finished';
+          if (cState === 'in_progress') cardClass += ' in-progress';
+          if (isNext && cState === 'before') cardClass += ' next';
           if (hasConflict) cardClass += ' conflict';
 
           gridHTML += `<div class="${cardClass}" style="grid-row:${s + 1} / span ${span};grid-column:${d + 1};--course-hue:${hue}deg;" data-course-id="${d}-${s}">
@@ -390,7 +381,7 @@ export function renderSchedule(container, state, dm) {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
           </button>
           <div class="m-sch-week-info">
-            <span class="m-sch-week-main">WEEK ${String(week).padStart(2, '0')}</span>
+            <span class="m-sch-week-main">第 ${week} 周</span>
             <span class="m-sch-week-sub mono">${weekDates[0].slice(5)} — ${weekDates[4].slice(5)}</span>
           </div>
           <button class="m-sch-week-btn" id="week-next" ${week >= info.lastWeek ? 'disabled' : ''}>
@@ -420,19 +411,19 @@ export function renderSchedule(container, state, dm) {
       const dayNum = dateStr.slice(8);
       html += `
         <button class="m-day-chip ${isDayToday ? 'today' : ''} ${isActive ? 'active' : ''}" data-day="${d + 1}">
-          <span class="m-day-chip-name">${dayNames[d]}</span>
+          <span class="m-day-chip-name">周${dayNames[d]}</span>
           <span class="m-day-chip-date mono">${parseInt(dayNum)}</span>
         </button>`;
     }
     html += `</div>`;
 
     // Day title
-    const fullDayNames = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'];
+    const fullDayNames = ['周一', '周二', '周三', '周四', '周五'];
     html += `
       <div class="m-day-title-row">
         <span class="m-day-title">${fullDayNames[selectedDay - 1]}</span>
         <span class="m-day-title-date mono">${dayDateStr.slice(5)}</span>
-        ${isDayToday ? '<span class="m-day-today-badge">TODAY</span>' : ''}
+        ${isDayToday ? '<span class="m-day-today-badge">今天</span>' : ''}
       </div>`;
 
     // Agenda
@@ -441,29 +432,30 @@ export function renderSchedule(container, state, dm) {
     if (dayCourses.length === 0) {
       html += `
         <div class="m-agenda-empty">
-          <div class="m-agenda-empty-title">NO CLASSES</div>
-          <div class="m-agenda-empty-sub">FREE DAY</div>
+          <div class="m-agenda-empty-title">今日无课</div>
+          <div class="m-agenda-empty-sub">空闲日</div>
           <div class="m-agenda-empty-stats">
             <div class="m-empty-stat">
               <span class="m-empty-stat-num mono">00</span>
-              <span class="m-empty-stat-label">COURSES</span>
+              <span class="m-empty-stat-label">课程</span>
             </div>
             <div class="m-empty-stat">
               <span class="m-empty-stat-num mono">00</span>
-              <span class="m-empty-stat-label">PERIODS</span>
+              <span class="m-empty-stat-label">节次</span>
             </div>
           </div>
         </div>`;
     } else {
       for (let i = 0; i < dayCourses.length; i++) {
         const c = dayCourses[i];
-        const courseState = getCourseState(c, now);
-        const isNext = courseState === 'upcoming' && c === getNextCourseOfDay(dayCourses, now);
+        const cState = getCourseState(c, now);
+        const nextCourse = getNextCourse(dayCourses, now);
+        const isNext = nextCourse && c === nextCourse;
         const hue = getCourseColor(c.courseName);
 
         let itemClass = 'm-agenda-item';
-        if (courseState === 'past') itemClass += ' past';
-        if (courseState === 'current') itemClass += ' current';
+        if (cState === 'finished') itemClass += ' finished';
+        if (cState === 'in_progress') itemClass += ' in-progress';
         if (isNext) itemClass += ' next';
 
         html += `
@@ -474,8 +466,8 @@ export function renderSchedule(container, state, dm) {
             </div>
             <div class="m-ag-bar"></div>
             <div class="m-ag-body">
-              ${courseState === 'current' ? '<div class="m-ag-now-tag">NOW</div>' : ''}
-              ${isNext ? '<div class="m-ag-next-tag">NEXT</div>' : ''}
+              ${cState === 'in_progress' ? '<div class="m-ag-now-tag">正在上课</div>' : ''}
+              ${isNext && cState === 'before' ? '<div class="m-ag-next-tag">下一节</div>' : ''}
               <div class="m-ag-name">${c.courseName}</div>
               <div class="m-ag-meta">
                 ${c.location ? `<span class="m-ag-loc">${c.location}</span>` : ''}
@@ -486,10 +478,10 @@ export function renderSchedule(container, state, dm) {
           </div>`;
 
         // Free interval after this course
-        const nextCourse = i < dayCourses.length - 1 ? dayCourses[i + 1] : null;
+        const nextCourseItem = i < dayCourses.length - 1 ? dayCourses[i + 1] : null;
         const freeInterval = freeIntervals.find(f => {
-          if (!c.endTime || !nextCourse?.startTime) return false;
-          return f.start === c.endTime && f.end === nextCourse.startTime;
+          if (!c.endTime || !nextCourseItem?.startTime) return false;
+          return f.start === c.endTime && f.end === nextCourseItem.startTime;
         });
         if (freeInterval) {
           const isNowInFree = now >= new Date(c.date + 'T' + freeInterval.start + ':00') &&
@@ -499,7 +491,7 @@ export function renderSchedule(container, state, dm) {
               <div class="m-ag-free-line"></div>
               <div class="m-ag-free-text mono">
                 ${isNowInFree ? '<span class="m-ag-free-now">空闲中</span>' : ''}
-                <span>FREE · ${formatMinCompact(freeInterval.durationMin)}</span>
+                <span>空闲 · ${formatMinCompact(freeInterval.durationMin)}</span>
               </div>
               <div class="m-ag-free-line"></div>
             </div>`;
@@ -519,36 +511,36 @@ export function renderSchedule(container, state, dm) {
   // ========== Week Summary ==========
   function buildWeekSummary(stats, conflicts, mode) {
     const maxPeriods = Math.max(...Object.values(stats.byDay));
-    const dayNames = ['MON', 'TUE', 'WED', 'THU', 'FRI'];
+    const dayNames = ['一', '二', '三', '四', '五'];
 
     return `
       <div class="sch-week-summary">
-        <div class="sch-summary-label">WEEK SUMMARY</div>
+        <div class="sch-summary-label">本周概览</div>
         <div class="sch-summary-stats">
           <div class="sch-stat-item">
             <span class="sch-stat-num mono">${String(stats.uniqueCourseCount).padStart(2, '0')}</span>
-            <span class="sch-stat-label">COURSES</span>
+            <span class="sch-stat-label">课程 / 门</span>
           </div>
           <div class="sch-stat-item">
             <span class="sch-stat-num mono">${String(stats.totalPeriods).padStart(2, '0')}</span>
-            <span class="sch-stat-label">PERIODS</span>
+            <span class="sch-stat-label">节次 / 节</span>
           </div>
           <div class="sch-stat-item">
-            <span class="sch-stat-num mono">${stats.totalHours}h</span>
-            <span class="sch-stat-label">HOURS</span>
+            <span class="sch-stat-num mono">${stats.totalHours}</span>
+            <span class="sch-stat-label">课时 / 小时</span>
           </div>
           <div class="sch-stat-item">
-            <span class="sch-stat-num">${stats.busiestDayName}</span>
-            <span class="sch-stat-label">BUSIEST</span>
+            <span class="sch-stat-num">周${stats.busiestDayName}</span>
+            <span class="sch-stat-label">最忙</span>
           </div>
           <div class="sch-stat-item">
             <span class="sch-stat-num mono">${formatMinCompact(Math.round(stats.totalFreeMin / 5))}</span>
-            <span class="sch-stat-label">FREE/DAY</span>
+            <span class="sch-stat-label">日均空闲</span>
           </div>
         </div>
 
         <div class="sch-load">
-          <div class="sch-load-label">WEEK LOAD</div>
+          <div class="sch-load-label">本周课程负荷</div>
           <div class="sch-load-bars">
             ${[1,2,3,4,5].map(d => {
               const periods = stats.byDay[d] || 0;
@@ -557,7 +549,7 @@ export function renderSchedule(container, state, dm) {
               return `
                 <div class="sch-load-col ${isBusiest ? 'busiest' : ''}">
                   <div class="sch-load-bar" style="height:${height}%;"></div>
-                  <div class="sch-load-day">${dayNames[d-1]}</div>
+                  <div class="sch-load-day">周${dayNames[d-1]}</div>
                 </div>`;
             }).join('')}
           </div>
@@ -565,11 +557,11 @@ export function renderSchedule(container, state, dm) {
 
         ${conflicts.length > 0 ? `
           <div class="sch-conflicts">
-            <div class="sch-conflict-label">⚠ ${conflicts.length} SCHEDULE CONFLICT${conflicts.length > 1 ? 'S' : ''}</div>
+            <div class="sch-conflict-label">⚠ 检测到 ${conflicts.length} 个课程冲突</div>
             ${conflicts.slice(0, 3).map(c => `
               <div class="sch-conflict-item">
                 <span>周${['一','二','三','四','五'][c.day-1]} 第${c.sections}节</span>
-                <span>${c.type === 'room' ? `教室冲突: ${c.room}` : '时间冲突'}</span>
+                <span>${c.type === 'room' ? `教室冲突：${c.room}` : '时间冲突'}</span>
               </div>`).join('')}
           </div>` : ''}
       </div>`;
@@ -638,13 +630,14 @@ export function renderSchedule(container, state, dm) {
       const c = courses.find(course => course.startSection === section);
       if (!c) return;
 
-      const courseState = getCourseState(c, now);
-      const isNext = courseState === 'upcoming' && c === getNextCourseOfDay(courses, now);
+      const cState = getCourseState(c, now);
+      const nextCourse = getNextCourse(courses, now);
+      const isNext = nextCourse && c === nextCourse;
 
-      card.classList.remove('past', 'current', 'next');
-      if (courseState === 'past') card.classList.add('past');
-      if (courseState === 'current') card.classList.add('current');
-      if (isNext) card.classList.add('next');
+      card.classList.remove('finished', 'in-progress', 'next');
+      if (cState === 'finished') card.classList.add('finished');
+      if (cState === 'in_progress') card.classList.add('in-progress');
+      if (isNext && cState === 'before') card.classList.add('next');
     });
 
     // Mobile agenda items
@@ -655,27 +648,28 @@ export function renderSchedule(container, state, dm) {
       const c = dayCourses[idx];
       if (!c) return;
 
-      const courseState = getCourseState(c, now);
-      const isNext = courseState === 'upcoming' && c === getNextCourseOfDay(dayCourses, now);
+      const cState = getCourseState(c, now);
+      const nextCourse = getNextCourse(dayCourses, now);
+      const isNext = nextCourse && c === nextCourse;
 
-      item.classList.remove('past', 'current', 'next');
-      if (courseState === 'past') item.classList.add('past');
-      if (courseState === 'current') item.classList.add('current');
-      if (isNext) item.classList.add('next');
+      item.classList.remove('finished', 'in-progress', 'next');
+      if (cState === 'finished') item.classList.add('finished');
+      if (cState === 'in_progress') item.classList.add('in-progress');
+      if (isNext && cState === 'before') item.classList.add('next');
 
       // Update NOW/NEXT tags
       const nowTag = item.querySelector('.m-ag-now-tag');
       const nextTag = item.querySelector('.m-ag-next-tag');
-      if (courseState === 'current' && !nowTag) {
+      if (cState === 'in_progress' && !nowTag) {
         const body = item.querySelector('.m-ag-body');
-        if (body) body.insertAdjacentHTML('afterbegin', '<div class="m-ag-now-tag">NOW</div>');
-      } else if (courseState !== 'current' && nowTag) {
+        if (body) body.insertAdjacentHTML('afterbegin', '<div class="m-ag-now-tag">正在上课</div>');
+      } else if (cState !== 'in_progress' && nowTag) {
         nowTag.remove();
       }
-      if (isNext && !nextTag) {
+      if (isNext && cState === 'before' && !nextTag) {
         const body = item.querySelector('.m-ag-body');
-        if (body) body.insertAdjacentHTML('afterbegin', '<div class="m-ag-next-tag">NEXT</div>');
-      } else if (!isNext && nextTag) {
+        if (body) body.insertAdjacentHTML('afterbegin', '<div class="m-ag-next-tag">下一节</div>');
+      } else if ((!isNext || cState !== 'before') && nextTag) {
         nextTag.remove();
       }
     });
@@ -802,20 +796,20 @@ export function renderSchedule(container, state, dm) {
 
   function renderSearchResults(results) {
     if (results.length === 0) {
-      return `<div class="sch-search-empty">没有找到相关课程</div>`;
+      return `<div class="sch-search-empty">未找到相关课程</div>`;
     }
     return `<div class="sch-search-results">
-      <div class="sch-search-count">找到 ${results.length} 个结果</div>
+      <div class="sch-search-count">共找到 ${results.length} 条结果</div>
       ${results.slice(0, 30).map((r, i) => `
         <div class="sch-search-item" data-result-idx="${i}">
           <div class="sch-search-name">${r.courseName}</div>
           <div class="sch-search-meta mono">
-            第${r.week}周 · 星期${['日','一','二','三','四','五','六'][new Date(r.date+'T00:00:00').getDay()]} · 第${r.startSection}-${r.endSection}节
+            第${r.week}周 · 周${['日','一','二','三','四','五','六'][new Date(r.date+'T00:00:00').getDay()]} · 第${r.startSection}-${r.endSection}节
           </div>
           <div class="sch-search-sub">
-            ${r.location ? `${r.location}` : ''}
-            ${r.teacher ? ` · ${r.teacher}` : ''}
-            ${r.className ? ` · ${r.className}` : ''}
+            ${r.location ? `教室：${r.location}` : ''}
+            ${r.teacher ? ` · 教师：${r.teacher}` : ''}
+            ${r.className ? ` · 班级：${r.className}` : ''}
           </div>
         </div>`).join('')}
     </div>`;

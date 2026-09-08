@@ -44,3 +44,6 @@ Desktop.ini
 *.tmp
 *.temp
 .cache/
+
+# TRAE local skills
+.trae/

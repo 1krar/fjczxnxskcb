@@ -43,7 +43,7 @@ export function renderData(container, state, dm) {
         <div class="analytics-card-title" style="padding:20px 20px 0;">班级列表</div>
         <div class="table-scroll">
           <table class="stat-table sticky-table sticky-first-col" style="min-width:480px;">
-            <thead><tr><th>班级名称</th><th>课程种类</th><th>上课次数</th><th>总节数</th><th>总课时</th></tr></thead>
+            <thead><tr><th>班级名称</th><th>课程类型 / 门</th><th>课程安排 / 次</th><th>总节次 / 节</th><th>教学时长 / 小时</th></tr></thead>
             <tbody>
               ${classes.map(c => {
                 const courses = dm.getCourses(c.className);
@@ -52,7 +52,7 @@ export function renderData(container, state, dm) {
                 const totalSessions = stats.reduce((sum, s) => sum + s.count, 0);
                 const totalSections = stats.reduce((sum, s) => sum + s.totalSections, 0);
                 const totalHours = stats.reduce((sum, s) => sum + s.totalHours, 0);
-                return `<tr><td style="font-weight:600;">${c.className}</td><td class="mono">${courseTypes}</td><td class="mono">${totalSessions}</td><td class="mono">${totalSections}</td><td class="mono">${totalHours}h</td></tr>`;
+                return `<tr><td style="font-weight:600;">${c.className}</td><td class="mono">${courseTypes}</td><td class="mono">${totalSessions}</td><td class="mono">${totalSections}</td><td class="mono">${totalHours}</td></tr>`;
               }).join('')}
             </tbody>
           </table>

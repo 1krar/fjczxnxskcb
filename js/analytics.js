@@ -100,15 +100,15 @@ function renderOverview(dm, className, week, info) {
         <div class="weekly-load">
           <div class="load-stat">
             <div class="load-stat-value">${weekStats.courseCount}</div>
-            <div class="load-stat-label">课程</div>
+            <div class="load-stat-label">课程 / 门</div>
           </div>
           <div class="load-stat">
             <div class="load-stat-value">${weekStats.totalSections}</div>
-            <div class="load-stat-label">节次</div>
+            <div class="load-stat-label">节次 / 节</div>
           </div>
           <div class="load-stat">
-            <div class="load-stat-value">${weekStats.totalHours}<span style="font-size:16px;">小时</span></div>
-            <div class="load-stat-label">教学时长</div>
+            <div class="load-stat-value">${weekStats.totalHours}</div>
+            <div class="load-stat-label">教学时长 / 小时</div>
           </div>
         </div>
         <div style="margin-top:16px;">
@@ -135,9 +135,9 @@ function renderCourseStats(dm, className) {
         <thead>
           <tr>
             <th>课程名称</th>
-            <th>上课次数</th>
-            <th>总节数</th>
-            <th>总课时</th>
+            <th>上课次数 / 次</th>
+            <th>总节数 / 节</th>
+            <th>总课时 / 小时</th>
             <th>主要教师</th>
             <th>主要教室</th>
           </tr>
@@ -153,7 +153,7 @@ function renderCourseStats(dm, className) {
               <td style="font-weight:600;">${s.courseName}</td>
               <td class="mono">${s.count}</td>
               <td class="mono">${s.totalSections}</td>
-              <td class="mono">${s.totalHours}h</td>
+              <td class="mono">${s.totalHours}</td>
               <td>${s.teachers.length > 0 ? s.teachers.join('、') : '<span class="muted">未提供</span>'}</td>
               <td class="locations-cell">
                 <span class="loc-first">${firstLoc}</span>
@@ -182,7 +182,7 @@ function renderCourseStats(dm, className) {
         <div class="table-scroll">
         <table class="stat-table sticky-table">
           <thead>
-            <tr><th>教师</th><th>授课次数</th><th>主要教室</th></tr>
+            <tr><th>教师</th><th>授课次数 / 次</th><th>主要教室</th></tr>
           </thead>
           <tbody>
             ${stats.map(t => `
@@ -208,7 +208,7 @@ function renderRoomStats(dm, className) {
       <div class="table-scroll">
       <table class="stat-table sticky-table">
         <thead>
-          <tr><th>教室</th><th>使用次数</th><th>使用频率</th></tr>
+          <tr><th>教室</th><th>使用次数 / 次</th><th>使用频率</th></tr>
         </thead>
         <tbody>
           ${stats.map(r => `
@@ -239,8 +239,8 @@ function renderFreeTime(dm, className, week) {
         <div class="analytics-card-title">本周无课时间</div>
         <div class="free-time-summary">
           <div class="free-time-chip">
-            <span class="free-time-chip-label">本周无课</span>
-            <span class="free-time-chip-value">${summary.totalFreeHours}小时</span>
+            <span class="free-time-chip-label">本周无课 / 小时</span>
+            <span class="free-time-chip-value">${summary.totalFreeHours}</span>
           </div>
         </div>
         <div class="free-time-grid" style="margin-top:20px;">

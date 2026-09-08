@@ -71,6 +71,7 @@
   .today-header-row {
     gap: 8px;
     margin-bottom: 0;
+    min-width: 0;
   }
 
   .today-date-main {
@@ -567,11 +568,11 @@
     border-radius: var(--radius-sm);
   }
 
-  .m-agenda-item.past {
+  .m-agenda-item.finished {
     opacity: 0.45;
   }
 
-  .m-agenda-item.current {
+  .m-agenda-item.in-progress {
     opacity: 1;
   }
 
@@ -608,12 +609,12 @@
     flex-shrink: 0;
   }
 
-  .m-agenda-item.current .m-agenda-dot {
+  .m-agenda-item.in-progress .m-agenda-dot {
     border-left-color: var(--color-primary);
     width: 8px;
   }
 
-  .m-agenda-item.past .m-agenda-dot {
+  .m-agenda-item.finished .m-agenda-dot {
     border-left-color: var(--color-text-tertiary);
   }
 
@@ -634,7 +635,7 @@
     word-break: break-word;
   }
 
-  .m-agenda-item.current .m-agenda-name {
+  .m-agenda-item.in-progress .m-agenda-name {
     color: var(--color-primary);
   }
 
@@ -713,7 +714,8 @@
 
   .analytics-card {
     padding: 14px;
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius-md);
+    min-width: 0;
   }
 
   .analytics-card-title {
@@ -779,6 +781,11 @@
     min-width: 560px;
   }
 
+  .analytics-card .table-scroll {
+    margin: 0 -14px;
+    padding: 0 14px;
+  }
+
   .locations-cell {
     max-width: none;
     white-space: nowrap;
@@ -786,13 +793,15 @@
 
   /* ========== Compare ========== */
   .compare-selector-row {
-    gap: 10px;
+    gap: 12px;
     flex-direction: column;
     margin-bottom: 16px;
+    min-width: 0;
   }
 
   .compare-selector {
     width: 100%;
+    min-width: 0;
   }
 
   .compare-selector select {
