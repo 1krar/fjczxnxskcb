@@ -220,10 +220,8 @@ function getTodayStats(courses, freeTimeInfo) {
     return { courseCount: 0, totalSections: 0, totalHours: 0, freeMin: 0, endTime: '—' };
   }
   const totalSections = courses.reduce((sum, c) => sum + (c.endSection - c.startSection + 1), 0);
-  const totalHours = courses.reduce((sum, c) => {
-    if (!c.startDateTime || !c.endDateTime) return sum;
-    return sum + (c.endDateTime - c.startDateTime) / (1000 * 60 * 60);
-  }, 0);
+  // 教学时长按每节 45 分钟计算，不含课间休息
+  const totalHours = (totalSections * 45) / 60;
   const lastCourse = courses[courses.length - 1];
   return {
     courseCount: courses.length,

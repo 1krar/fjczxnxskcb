@@ -96,19 +96,24 @@ function getWeekStats(dm, className, week) {
   const courses = dm.getCoursesByWeek(className, week);
   const uniqueCourses = new Set();
   let totalPeriods = 0;
-  let totalMinutes = 0;
+  let totalMinutes = 0; // 教学时长：每节 45 分钟
+  let totalOccupiedMin = 0; // 时间占用：含课间休息（用于空闲时间估算）
   const byDay = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
-  const dayMinutes = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const dayOccupiedMin = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+  const MINUTES_PER_SECTION = 45;
 
   for (const c of courses) {
     uniqueCourses.add(c.courseName);
     const sections = c.endSection - c.startSection + 1;
     totalPeriods += sections;
     byDay[c.weekday] = (byDay[c.weekday] || 0) + sections;
+    // 教学时长按每节 45 分钟计算
+    totalMinutes += sections * MINUTES_PER_SECTION;
+    // 时间占用（含课间）用于空闲时间估算
     if (c.startDateTime && c.endDateTime) {
-      const mins = Math.round((c.endDateTime - c.startDateTime) / 60000);
-      totalMinutes += mins;
-      dayMinutes[c.weekday] = (dayMinutes[c.weekday] || 0) + mins;
+      const occMin = Math.round((c.endDateTime - c.startDateTime) / 60000);
+      totalOccupiedMin += occMin;
+      dayOccupiedMin[c.weekday] = (dayOccupiedMin[c.weekday] || 0) + occMin;
     }
   }
 
@@ -122,12 +127,12 @@ function getWeekStats(dm, className, week) {
     }
   }
 
-  // Free time per day (approximate: 8:00-21:00 minus class time)
+  // Free time per day (approximate: 8:00-21:00 minus occupied time)
   const dayFree = {};
   for (let d = 1; d <= 5; d++) {
-    const dayMin = dayMinutes[d] || 0;
+    const occMin = dayOccupiedMin[d] || 0;
     // Approximate free time between 8:00 and 21:00 = 780 min
-    const freeMin = Math.max(0, 780 - dayMin);
+    const freeMin = Math.max(0, 780 - occMin);
     dayFree[d] = freeMin;
   }
   const totalFreeMin = Object.values(dayFree).reduce((a, b) => a + b, 0);
@@ -138,7 +143,7 @@ function getWeekStats(dm, className, week) {
     totalHours: Math.round(totalMinutes / 60 * 10) / 10,
     totalMinutes,
     byDay,
-    dayMinutes,
+    dayOccupiedMin,
     dayFree,
     totalFreeMin,
     busiestDay,

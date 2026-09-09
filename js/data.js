@@ -1,207 +1,124 @@
-import { getCourseStartEnd } from './time.js';
+// ========== Data Manager ==========
+// Loads and normalizes course data from JSON files
+
+import { getWeekDates, getSectionTime } from './time.js';
 
 class DataManager {
   constructor() {
-    this.raw = null;
-    this.normalized = new Map();
-    this.errors = [];
+    this.data = null;
+    this.loaded = false;
   }
 
-  async load(url) {
+  async load() {
     try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const json = await res.json();
-      this.raw = json;
-      this.validate();
-      this.normalize();
-      return { success: true };
-    } catch (err) {
-      this.errors.push(`数据加载失败: ${err.message}`);
-      return { success: false, error: err.message };
+      // Try to load all class data files
+      const response = await fetch('data/courses.json');
+      if (!response.ok) throw new Error('Failed to load courses.json');
+      this.data = await response.json();
+      this.loaded = true;
+      this._normalize();
+      return true;
+    } catch (e) {
+      console.error('Data load error:', e);
+      return false;
     }
   }
 
-  validate() {
-    this.errors = [];
-    if (!this.raw) { this.errors.push('数据为空'); return; }
-    if (!this.raw.classes) { this.errors.push('classes 字段不存在'); return; }
+  _normalize() {
+    if (!this.data?.classes) return;
 
-    const classEntries = this._classEntries();
-    for (const { className, cls } of classEntries) {
-      if (!className) {
-        this.errors.push('存在无名称的班级');
-      }
-      if (!cls.courses) continue;
+    const sectionTimes = this.data.sectionTimes || {};
+
+    for (const cls of this.data.classes) {
+      if (!cls.courses) cls.courses = [];
       for (const c of cls.courses) {
-        if (c.start_section && c.end_section && c.start_section > c.end_section) {
-          this.errors.push(`课程 ${c.course_name || ''} 的 start_section > end_section`);
+        // Ensure date format
+        if (c.date) {
+          c.date = String(c.date);
         }
-        if (c.start_section && (c.start_section < 1 || c.start_section > 10)) {
-          this.errors.push(`课程 ${c.course_name || ''} 的 start_section 超出 1-10`);
+        // Ensure sections are numbers
+        c.startSection = Number(c.startSection);
+        c.endSection = Number(c.endSection);
+
+        // Compute Date objects for start/end
+        if (c.date && sectionTimes[c.season]) {
+          const times = sectionTimes[c.season];
+          const startInfo = times[String(c.startSection)];
+          const endInfo = times[String(c.endSection)];
+          if (startInfo && endInfo) {
+            c.startDateTime = new Date(c.date + 'T' + startInfo.start + ':00');
+            c.endDateTime = new Date(c.date + 'T' + endInfo.end + ':00');
+            c.startTime = startInfo.start;
+            c.endTime = endInfo.end;
+          }
         }
-        if (c.end_section && (c.end_section < 1 || c.end_section > 10)) {
-          this.errors.push(`课程 ${c.course_name || ''} 的 end_section 超出 1-10`);
+
+        // Compute weekday if missing
+        if (c.date && !c.weekday) {
+          const d = new Date(c.date + 'T00:00:00');
+          c.weekday = d.getDay() === 0 ? 7 : d.getDay();
         }
+
+        // Compute week if missing
+        if (!c.week && c.date && this.data.semesterStart) {
+          const start = new Date(this.data.semesterStart + 'T00:00:00');
+          const courseDate = new Date(c.date + 'T00:00:00');
+          const diffDays = Math.floor((courseDate - start) / 86400000);
+          c.week = Math.floor(diffDays / 7) + 1;
+        }
+
+        // Add className reference
+        c.className = cls.className;
       }
     }
-  }
-
-  _classEntries() {
-    const classes = this.raw.classes;
-    if (Array.isArray(classes)) {
-      return classes.map(cls => ({ className: cls.class_name || cls.class_id || '未知班级', cls }));
-    }
-    const result = [];
-    for (const [key, cls] of Object.entries(classes)) {
-      const className = cls.class_name || key;
-      result.push({ className, cls });
-    }
-    return result;
-  }
-
-  normalize() {
-    this.normalized.clear();
-    if (!this.raw || !this.raw.classes) return;
-
-    for (const { className, cls } of this._classEntries()) {
-      const courses = (cls.courses || []).map(c => this.normalizeCourse(c, className, cls.class_id)).filter(Boolean);
-      this.normalized.set(className, courses);
-    }
-  }
-
-  normalizeCourse(c, className, classId) {
-    if (!c) return null;
-    const sectionTimes = this.raw?.section_times || {};
-    const course = {
-      className,
-      classId,
-      courseName: c.course_name || '未命名课程',
-      teacher: c.teacher && c.teacher.trim() ? c.teacher.trim() : '',
-      location: c.location && c.location !== '无' && c.location.trim() ? c.location.trim() : '',
-      date: c.date || '',
-      week: c.week || 0,
-      weekday: c.weekday || 1,
-      startSection: c.start_section || 1,
-      endSection: c.end_section || c.start_section || 1,
-      season: c.season || 'summer',
-      seasonName: c.season_name || '',
-      courseId: c.course_id || '',
-      startSectionRaw: c.start_section,
-      endSectionRaw: c.end_section,
-    };
-
-    const se = getCourseStartEnd(course, sectionTimes);
-    if (se) {
-      course.startTime = se.startTime;
-      course.endTime = se.endTime;
-      course.startDateTime = se.startDate;
-      course.endDateTime = se.endDate;
-    } else {
-      course.startTime = '';
-      course.endTime = '';
-      course.startDateTime = null;
-      course.endDateTime = null;
-    }
-    return course;
   }
 
   getSemesterInfo() {
-    if (!this.raw) return null;
+    if (!this.data) return null;
     return {
-      semester: this.raw.semester || '',
-      semesterStart: this.raw.semester_start || '',
-      firstWeek: this.raw.first_week || 1,
-      lastWeek: this.raw.last_week || 20,
-      updatedAt: this.raw.updated_at || '',
-      seasonMode: this.raw.season_mode || 'auto',
-      seasonRule: this.raw.season_rule || {},
+      semesterName: this.data.semesterName || '',
+      semesterStart: this.data.semesterStart || '',
+      semesterEnd: this.data.semesterEnd || '',
+      firstWeek: this.data.firstWeek || 1,
+      lastWeek: this.data.lastWeek || 20,
+      totalWeeks: this.data.totalWeeks || 20,
+      sectionTimes: this.data.sectionTimes || {},
+      season: this.data.season || 'summer',
     };
   }
 
   getSectionTimes() {
-    return this.raw?.section_times || {};
+    return this.data?.sectionTimes || {};
   }
 
   getClasses() {
-    if (!this.raw) return [];
-    return this._classEntries().map(({ className, cls }) => ({
-      classId: cls.class_id || '',
-      className,
+    if (!this.data?.classes) return [];
+    return this.data.classes.map(c => ({
+      className: c.className,
+      classId: c.classId,
     }));
   }
 
-  getClass(className) {
-    if (!this.raw) return null;
-    const entry = this._classEntries().find(({ className: cn }) => cn === className);
-    return entry ? entry.cls : null;
-  }
-
   getCourses(className) {
-    return this.normalized.get(className) || [];
-  }
-
-  getCoursesByDate(className, dateStr) {
-    return this.getCourses(className)
-      .filter(c => c.date === dateStr)
-      .sort((a, b) => (a.startDateTime || 0) - (b.startDateTime || 0));
+    if (!this.data?.classes) return [];
+    const cls = this.data.classes.find(c => c.className === className);
+    return cls?.courses || [];
   }
 
   getCoursesByWeek(className, week) {
-    return this.getCourses(className)
-      .filter(c => c.week === week)
-      .sort((a, b) => {
-        if (a.weekday !== b.weekday) return a.weekday - b.weekday;
-        return (a.startSection || 0) - (b.startSection || 0);
-      });
+    return this.getCourses(className).filter(c => c.week === week);
   }
 
   getCoursesByWeekday(className, week, weekday) {
     return this.getCoursesByWeek(className, week)
       .filter(c => c.weekday === weekday)
-      .sort((a, b) => (a.startSection || 0) - (b.startSection || 0));
-  }
-
-  getTodayCourses(className) {
-    const today = new Date();
-    const y = today.getFullYear();
-    const m = String(today.getMonth() + 1).padStart(2, '0');
-    const d = String(today.getDate()).padStart(2, '0');
-    return this.getCoursesByDate(className, `${y}-${m}-${d}`);
-  }
-
-  getCurrentCourse(className, now) {
-    const courses = this.getTodayCourses(className);
-    const t = now || new Date();
-    return courses.find(c => c.startDateTime && c.endDateTime && t >= c.startDateTime && t < c.endDateTime) || null;
-  }
-
-  getNextCourse(className, now) {
-    const courses = this.getTodayCourses(className);
-    const t = now || new Date();
-    return courses.find(c => c.startDateTime && c.startDateTime > t) || null;
-  }
-
-  getPreviousCourse(className, now) {
-    const courses = this.getTodayCourses(className);
-    const t = now || new Date();
-    const past = courses.filter(c => c.endDateTime && c.endDateTime <= t);
-    if (past.length === 0) return null;
-    return past[past.length - 1];
-  }
-
-  getTomorrowCourses(className) {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const y = tomorrow.getFullYear();
-    const m = String(tomorrow.getMonth() + 1).padStart(2, '0');
-    const d = String(tomorrow.getDate()).padStart(2, '0');
-    return this.getCoursesByDate(className, `${y}-${m}-${d}`);
+      .sort((a, b) => a.startSection - b.startSection);
   }
 
   getCourseStats(className) {
     const courses = this.getCourses(className);
     const map = new Map();
+    const MINUTES_PER_SECTION = 45;
     for (const c of courses) {
       const key = c.courseName;
       if (!map.has(key)) {
@@ -221,9 +138,8 @@ class DataManager {
       if (c.teacher) stat.teachers.add(c.teacher);
       if (c.location) stat.locations.add(c.location);
 
-      if (c.startDateTime && c.endDateTime) {
-        stat.totalMinutes += Math.round((c.endDateTime - c.startDateTime) / 60000);
-      }
+      // 教学时长按每节 45 分钟计算，不含课间休息
+      stat.totalMinutes += sections * MINUTES_PER_SECTION;
     }
     return Array.from(map.values()).map(s => ({
       ...s,
@@ -257,16 +173,13 @@ class DataManager {
           weekday: c.weekday,
           startSection: c.startSection,
           endSection: c.endSection,
-          location: c.location,
           startTime: c.startTime,
           endTime: c.endTime,
+          location: c.location,
         });
       }
     }
-    return Array.from(map.values()).map(s => ({
-      ...s,
-      locations: Array.from(s.locations),
-    })).sort((a, b) => b.count - a.count);
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }
 
   getRoomStats(className) {
@@ -279,28 +192,21 @@ class DataManager {
           room: c.location,
           count: 0,
           courses: [],
-          dates: new Set(),
         });
       }
       const stat = map.get(c.location);
       stat.count++;
-      stat.dates.add(c.date);
-      if (!stat.courses.find(x => x.courseName === c.courseName && x.date === c.date)) {
+      if (!stat.courses.find(x => x.courseName === c.courseName && x.date === c.date && x.startSection === c.startSection)) {
         stat.courses.push({
           courseName: c.courseName,
           date: c.date,
-          week: c.week,
-          weekday: c.weekday,
           startSection: c.startSection,
           endSection: c.endSection,
           teacher: c.teacher,
         });
       }
     }
-    return Array.from(map.values()).map(s => ({
-      ...s,
-      dates: Array.from(s.dates),
-    })).sort((a, b) => b.count - a.count);
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }
 
   getWeekStats(className, week) {
@@ -309,25 +215,100 @@ class DataManager {
     let totalMinutes = 0;
     const byDay = {};
     for (let i = 1; i <= 7; i++) { byDay[i] = { courses: 0, sections: 0, minutes: 0 }; }
+    const MINUTES_PER_SECTION = 45;
 
     for (const c of courses) {
       const sections = c.endSection - c.startSection + 1;
       totalSections += sections;
-      if (c.startDateTime && c.endDateTime) {
-        totalMinutes += Math.round((c.endDateTime - c.startDateTime) / 60000);
-      }
+      // 教学时长按每节 45 分钟计算，不含课间休息
+      const mins = sections * MINUTES_PER_SECTION;
+      totalMinutes += mins;
       if (!byDay[c.weekday]) byDay[c.weekday] = { courses: 0, sections: 0, minutes: 0 };
       byDay[c.weekday].courses++;
       byDay[c.weekday].sections += sections;
-      if (c.startDateTime && c.endDateTime) {
-        byDay[c.weekday].minutes += Math.round((c.endDateTime - c.startDateTime) / 60000);
-      }
+      byDay[c.weekday].minutes += mins;
     }
     return {
       courseCount: courses.length,
       totalSections,
       totalHours: Math.round(totalMinutes / 60 * 10) / 10,
       byDay,
+    };
+  }
+
+  getFreeTimeAnalysis(className, week) {
+    const courses = this.getCoursesByWeek(className, week);
+    const sectionTimes = this.getSectionTimes();
+    const season = this.data?.season || 'summer';
+    const times = sectionTimes[season];
+    if (!times) return { byDay: {} };
+
+    const byDay = {};
+    for (let d = 1; d <= 5; d++) {
+      const dayCourses = courses.filter(c => c.weekday === d).sort((a, b) => a.startSection - b.startSection);
+      const intervals = [];
+
+      // Day boundaries: section 1 start to section 10 end
+      const dayStart = times['1']?.start || '08:00';
+      const dayEnd = times['10']?.end || '21:00';
+
+      let lastEnd = dayStart;
+      for (const c of dayCourses) {
+        const cStart = times[String(c.startSection)]?.start;
+        const cEnd = times[String(c.endSection)]?.end;
+        if (!cStart || !cEnd) continue;
+
+        if (cStart > lastEnd) {
+          intervals.push({
+            start: lastEnd,
+            end: cStart,
+            duration: this._timeDiff(cStart, lastEnd),
+          });
+        }
+        lastEnd = cEnd > lastEnd ? cEnd : lastEnd;
+      }
+
+      if (dayEnd > lastEnd) {
+        intervals.push({
+          start: lastEnd,
+          end: dayEnd,
+          duration: this._timeDiff(dayEnd, lastEnd),
+        });
+      }
+
+      byDay[d] = {
+        intervals,
+        totalFreeMin: intervals.reduce((s, i) => s + i.duration, 0),
+      };
+    }
+
+    return { byDay };
+  }
+
+  _timeDiff(later, earlier) {
+    const [h1, m1] = later.split(':').map(Number);
+    const [h2, m2] = earlier.split(':').map(Number);
+    return (h1 * 60 + m1) - (h2 * 60 + m2);
+  }
+
+  getFreeTimeSummary(className, week) {
+    const analysis = this.getFreeTimeAnalysis(className, week);
+    let totalFreeMin = 0;
+    let busiestDay = 1;
+    let leastFree = Infinity;
+    for (let d = 1; d <= 5; d++) {
+      const min = analysis.byDay[d]?.totalFreeMin || 0;
+      totalFreeMin += min;
+      if (min < leastFree) {
+        leastFree = min;
+        busiestDay = d;
+      }
+    }
+    return {
+      totalFreeMin,
+      totalFreeHours: Math.round(totalFreeMin / 60 * 10) / 10,
+      busiestDay,
+      avgFreePerDay: Math.round(totalFreeMin / 5),
     };
   }
 
@@ -343,141 +324,31 @@ class DataManager {
     ).sort((a, b) => (a.startDateTime || 0) - (b.startDateTime || 0));
   }
 
-  searchAll(query) {
-    if (!query || query.trim().length === 0) return [];
-    const q = query.trim().toLowerCase();
-    const results = [];
-    for (const [className, courses] of this.normalized) {
-      for (const c of courses) {
-        if (
-          (c.courseName && c.courseName.toLowerCase().includes(q)) ||
-          (c.teacher && c.teacher.toLowerCase().includes(q)) ||
-          (c.location && c.location.toLowerCase().includes(q)) ||
-          (c.className && c.className.toLowerCase().includes(q))
-        ) {
-          results.push({ ...c });
+  validateData() {
+    const issues = [];
+    if (!this.data?.classes) {
+      issues.push('没有找到班级数据');
+      return issues;
+    }
+    for (const cls of this.data.classes) {
+      if (!cls.courses || cls.courses.length === 0) {
+        issues.push(`${cls.className}: 没有课程数据`);
+        continue;
+      }
+      for (const c of cls.courses) {
+        if (!c.courseName) issues.push(`${cls.className}: 存在无名称课程`);
+        if (!c.date) issues.push(`${cls.className}: ${c.courseName || '某课程'} 缺少日期`);
+        if (!c.startSection || !c.endSection) {
+          issues.push(`${cls.className}: ${c.courseName || '某课程'} 缺少节次信息`);
+        }
+        if (c.startSection > c.endSection) {
+          issues.push(`${cls.className}: ${c.courseName} 节次范围异常`);
         }
       }
     }
-    return results.sort((a, b) => (a.startDateTime || 0) - (b.startDateTime || 0));
+    return issues;
   }
-
-  getFreeTimeAnalysis(className, week) {
-    const info = this.getSemesterInfo();
-    const weekDates = this._getWeekDatesArray(week, info.semesterStart);
-    const days = [];
-
-    for (let weekday = 1; weekday <= 5; weekday++) {
-      const courses = this.getCoursesByWeekday(className, week, weekday);
-      const dateStr = weekDates[weekday - 1];
-      days.push(this._analyzeDayFreeTime(courses, dateStr, weekday));
-    }
-    return days;
-  }
-
-  _analyzeDayFreeTime(courses, dateStr, weekday) {
-    const sectionTimes = this.getSectionTimes();
-    const dayName = ['一', '二', '三', '四', '五'][weekday - 1] || String(weekday);
-    if (courses.length === 0) {
-      return {
-        weekday,
-        dayName,
-        date: dateStr,
-        slots: [{ type: 'free', label: '全天无课', duration: '8h+' }],
-        totalFreeMin: 780,
-      };
-    }
-
-    const firstCourse = courses[0];
-    const lastCourse = courses[courses.length - 1];
-    const dayStart = new Date(dateStr + 'T08:00:00');
-    const dayEnd = new Date(dateStr + 'T21:00:00');
-    const slots = [];
-    let totalFreeMin = 0;
-
-    if (firstCourse.startDateTime && firstCourse.startDateTime > dayStart) {
-      const freeMin = Math.round((firstCourse.startDateTime - dayStart) / 60000);
-      if (freeMin > 0) {
-        slots.push({ type: 'free', label: '早晨空闲', duration: this._formatMin(freeMin), start: '08:00', end: firstCourse.startTime });
-        totalFreeMin += freeMin;
-      }
-    }
-
-    for (let i = 0; i < courses.length; i++) {
-      const c = courses[i];
-      slots.push({
-        type: 'busy',
-        label: c.courseName,
-        duration: `${c.startTime}-${c.endTime}`,
-        location: c.location,
-      });
-
-      if (i < courses.length - 1) {
-        const next = courses[i + 1];
-        if (c.endDateTime && next.startDateTime) {
-          const gapMin = Math.round((next.startDateTime - c.endDateTime) / 60000);
-          if (gapMin > 0) {
-            const isLunch = c.endDateTime.getHours() <= 12 && next.startDateTime.getHours() >= 13;
-            slots.push({
-              type: isLunch ? 'lunch' : 'free',
-              label: isLunch ? '午休' : '课间空闲',
-              duration: this._formatMin(gapMin),
-              start: c.endTime,
-              end: next.startTime,
-            });
-            totalFreeMin += gapMin;
-          }
-        }
-      }
-    }
-
-    if (lastCourse.endDateTime && lastCourse.endDateTime < dayEnd) {
-      const freeMin = Math.round((dayEnd - lastCourse.endDateTime) / 60000);
-      if (freeMin > 0) {
-        slots.push({ type: 'free', label: '晚间空闲', duration: this._formatMin(freeMin), start: lastCourse.endTime, end: '21:00' });
-        totalFreeMin += freeMin;
-      }
-    }
-
-    return { weekday, dayName, date: dateStr, slots, totalFreeMin };
-  }
-
-  _formatMin(min) {
-    const h = Math.floor(min / 60);
-    const m = min % 60;
-    if (h === 0) return `${m}m`;
-    if (m === 0) return `${h}h`;
-    return `${h}h${m}m`;
-  }
-
-  _getWeekDatesArray(week, semesterStart) {
-    const start = new Date(semesterStart + 'T00:00:00');
-    const weekStart = new Date(start);
-    weekStart.setDate(start.getDate() + (week - 1) * 7);
-    const dates = [];
-    for (let i = 0; i < 7; i++) {
-      const d = new Date(weekStart);
-      d.setDate(weekStart.getDate() + i);
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      dates.push(`${y}-${m}-${day}`);
-    }
-    return dates;
-  }
-
-  getFreeTimeSummary(className, week) {
-    const analysis = this.getFreeTimeAnalysis(className, week);
-    const totalFreeMin = analysis.reduce((sum, d) => sum + d.totalFreeMin, 0);
-    return {
-      totalFreeMin,
-      totalFreeHours: Math.round(totalFreeMin / 60 * 10) / 10,
-      days: analysis,
-    };
-  }
-
-  hasErrors() { return this.errors.length > 0; }
-  getErrors() { return this.errors; }
 }
 
-export const dataManager = new DataManager();
+export const dm = new DataManager();
+export default dm;
