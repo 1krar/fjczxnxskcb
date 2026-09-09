@@ -36,7 +36,7 @@ export function renderAnalytics(container, state, dm) {
     switch (activeTab) {
       case 'overview': el.innerHTML = renderOverview(dm, className, week, info); break;
       case 'courses': el.innerHTML = renderCourseStats(dm, className); attachCourseRowEvents(el, dm, className); break;
-      case 'teachers': el.innerHTML = renderTeacherStats(dm, className); attachTeacherSearch(el, dm, className, state); break;
+      case 'teachers': el.innerHTML = renderTeacherStats(dm, className); attachTeacherRowEvents(el, dm, className); break;
       case 'rooms': el.innerHTML = renderRoomStats(dm, className); attachRoomRowEvents(el, dm, className); break;
       case 'freetime': el.innerHTML = renderFreeTime(dm, className, week); break;
     }
@@ -170,13 +170,6 @@ function renderCourseStats(dm, className) {
   function renderTeacherStats(dm, className) {
   const stats = dm.getTeacherStats(className);
   return `
-    <div style="margin-bottom:16px;">
-      <div class="search-box" style="max-width:100%;">
-        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <input type="text" class="search-input" id="teacher-search" placeholder="搜索教师姓名…" style="padding-left:36px;" />
-      </div>
-      <div id="teacher-search-results"></div>
-    </div>
     <div class="card" style="padding:0;overflow:hidden;">
       ${stats.length === 0 ? emptyState('暂无教师数据') : `
         <div class="table-scroll">
@@ -194,7 +187,8 @@ function renderCourseStats(dm, className) {
           </tbody>
         </table>
         </div>`}
-    </div>`;
+    </div>
+    <div id="teacher-detail-container"></div>`;
 }
 
 function renderRoomStats(dm, className) {
@@ -284,42 +278,36 @@ function attachCourseRowEvents(el, dm, className) {
   });
 }
 
-function attachTeacherSearch(el, dm, className, state) {
-  const input = el.querySelector('#teacher-search');
-  if (!input) return;
-  const resultsEl = el.querySelector('#teacher-search-results');
+function attachTeacherRowEvents(el, dm, className) {
+  const detailContainer = el.querySelector('#teacher-detail-container');
+  if (!detailContainer) return;
+  el.querySelectorAll('[data-teacher]').forEach(row => {
+    row.addEventListener('click', () => {
+      const teacher = row.dataset.teacher;
+      const stats = dm.getTeacherStats(className);
+      const teacherStat = stats.find(s => s.teacher === teacher);
+      if (!teacherStat) return;
 
-  input.addEventListener('input', (e) => {
-    const query = e.target.value.trim();
-    if (!query) {
-      resultsEl.innerHTML = '';
-      return;
-    }
-    const stats = dm.getTeacherStats(className);
-    const matched = stats.filter(t => t.teacher.includes(query));
-    if (matched.length === 0) {
-      resultsEl.innerHTML = `<div class="empty-state" style="padding:16px;"><div class="empty-state-text">没有找到该教师</div></div>`;
-      return;
-    }
-    resultsEl.innerHTML = matched.map(t => `
-      <div class="card" style="margin-top:12px;padding:0;overflow:hidden;">
-        <div style="font-size:16px;font-weight:700;padding:16px 16px 12px;">${t.teacher} · ${t.count}次</div>
-        <div class="table-scroll">
-          <table class="stat-table sticky-table">
-            <thead><tr><th>课程</th><th>日期</th><th>节次</th><th>时间</th><th>地点</th></tr></thead>
-            <tbody>
-              ${t.courses.slice(0, 20).map(c => `
-                <tr>
-                  <td style="font-weight:600;">${c.courseName}</td>
-                  <td class="mono">${c.date}</td>
-                  <td class="mono">第${c.startSection}-${c.endSection}节</td>
-                  <td class="mono">${c.startTime}-${c.endTime}</td>
-                  <td>${c.location || '<span class="muted">未提供</span>'}</td>
-                </tr>`).join('')}
-            </tbody>
-          </table>
-        </div>
-      </div>`).join('');
+      detailContainer.innerHTML = `
+        <div class="card" style="margin-top:12px;padding:0;overflow:hidden;">
+          <div style="font-size:16px;font-weight:700;padding:16px 16px 12px;">${teacher} · ${teacherStat.count}次</div>
+          <div class="table-scroll">
+            <table class="stat-table sticky-table">
+              <thead><tr><th>课程</th><th>日期</th><th>节次</th><th>时间</th><th>地点</th></tr></thead>
+              <tbody>
+                ${teacherStat.courses.slice(0, 30).map(c => `
+                  <tr>
+                    <td style="font-weight:600;">${c.courseName}</td>
+                    <td class="mono">${c.date}</td>
+                    <td class="mono">第${c.startSection}-${c.endSection}节</td>
+                    <td class="mono">${c.startTime}-${c.endTime}</td>
+                    <td>${c.location || '<span class="muted">未提供</span>'}</td>
+                  </tr>`).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>`;
+    });
   });
 }
 

@@ -166,11 +166,6 @@ function getCurrentTimePosition(sectionTimes, season, now) {
   return { topPercent: Math.max(0, Math.min(100, topPercent)), visible: true };
 }
 
-// ========== Next Course (uses unified getNextCourse from time.js) ==========
-function getNextCourseOfDay(courses, now) {
-  return getNextCourse(courses, now);
-}
-
 // ========== Main Render ==========
 export function renderSchedule(container, state, dm) {
   const info = dm.getSemesterInfo();
@@ -283,6 +278,15 @@ export function renderSchedule(container, state, dm) {
         </div>`;
     }
 
+    // Compute ONE nextCourse across all week courses (not per-day)
+    const allWeekCourses = [];
+    for (let d = 1; d <= 5; d++) {
+      for (const c of coursesByDay[d]) {
+        allWeekCourses.push(c);
+      }
+    }
+    const nextCourse = isCurrentWeek ? getNextCourse(allWeekCourses, now) : null;
+
     const timePos = isCurrentWeek ? getCurrentTimePosition(sectionTimes, season, now) : { visible: false };
     const todayCol = (() => {
       if (!isCurrentWeek) return -1;
@@ -316,15 +320,14 @@ export function renderSchedule(container, state, dm) {
         if (course) {
           const span = course.endSection - course.startSection + 1;
           const cState = getCourseState(course, now);
-          const nextCourse = getNextCourse(coursesByDay[d], now);
-          const isNext = nextCourse && course === nextCourse;
+          const isNext = nextCourse && course === nextCourse && cState === 'before';
           const hasConflict = conflicts.some(c => c.day === d && c.courses.includes(course));
           const hue = getCourseColor(course.courseName);
 
           let cardClass = 'sch-course';
           if (cState === 'finished') cardClass += ' finished';
           if (cState === 'in_progress') cardClass += ' in-progress';
-          if (isNext && cState === 'before') cardClass += ' next';
+          if (isNext) cardClass += ' next';
           if (hasConflict) cardClass += ' conflict';
 
           gridHTML += `<div class="${cardClass}" style="grid-row:${s + 1} / span ${span};grid-column:${d + 1};--course-hue:${hue}deg;" data-course-id="${d}-${s}">
@@ -334,7 +337,7 @@ export function renderSchedule(container, state, dm) {
               ${course.location ? `<div class="sch-course-loc">${course.location}</div>` : ''}
               ${state.settings.showTeacher && course.teacher ? `<div class="sch-course-teacher">${course.teacher}</div>` : ''}
               <div class="sch-course-sec mono">第${course.startSection}-${course.endSection}节</div>
-              ${hasConflict ? `<div class="sch-conflict-tag">CONFLICT</div>` : ''}
+              ${hasConflict ? `<div class="sch-conflict-tag">冲突</div>` : ''}
             </div>
           </div>`;
         } else {
@@ -373,6 +376,15 @@ export function renderSchedule(container, state, dm) {
     const dayDateStr = weekDates[selectedDay - 1];
     const isDayToday = dayDateStr === todayStr;
     const freeIntervals = getDayFreeIntervals(dayCourses, sectionTimes, season, dayDateStr);
+
+    // Compute ONE nextCourse across all week courses (not per-day)
+    const allWeekCourses = [];
+    for (let d = 1; d <= 5; d++) {
+      for (const c of coursesByDay[d]) {
+        allWeekCourses.push(c);
+      }
+    }
+    const nextCourse = isCurrentWeek ? getNextCourse(allWeekCourses, now) : null;
 
     let html = `
       <div class="m-sch-header">
@@ -449,8 +461,7 @@ export function renderSchedule(container, state, dm) {
       for (let i = 0; i < dayCourses.length; i++) {
         const c = dayCourses[i];
         const cState = getCourseState(c, now);
-        const nextCourse = getNextCourse(dayCourses, now);
-        const isNext = nextCourse && c === nextCourse;
+        const isNext = nextCourse && c === nextCourse && cState === 'before';
         const hue = getCourseColor(c.courseName);
 
         let itemClass = 'm-agenda-item';
@@ -622,6 +633,14 @@ export function renderSchedule(container, state, dm) {
   document.addEventListener('app:tick', tickHandler);
 
   function updateCourseStates(now, dm, state, season) {
+    // Collect ALL week courses to compute ONE nextCourse
+    const allWeekCourses = [];
+    for (let d = 1; d <= 5; d++) {
+      const dayCs = dm.getCoursesByWeekday(state.currentClass, scheduleState.week, d);
+      for (const c of dayCs) allWeekCourses.push(c);
+    }
+    const nextCourse = getNextCourse(allWeekCourses, now);
+
     // Desktop course cards
     container.querySelectorAll('.sch-course').forEach(card => {
       if (!card.dataset.courseId) return;
@@ -631,13 +650,12 @@ export function renderSchedule(container, state, dm) {
       if (!c) return;
 
       const cState = getCourseState(c, now);
-      const nextCourse = getNextCourse(courses, now);
-      const isNext = nextCourse && c === nextCourse;
+      const isNext = nextCourse && c === nextCourse && cState === 'before';
 
       card.classList.remove('finished', 'in-progress', 'next');
       if (cState === 'finished') card.classList.add('finished');
       if (cState === 'in_progress') card.classList.add('in-progress');
-      if (isNext && cState === 'before') card.classList.add('next');
+      if (isNext) card.classList.add('next');
     });
 
     // Mobile agenda items
@@ -649,13 +667,12 @@ export function renderSchedule(container, state, dm) {
       if (!c) return;
 
       const cState = getCourseState(c, now);
-      const nextCourse = getNextCourse(dayCourses, now);
-      const isNext = nextCourse && c === nextCourse;
+      const isNext = nextCourse && c === nextCourse && cState === 'before';
 
       item.classList.remove('finished', 'in-progress', 'next');
       if (cState === 'finished') item.classList.add('finished');
       if (cState === 'in_progress') item.classList.add('in-progress');
-      if (isNext && cState === 'before') item.classList.add('next');
+      if (isNext) item.classList.add('next');
 
       // Update NOW/NEXT tags
       const nowTag = item.querySelector('.m-ag-now-tag');
@@ -666,13 +683,21 @@ export function renderSchedule(container, state, dm) {
       } else if (cState !== 'in_progress' && nowTag) {
         nowTag.remove();
       }
-      if (isNext && cState === 'before' && !nextTag) {
+      if (isNext && !nextTag) {
         const body = item.querySelector('.m-ag-body');
         if (body) body.insertAdjacentHTML('afterbegin', '<div class="m-ag-next-tag">下一节</div>');
-      } else if ((!isNext || cState !== 'before') && nextTag) {
+      } else if (!isNext && nextTag) {
         nextTag.remove();
       }
     });
+
+    // Dev safeguard: warn if multiple NEXT elements exist
+    if (typeof console !== 'undefined' && console.warn) {
+      const nextCount = container.querySelectorAll('.sch-course.next, .m-agenda-item.next').length;
+      if (nextCount > 1) {
+        console.warn('NEXT 状态异常：存在多个下一节课程', nextCount);
+      }
+    }
   }
 
   function attachEvents() {
