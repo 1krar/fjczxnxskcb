@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
-<head>
+<html lang="zh-CN"><head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#FFFFFF">
@@ -14,26 +13,26 @@
   <link rel="stylesheet" href="css/responsive.css">
 </head>
 <body>
-  <div id="loading-screen" class="loading-screen">
+  <div id="loading-screen" class="loading-screen" style="display: none;">
     <div class="loading-spinner"></div>
     <div class="loading-text">正在加载课程数据…</div>
   </div>
 
-  <div id="app" style="display:none">
+  <div id="app" style="display: block;">
     <!-- Desktop Header -->
     <header class="app-header desktop-only">
       <div class="app-header-inner">
         <div class="header-left">
           <div class="class-selector" id="class-selector-desktop">
             <button class="class-selector-btn" id="class-selector-btn-desktop">
-              <span id="current-class-name-desktop">—</span>
+              <span id="current-class-name-desktop">26虚拟现实技术应用1</span>
               <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
             </button>
             <div class="class-selector-dropdown" id="class-selector-dropdown-desktop"></div>
           </div>
         </div>
         <nav class="main-nav" id="main-nav-desktop">
-          <a class="nav-item" data-route="today">今日</a>
+          <a class="nav-item active" data-route="today">今日</a>
           <a class="nav-item" data-route="schedule">课表</a>
           <a class="nav-item" data-route="analytics">分析</a>
           <a class="nav-item" data-route="compare">对比</a>
@@ -49,26 +48,538 @@
         <span class="mobile-header-label">选择班级</span>
         <div class="mobile-class-selector" id="class-selector-mobile">
           <button class="mobile-class-btn" id="class-selector-btn-mobile">
-            <span class="mobile-class-name" id="current-class-name-mobile">—</span>
+            <span class="mobile-class-name" id="current-class-name-mobile">26虚拟现实技术应用1</span>
             <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
         </div>
       </div>
     </header>
-    <div class="mobile-class-dropdown mobile-only" id="class-selector-dropdown-mobile"></div>
+    <div class="mobile-class-dropdown mobile-only" id="class-selector-dropdown-mobile">
+        <div class="mobile-class-dropdown-inner">
+          <div class="mobile-class-dropdown-title">选择班级</div>
+          
+            <button class="mobile-class-option active" data-class="26虚拟现实技术应用1">
+              <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>26虚拟现实技术应用1</span>
+            </button>
+            <button class="mobile-class-option " data-class="26虚拟现实技术应用2">
+              <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>26虚拟现实技术应用2</span>
+            </button>
+            <button class="mobile-class-option " data-class="26虚拟现实技术应用3">
+              <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              <span>26虚拟现实技术应用3</span>
+            </button>
+        </div></div>
 
     <main class="page-container">
-      <div class="page-view" id="view-today"></div>
-      <div class="page-view" id="view-schedule"></div>
-      <div class="page-view" id="view-analytics"></div>
+      <div class="page-view active" id="view-today">
+    <div class="today-layout">
+      <!-- LEFT COLUMN: Status -->
+      <div class="today-main">
+        <div class="today-header-row">
+          <div class="today-time-block">
+            <div class="today-clock mono" id="dash-clock">14:29<span class="seconds">:36</span></div>
+            <div class="today-date-sub">星期五 · 2026.09.11</div>
+          </div>
+          <div class="today-week-badge">
+            <span class="week-badge-num mono">02</span>
+            <span class="week-badge-label">周</span>
+          </div>
+        </div>
+
+        <div class="today-status accent-muted" id="dash-status">
+          
+      <div class="status-main">
+        <div class="status-tag accent-muted">今日无课</div>
+        <div class="status-title muted">
+          今天没有课程安排
+        </div>
+        <div class="status-sub">
+          享受空闲时光
+        </div>
+      </div>
+        </div>
+
+        
+      </div>
+
+      <!-- RIGHT COLUMN: Next class day + Semester -->
+      <div class="today-side">
+        
+        <div class="today-next-day">
+          <div class="section-label">下一有课日</div>
+          <div class="next-day-date mono">09-14</div>
+          <div class="next-day-info">
+            星期一 · 1 节课程
+          </div>
+          
+          <div class="next-day-first">
+            <span class="next-day-first-time mono">10:00</span>
+            <span class="next-day-first-name">入学教育</span>
+          </div>
+        </div>
+        <div class="today-semester">
+          <div class="section-label">学期</div>
+          <div class="semester-week">
+            <span class="mono semester-week-num">02</span>
+            <span class="semester-week-divider">/</span>
+            <span class="mono semester-week-total">17</span>
+            <span class="semester-percent mono">未开始</span>
+          </div>
+          <div class="semester-bar">
+            <div class="semester-bar-fill" style="width:11.76470588235294%"></div>
+          </div>
+          <div class="semester-date mono">09-07 — 09-11</div>
+        </div>
+
+        
+
+      </div>
+    </div>
+
+    <!-- TIMELINE -->
+    
+    <div class="today-empty-section">
+      <div class="empty-day-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+          <line x1="16" y1="2" x2="16" y2="6"></line>
+          <line x1="8" y1="2" x2="8" y2="6"></line>
+          <line x1="3" y1="10" x2="21" y2="10"></line>
+        </svg>
+      </div>
+      <div class="empty-day-title">
+        今天没有课程
+      </div>
+      <div class="empty-day-sub">
+        下一节课在 09-14 星期一
+      </div>
+    </div>
+  </div>
+      <div class="page-view" id="view-schedule">
+      <div class="m-sch-header">
+        <div class="m-sch-week-row">
+          <button class="m-sch-week-btn" id="week-prev" disabled="">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <div class="m-sch-week-info">
+            <span class="m-sch-week-main">第 3 周</span>
+            <span class="m-sch-week-sub mono">09-14 — 09-18</span>
+          </div>
+          <button class="m-sch-week-btn" id="week-next">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+          <button class="m-sch-search-btn" id="search-toggle-btn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </button>
+        </div></div><div class="m-day-picker" id="mobile-day-picker">
+        <button class="m-day-chip  " data-day="1">
+          <span class="m-day-chip-name">周一</span>
+          <span class="m-day-chip-date mono">14</span>
+        </button>
+        <button class="m-day-chip  " data-day="2">
+          <span class="m-day-chip-name">周二</span>
+          <span class="m-day-chip-date mono">15</span>
+        </button>
+        <button class="m-day-chip  active" data-day="3">
+          <span class="m-day-chip-name">周三</span>
+          <span class="m-day-chip-date mono">16</span>
+        </button>
+        <button class="m-day-chip  " data-day="4">
+          <span class="m-day-chip-name">周四</span>
+          <span class="m-day-chip-date mono">17</span>
+        </button>
+        <button class="m-day-chip  " data-day="5">
+          <span class="m-day-chip-name">周五</span>
+          <span class="m-day-chip-date mono">18</span>
+        </button></div>
+      <div class="m-day-title-row">
+        <span class="m-day-title">周三</span>
+        <span class="m-day-title-date mono">09-16</span>
+        
+      </div><div class="m-agenda" id="m-agenda">
+        <div class="m-agenda-empty">
+          <div class="m-agenda-empty-title">今日无课</div>
+          <div class="m-agenda-empty-sub">空闲日</div>
+          <div class="m-agenda-empty-stats">
+            <div class="m-empty-stat">
+              <span class="m-empty-stat-num mono">00</span>
+              <span class="m-empty-stat-label">课程</span>
+            </div>
+            <div class="m-empty-stat">
+              <span class="m-empty-stat-num mono">00</span>
+              <span class="m-empty-stat-label">节次</span>
+            </div>
+          </div>
+        </div></div>
+      <div class="sch-week-summary">
+        <div class="sch-summary-label">本周概览</div>
+        <div class="sch-summary-stats">
+          <div class="sch-stat-item">
+            <span class="sch-stat-num mono">07</span>
+            <span class="sch-stat-label">课程 / 门</span>
+          </div>
+          <div class="sch-stat-item">
+            <span class="sch-stat-num mono">22</span>
+            <span class="sch-stat-label">节次 / 节</span>
+          </div>
+          <div class="sch-stat-item">
+            <span class="sch-stat-num mono">16.5</span>
+            <span class="sch-stat-label">课时 / 小时</span>
+          </div>
+          <div class="sch-stat-item">
+            <span class="sch-stat-num">周五</span>
+            <span class="sch-stat-label">最忙</span>
+          </div>
+          <div class="sch-stat-item">
+            <span class="sch-stat-num mono">8h38m</span>
+            <span class="sch-stat-label">日均空闲</span>
+          </div>
+        </div>
+
+        <div class="sch-load">
+          <div class="sch-load-label">本周课程负荷</div>
+          <div class="sch-load-bars">
+            
+                <div class="sch-load-col ">
+                  <div class="sch-load-bar" style="height:75%;"></div>
+                  <div class="sch-load-day">周一</div>
+                </div>
+                <div class="sch-load-col ">
+                  <div class="sch-load-bar" style="height:25%;"></div>
+                  <div class="sch-load-day">周二</div>
+                </div>
+                <div class="sch-load-col ">
+                  <div class="sch-load-bar" style="height:0%;"></div>
+                  <div class="sch-load-day">周三</div>
+                </div>
+                <div class="sch-load-col ">
+                  <div class="sch-load-bar" style="height:75%;"></div>
+                  <div class="sch-load-day">周四</div>
+                </div>
+                <div class="sch-load-col busiest">
+                  <div class="sch-load-bar" style="height:100%;"></div>
+                  <div class="sch-load-day">周五</div>
+                </div>
+          </div>
+        </div>
+
+        
+      </div><div id="search-results-container"></div></div>
+      <div class="page-view" id="view-analytics">
+    <div class="tab-bar" id="analytics-tabs">
+      <button class="tab-bar-item " data-tab="overview">总览</button>
+      <button class="tab-bar-item active" data-tab="courses">课程统计</button>
+      <button class="tab-bar-item " data-tab="teachers">教师</button>
+      <button class="tab-bar-item " data-tab="rooms">教室</button>
+      <button class="tab-bar-item " data-tab="freetime">空闲时间</button>
+    </div>
+    <div id="analytics-content">
+    <div class="card" style="padding:0;overflow:hidden;">
+      <div class="table-scroll">
+      <table class="stat-table sticky-table sticky-first-col" style="min-width:560px;">
+        <thead>
+          <tr>
+            <th>课程名称</th>
+            <th>上课次数 / 次</th>
+            <th>总节数 / 节</th>
+            <th>总课时 / 小时</th>
+            <th>主要教师</th>
+            <th>主要教室</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+            <tr>
+              <td style="font-weight:600;">高等数学（模块B）</td>
+              <td class="mono">24</td>
+              <td class="mono">48</td>
+              <td class="mono">36</td>
+              <td>陈赛峰</td>
+              <td class="locations-cell">
+                <span class="loc-first">自强楼2-2</span>
+                <span class="loc-rest" style="display:none;">、自强楼1-6</span><button class="loc-toggle" data-expanded="false" data-count="1">+1</button>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">程序设计基础</td>
+              <td class="mono">14</td>
+              <td class="mono">48</td>
+              <td class="mono">36</td>
+              <td>李伙钦</td>
+              <td class="locations-cell">
+                <span class="loc-first">实训机房(737)(艺新楼-7-737)</span>
+                
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">习近平新时代中国特色社会主义思想概论</td>
+              <td class="mono">24</td>
+              <td class="mono">48</td>
+              <td class="mono">36</td>
+              <td><span class="muted">未提供</span></td>
+              <td class="locations-cell">
+                <span class="loc-first"><span class="muted">未提供</span></span>
+                
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">高职英语1</td>
+              <td class="mono">24</td>
+              <td class="mono">48</td>
+              <td class="mono">36</td>
+              <td>陈巧玲</td>
+              <td class="locations-cell">
+                <span class="loc-first">求是楼322</span>
+                <span class="loc-rest" style="display:none;">、求是楼501</span><button class="loc-toggle" data-expanded="false" data-count="1">+1</button>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">军事理论</td>
+              <td class="mono">18</td>
+              <td class="mono">36</td>
+              <td class="mono">27</td>
+              <td>曾雅琴</td>
+              <td class="locations-cell">
+                <span class="loc-first">北区26#六楼602</span>
+                <span class="loc-rest" style="display:none;">、北区26#六楼605</span><button class="loc-toggle" data-expanded="false" data-count="1">+1</button>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">人工智能应用</td>
+              <td class="mono">16</td>
+              <td class="mono">32</td>
+              <td class="mono">24</td>
+              <td>于淑云</td>
+              <td class="locations-cell">
+                <span class="loc-first">智能交通实训室(自强楼-5-501)</span>
+                <span class="loc-rest" style="display:none;">、实训机房(747)(艺新楼-7-747)</span><button class="loc-toggle" data-expanded="false" data-count="1">+1</button>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">信息技术应用基础</td>
+              <td class="mono">16</td>
+              <td class="mono">32</td>
+              <td class="mono">24</td>
+              <td>于淑云</td>
+              <td class="locations-cell">
+                <span class="loc-first">智能交通实训室(自强楼-5-501)</span>
+                
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">电子线路基础实训</td>
+              <td class="mono">5</td>
+              <td class="mono">28</td>
+              <td class="mono">21</td>
+              <td>卓奕含;陈嘉</td>
+              <td class="locations-cell">
+                <span class="loc-first">物联网工程中心(自强楼-3-302)</span>
+                
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">体育与健康1</td>
+              <td class="mono">13</td>
+              <td class="mono">26</td>
+              <td class="mono">19.5</td>
+              <td>何杰</td>
+              <td class="locations-cell">
+                <span class="loc-first"><span class="muted">未提供</span></span>
+                
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">大学生职业生涯与发展规划</td>
+              <td class="mono">13</td>
+              <td class="mono">26</td>
+              <td class="mono">19.5</td>
+              <td>何维康</td>
+              <td class="locations-cell">
+                <span class="loc-first">自强楼1-4</span>
+                
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">智慧交通概论</td>
+              <td class="mono">8</td>
+              <td class="mono">16</td>
+              <td class="mono">12</td>
+              <td>谢今玲</td>
+              <td class="locations-cell">
+                <span class="loc-first">求是楼315</span>
+                
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">入学教育</td>
+              <td class="mono">2</td>
+              <td class="mono">8</td>
+              <td class="mono">6</td>
+              <td>张欣蓓</td>
+              <td class="locations-cell">
+                <span class="loc-first">求是楼401</span>
+                <span class="loc-rest" style="display:none;">、求是楼501</span><button class="loc-toggle" data-expanded="false" data-count="1">+1</button>
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">船政文化</td>
+              <td class="mono">4</td>
+              <td class="mono">8</td>
+              <td class="mono">6</td>
+              <td>刘丽萍</td>
+              <td class="locations-cell">
+                <span class="loc-first">自强楼2-3</span>
+                
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">劳动教育与实践1</td>
+              <td class="mono">2</td>
+              <td class="mono">4</td>
+              <td class="mono">3</td>
+              <td>张欣蓓</td>
+              <td class="locations-cell">
+                <span class="loc-first">求是楼401</span>
+                
+              </td>
+            </tr>
+            <tr>
+              <td style="font-weight:600;">国家安全教育</td>
+              <td class="mono">2</td>
+              <td class="mono">4</td>
+              <td class="mono">3</td>
+              <td>林铖</td>
+              <td class="locations-cell">
+                <span class="loc-first">自强楼1-4</span>
+                
+              </td>
+            </tr>
+        </tbody>
+      </table>
+      </div>
+    </div></div>
+  </div>
       <div class="page-view" id="view-compare"></div>
-      <div class="page-view" id="view-data"></div>
-      <div class="page-view" id="view-settings"></div>
+      <div class="page-view" id="view-data">
+    <div class="analytics-grid">
+      <div class="analytics-card">
+        <div class="analytics-card-title">数据信息</div>
+        <div class="data-info-grid">
+          <div class="data-info-item">
+            <span class="data-info-label">当前学期</span>
+            <span class="data-info-value">2026-2027-1</span>
+          </div>
+          <div class="data-info-item">
+            <span class="data-info-label">学期开始</span>
+            <span class="data-info-value">2026-08-31</span>
+          </div>
+          <div class="data-info-item">
+            <span class="data-info-label">数据更新时间</span>
+            <span class="data-info-value">2026年09月07日 15:47</span>
+          </div>
+          <div class="data-info-item">
+            <span class="data-info-label">课程周</span>
+            <span class="data-info-value">3 — 17</span>
+          </div>
+          <div class="data-info-item">
+            <span class="data-info-label">班级数</span>
+            <span class="data-info-value">3</span>
+          </div>
+          <div class="data-info-item">
+            <span class="data-info-label">季节模式</span>
+            <span class="data-info-value">自动</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="analytics-card" style="padding:0;overflow:hidden;">
+        <div class="analytics-card-title" style="padding:20px 20px 0;">班级列表</div>
+        <div class="table-scroll">
+          <table class="stat-table sticky-table sticky-first-col" style="min-width:480px;">
+            <thead><tr><th>班级名称</th><th>课程类型 / 门</th><th>课程安排 / 次</th><th>总节次 / 节</th><th>教学时长 / 小时</th></tr></thead>
+            <tbody>
+              <tr><td style="font-weight:600;">26虚拟现实技术应用1</td><td class="mono">15</td><td class="mono">185</td><td class="mono">412</td><td class="mono">309</td></tr><tr><td style="font-weight:600;">26虚拟现实技术应用2</td><td class="mono">15</td><td class="mono">182</td><td class="mono">414</td><td class="mono">310.5</td></tr><tr><td style="font-weight:600;">26虚拟现实技术应用3</td><td class="mono">15</td><td class="mono">186</td><td class="mono">414</td><td class="mono">310.5</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="analytics-card analytics-full">
+        <div class="analytics-card-title">数据校验</div>
+        <div class="badge badge-success" style="font-size:14px;padding:8px 12px;">✓ 数据校验通过，未发现异常</div>
+      </div>
+    </div>
+
+    <div class="card card-pad" style="margin-top:24px;">
+      <div class="analytics-card-title">数据更新说明</div>
+      <p style="font-size:14px;color:var(--color-text-secondary);line-height:1.6;">
+        课程数据来源于本地 JSON 文件。重新爬取课程数据后，只需替换
+        <code style="background:var(--color-border-light);padding:2px 6px;border-radius:4px;font-size:13px;">data/*.json</code>
+        文件，网页程序无需修改，页面会自动读取新的数据。
+      </p>
+    </div>
+  </div>
+      <div class="page-view" id="view-settings">
+    <div class="analytics-grid">
+      <div class="analytics-card">
+        <div class="analytics-card-title">显示设置</div>
+
+        <div class="settings-group">
+          <div class="settings-row">
+            <span class="settings-label">时间格式</span>
+            <div class="settings-control">
+              <select class="settings-select" id="setting-timeFormat">
+                <option value="24h" selected="">24 小时制</option>
+                <option value="12h">12 小时制</option>
+              </select>
+            </div>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">显示教师</span>
+            <div class="settings-control">
+              <div class="toggle-switch on" id="setting-showTeacher"></div>
+            </div>
+          </div>
+          <div class="settings-row">
+            <span class="settings-label">显示教室完整名称</span>
+            <div class="settings-control">
+              <div class="toggle-switch on" id="setting-showFullLocation"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="settings-group-title">班级设置</div>
+        <div class="settings-row">
+          <span class="settings-label">默认班级</span>
+          <div class="settings-control">
+            <select class="settings-select" id="setting-defaultClass">
+              <option value="26虚拟现实技术应用1" selected="">26虚拟现实技术应用1</option><option value="26虚拟现实技术应用2">26虚拟现实技术应用2</option><option value="26虚拟现实技术应用3">26虚拟现实技术应用3</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="analytics-card">
+        <div class="analytics-card-title">关于</div>
+        <div style="font-size:14px;color:var(--color-text-secondary);line-height:1.8;">
+          <p>课程控制台 v1.0</p>
+          <p>个人课程控制台 · 数据与程序分离</p>
+          <p>技术栈：HTML5 / CSS3 / 原生 JavaScript (ES Modules)</p>
+          <p>部署目标：Cloudflare Pages 静态部署</p>
+        </div>
+        <div style="margin-top:20px;padding:16px;background:var(--color-border-light);border-radius:var(--radius);font-size:13px;color:var(--color-text-secondary);line-height:1.6;">
+          所有设置保存在浏览器 localStorage 中，仅限当前设备。切换班级后所有页面会自动同步。
+        </div>
+      </div>
+    </div>
+  </div>
     </main>
 
     <!-- Mobile Bottom Navigation -->
     <nav class="bottom-nav mobile-only" id="bottom-nav">
-      <a class="bottom-nav-item" data-route="today">
+      <a class="bottom-nav-item active" data-route="today">
         <svg class="bottom-nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="9"></circle>
           <polyline points="12 7 12 12 15.5 14"></polyline>
@@ -112,9 +623,29 @@
 
   <!-- Course Detail Bottom Sheet (Mobile) / Modal (Desktop) -->
   <div class="detail-overlay" id="detail-overlay">
-    <div class="detail-panel" id="detail-panel"></div>
+    <div class="detail-panel" id="detail-panel">
+    <div class="detail-header">
+      <div>
+        <div style="font-size:18px;font-weight:700;color:var(--color-text);line-height:1.4;">人工智能应用</div>
+        <div style="font-size:13px;color:var(--color-text-secondary);margin-top:4px;">第1-2节 · 08:00—09:40</div>
+      </div>
+      <button class="detail-close" id="detail-close-btn">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+    </div>
+    <div class="detail-body">
+      <div class="detail-row"><span class="detail-label">时间</span><span class="detail-value mono">2026-09-18 第3周 星期五</span></div>
+      <div class="detail-row"><span class="detail-label">节次</span><span class="detail-value mono">第1-2节</span></div>
+      <div class="detail-row"><span class="detail-label">时段</span><span class="detail-value mono">08:00 — 09:40</span></div>
+      <div class="detail-row"><span class="detail-label">季节</span><span class="detail-value">夏季</span></div>
+      <div class="detail-row"><span class="detail-label">地点</span><span class="detail-value " style="word-break:break-all;text-align:right;">智能交通实训室(自强楼-5-501)</span></div>
+      <div class="detail-row"><span class="detail-label">教师</span><span class="detail-value ">于淑云</span></div>
+      <div class="detail-row"><span class="detail-label">班级</span><span class="detail-value">26虚拟现实技术应用1</span></div>
+      <div class="detail-row"><span class="detail-label">课程编号</span><span class="detail-value mono muted">(2026-2027-1)-58001006-2005020-40906012</span></div>
+    </div></div>
   </div>
 
   <script type="module" src="js/app.js"></script>
-</body>
-</html>
+
+
+</body></html>
