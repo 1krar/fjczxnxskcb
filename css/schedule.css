@@ -204,7 +204,7 @@
 
 .sch-grid {
   display: grid;
-  grid-template-columns: 56px repeat(5, 1fr);
+  grid-template-columns: 60px repeat(5, 1fr);
   position: relative;
   background: var(--color-surface);
   min-width: 0;
@@ -251,6 +251,9 @@
   font-size: 11px;
   font-weight: 600;
   color: var(--color-text-secondary);
+  min-width: 0;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .sch-day-date {
@@ -259,6 +262,12 @@
   font-variant-numeric: tabular-nums;
   font-weight: var(--font-weight-semibold);
   font-family: var(--font-mono);
+  min-width: 0;
+  flex-shrink: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .sch-day-header.today {
@@ -300,6 +309,8 @@
   color: var(--color-text);
   line-height: 1;
   font-family: var(--font-mono);
+  min-width: 0;
+  flex-shrink: 0;
 }
 
 .sch-section-time {
@@ -307,6 +318,12 @@
   font-weight: 400;
   color: var(--color-text-tertiary);
   font-family: var(--font-mono);
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
 }
 
 .sch-cell {
@@ -1195,4 +1212,32 @@
 /* ===== Search Results (shared) ===== */
 #search-results-container {
   margin-top: 16px;
+}
+
+/* ===== Mobile Responsive: Week Summary Stats ===== */
+@media (max-width: 768px) {
+  .sch-summary-stats {
+    gap: 6px;
+  }
+
+  .sch-stat-item {
+    padding: 10px 6px;
+    gap: 4px;
+  }
+
+  .sch-stat-num {
+    font-size: 12px;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .sch-stat-label {
+    font-size: 9px;
+    letter-spacing: 0.04em;
+  }
+
+  .sch-load-bars {
+    gap: 4px;
+    height: 48px;
+  }
 }
