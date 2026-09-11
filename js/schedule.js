@@ -504,12 +504,10 @@ export function renderSchedule(container, state, dm) {
                              now < new Date(c.date + 'T' + freeInterval.end + ':00');
           html += `
             <div class="m-ag-free ${isNowInFree ? 'now' : ''}">
-              <div class="m-ag-free-line"></div>
-              <div class="m-ag-free-text mono">
+              <span class="m-ag-free-text mono">
                 ${isNowInFree ? '<span class="m-ag-free-now">空闲中</span>' : ''}
                 <span>空闲 · ${formatMinCompact(freeInterval.durationMin)}</span>
-              </div>
-              <div class="m-ag-free-line"></div>
+              </span>
             </div>`;
         }
       }

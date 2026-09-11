@@ -1000,20 +1000,22 @@
   /* subtle highlight */
 }
 
-/* Free time between courses */
+/* Free time between courses - integrated divider */
 .m-ag-free {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 4px 0 4px 54px;
+  padding: 4px 0;
   position: relative;
 }
 
-.m-ag-free-line {
+.m-ag-free::before,
+.m-ag-free::after {
+  content: '';
   flex: 1;
   height: 1px;
-  background: var(--color-border-light);
-  min-width: 0;
+  background: var(--color-border);
+  min-width: 8px;
 }
 
 .m-ag-free-text {
@@ -1024,6 +1026,9 @@
   align-items: center;
   gap: 6px;
   font-variant-numeric: tabular-nums;
+  background: var(--color-bg);
+  padding: 0 8px;
+  flex-shrink: 0;
 }
 
 .m-ag-free-now {
@@ -1031,7 +1036,8 @@
   font-weight: 600;
 }
 
-.m-ag-free.now .m-ag-free-line {
+.m-ag-free.now::before,
+.m-ag-free.now::after {
   background: var(--color-primary-light);
 }
 

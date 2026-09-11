@@ -23,6 +23,21 @@
 
   .page-container { padding: 10px; }
   .card-pad { padding: 14px; }
+
+  /* Data page: stack label/value vertically on very narrow screens */
+  .data-info-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .data-info-label {
+    font-size: var(--text-xs);
+  }
+
+  .data-info-value {
+    font-size: var(--text-sm);
+  }
 }
 
 /* ===== Extra small phones (≤320px) ===== */
@@ -58,13 +73,11 @@
 
   .today-side {
     gap: 12px;
-    flex-direction: row;
-    flex-wrap: wrap;
+    flex-direction: column;
     order: 2;
   }
 
   .today-side > * {
-    flex: 1 1 45%;
     min-width: 0;
   }
 
@@ -74,22 +87,25 @@
     min-width: 0;
   }
 
-  .today-date-main {
-    font-size: var(--text-sm);
-    font-weight: 600;
-  }
-
   .today-date-sub {
     font-size: var(--text-xs);
   }
 
   .today-clock {
-    font-size: var(--text-md);
+    font-size: var(--text-xl);
     font-weight: 700;
   }
 
   .today-clock .seconds {
-    font-size: var(--text-xs);
+    font-size: var(--text-sm);
+  }
+
+  .today-week-badge {
+    padding: 3px 8px;
+  }
+
+  .week-badge-num {
+    font-size: var(--text-sm);
   }
 
   /* Status block */
@@ -831,6 +847,7 @@
 
   .data-info-label {
     font-size: var(--text-sm);
+    white-space: nowrap;
   }
 
   .data-info-value {

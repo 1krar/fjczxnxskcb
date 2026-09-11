@@ -1,4 +1,4 @@
-import { formatClockDisplay, formatCountdown, getTodayStr, getDayName, formatDate, getCurrentWeek, getWeekDates, getCourseState, getNextCourse, getCurrentCourse } from './time.js';
+import { formatClockDisplay, formatCountdown, getTodayStr, getDayName, formatDate, formatDateShort, getCurrentWeek, getWeekDates, getCourseState, getNextCourse, getCurrentCourse } from './time.js';
 import { showCourseDetail } from './app.js';
 
 let tickHandler = null;
@@ -323,11 +323,14 @@ function buildTodayHTML({ courses, dashState, freeTimeInfo, semProgress, todaySt
       <!-- LEFT COLUMN: Status -->
       <div class="today-main">
         <div class="today-header-row">
-          <div class="today-date-block">
-            <div class="today-date-main">${formatDate(todayStr)}</div>
-            <div class="today-date-sub">星期${getDayName(todayStr)} · 第${semProgress.currentWeek}周</div>
+          <div class="today-time-block">
+            <div class="today-clock mono" id="dash-clock"></div>
+            <div class="today-date-sub">星期${getDayName(todayStr)} · ${formatDateShort(todayStr)}</div>
           </div>
-          <div class="today-clock mono" id="dash-clock"></div>
+          <div class="today-week-badge">
+            <span class="week-badge-num mono">${String(semProgress.currentWeek).padStart(2, '0')}</span>
+            <span class="week-badge-label">周</span>
+          </div>
         </div>
 
         <div class="today-status accent-${stateInfo.accent}" id="dash-status">
@@ -355,8 +358,21 @@ function buildTodayHTML({ courses, dashState, freeTimeInfo, semProgress, todaySt
         </div>` : ''}
       </div>
 
-      <!-- RIGHT COLUMN: Progress + Info -->
+      <!-- RIGHT COLUMN: Next class day + Semester -->
       <div class="today-side">
+        ${!hasCourses && nextClassDay ? `
+        <div class="today-next-day">
+          <div class="section-label">下一有课日</div>
+          <div class="next-day-date mono">${nextClassDay.date.slice(5)}</div>
+          <div class="next-day-info">
+            星期${nextClassDay.weekday} · ${nextClassDay.courseCount} 节课程
+          </div>
+          ${nextClassDay.firstCourse ? `
+          <div class="next-day-first">
+            <span class="next-day-first-time mono">${nextClassDay.firstCourse.startTime}</span>
+            <span class="next-day-first-name">${nextClassDay.firstCourse.courseName}</span>
+          </div>` : ''}
+        </div>` : ''}
         <div class="today-semester">
           <div class="section-label">学期</div>
           <div class="semester-week">
@@ -386,19 +402,6 @@ function buildTodayHTML({ courses, dashState, freeTimeInfo, semProgress, todaySt
           </div>
         </div>` : ''}
 
-        ${!hasCourses && nextClassDay ? `
-        <div class="today-next-day">
-          <div class="section-label">下一有课日</div>
-          <div class="next-day-date mono">${nextClassDay.date.slice(5)}</div>
-          <div class="next-day-info">
-            星期${nextClassDay.weekday} · ${nextClassDay.courseCount} 节课程
-          </div>
-          ${nextClassDay.firstCourse ? `
-          <div class="next-day-first">
-            <span class="next-day-first-time mono">${nextClassDay.firstCourse.startTime}</span>
-            <span class="next-day-first-name">${nextClassDay.firstCourse.courseName}</span>
-          </div>` : ''}
-        </div>` : ''}
       </div>
     </div>
 

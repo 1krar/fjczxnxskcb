@@ -595,9 +595,18 @@ img, svg, video, canvas {
   height: var(--mobile-header-height);
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: space-between;
   padding: 0 16px;
   position: relative;
+  gap: 8px;
+}
+
+.mobile-header-label {
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--color-text-tertiary);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .mobile-class-selector {
