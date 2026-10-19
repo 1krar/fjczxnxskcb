@@ -8,6 +8,7 @@ import { renderCompare, cleanupCompare } from './compare.js';
 import { renderData } from './data-page.js';
 import { applySavedUpdates } from './data-update.js';
 import { renderSettings } from './settings.js';
+import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js';
 
 const state = {
   currentClass: '',
@@ -27,6 +28,7 @@ const routes = {
   compare: { render: renderCompare, cleanup: cleanupCompare },
   data: { render: renderData, cleanup: null },
   settings: { render: renderSettings, cleanup: null },
+  tasks: { render: renderTasks, cleanup: null },
 };
 
 function $(id) { return document.getElementById(id); }
@@ -65,6 +67,7 @@ async function init() {
   setupClassSelector();
   setupNavigation();
   setupDetailOverlay();
+  setupPersonalItems(state, dataManager, rerenderCurrentPage, closeDetailPanel);
   startClock();
   setupResizeHandler();
 
@@ -261,10 +264,10 @@ export function showCourseDetail(course) {
   panel.innerHTML = `
     <div class="detail-header">
       <div>
-        <div style="font-size:18px;font-weight:700;color:var(--color-text);line-height:1.4;">${course.courseName}</div>
+        <div id="course-detail-title" style="font-size:18px;font-weight:700;color:var(--color-text);line-height:1.4;">${course.courseName}</div>
         <div style="font-size:13px;color:var(--color-text-secondary);margin-top:4px;">第${course.startSection}-${course.endSection}节 · ${course.startTime}—${course.endTime}</div>
       </div>
-      <button class="detail-close" id="detail-close-btn">
+      <button class="detail-close" id="detail-close-btn" aria-label="关闭课程详情">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
     </div>
@@ -279,7 +282,10 @@ export function showCourseDetail(course) {
       ${course.courseId ? `<div class="detail-row"><span class="detail-label">课程编号</span><span class="detail-value mono muted">${course.courseId}</span></div>` : ''}
     </div>`;
 
+  mountCourseItems(panel, course);
   $('detail-close-btn').addEventListener('click', closeDetailPanel);
+  $('detail-overlay').inert = false;
+  $('detail-overlay').setAttribute('aria-hidden', 'false');
   $('detail-overlay').classList.add('open');
   document.body.style.overflow = 'hidden';
 
@@ -288,6 +294,8 @@ export function showCourseDetail(course) {
 
 function closeDetailPanel() {
   $('detail-overlay').classList.remove('open');
+  $('detail-overlay').inert = true;
+  $('detail-overlay').setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
 }
 

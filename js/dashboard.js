@@ -1,6 +1,7 @@
 import { formatClockDisplay, formatCountdown, getTodayStr, getDayName, formatDate, formatDateShort, getCurrentWeek, getWeekDates, getCourseState, getNextCourse, getCurrentCourse } from './time.js';
 import { showCourseDetail } from './app.js';
 import { formatLocation } from './location.js';
+import { mountTodayItems } from './tasks.js';
 
 let tickHandler = null;
 let dashState = { courses: [], state: 'NO_CLASS', currentCourse: null, nextCourse: null, prevCourse: null, remainingCount: 0 };
@@ -292,6 +293,8 @@ export function renderDashboard(container, state, dm) {
     isWeekend,
     nextClassDay,
   });
+
+  mountTodayItems(container, state, dm);
 
   // Attach event listeners
   attachCourseClickHandlers(container, courses);

@@ -6,6 +6,9 @@ export function renderSettings(container, state, dm) {
   const classes = dm.getClasses();
 
   container.innerHTML = `
+    <nav class="more-links" aria-label="更多功能">
+      <a href="#/analytics">课程分析</a><a href="#/compare">班级对比</a><a href="#/data">课表数据与更新</a>
+    </nav>
     <div class="analytics-grid">
       <div class="analytics-card">
         <div class="analytics-card-title">显示设置</div>
