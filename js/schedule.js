@@ -1,5 +1,6 @@
 import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse } from './time.js';
 import { showCourseDetail } from './app.js';
+import { formatLocation } from './location.js';
 
 let tickHandler = null;
 let scheduleState = { week: 1, selectedDay: 1, searchOpen: false };
@@ -339,7 +340,7 @@ export function renderSchedule(container, state, dm) {
             <div class="sch-course-bar"></div>
             <div class="sch-course-body">
               <div class="sch-course-name">${course.courseName}</div>
-              ${course.location ? `<div class="sch-course-loc">${course.location}</div>` : ''}
+              ${course.location ? `<div class="sch-course-loc">${formatLocation(course.location, state.settings.showFullLocation)}</div>` : ''}
               ${state.settings.showTeacher && course.teacher ? `<div class="sch-course-teacher">${course.teacher}</div>` : ''}
               <div class="sch-course-sec mono">第${course.startSection}-${course.endSection}节</div>
               ${hasConflict ? `<div class="sch-conflict-tag">冲突</div>` : ''}
@@ -486,7 +487,7 @@ export function renderSchedule(container, state, dm) {
               ${isNext && cState === 'before' ? '<div class="m-ag-next-tag">下一节</div>' : ''}
               <div class="m-ag-name">${c.courseName}</div>
               <div class="m-ag-meta">
-                ${c.location ? `<span class="m-ag-loc">${c.location}</span>` : ''}
+                ${c.location ? `<span class="m-ag-loc">${formatLocation(c.location, state.settings.showFullLocation)}</span>` : ''}
                 ${state.settings.showTeacher && c.teacher ? `<span class="m-ag-teacher">${c.teacher}</span>` : ''}
               </div>
               <div class="m-ag-sec mono">第${c.startSection}-${c.endSection}节</div>

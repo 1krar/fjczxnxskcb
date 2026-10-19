@@ -44,6 +44,8 @@ Desktop.ini
 *.tmp
 *.temp
 .cache/
+.private/
+__pycache__/
 
 # TRAE local skills
 .trae/

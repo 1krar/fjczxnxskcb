@@ -1,11 +1,12 @@
 import { dataManager } from './data.js';
-import { getSettings, saveSettings, getSelectedClass, setSelectedClass } from './storage.js';
-import { getCurrentWeek, formatClockDisplay, getTodayStr } from './time.js';
+import { getSettings, setSelectedClass } from './storage.js';
+import { getCurrentWeek, getTodayStr } from './time.js';
 import { renderDashboard, cleanupDashboard } from './dashboard.js';
 import { renderSchedule, cleanupSchedule } from './schedule.js';
 import { renderAnalytics, cleanupAnalytics } from './analytics.js';
 import { renderCompare, cleanupCompare } from './compare.js';
 import { renderData } from './data-page.js';
+import { applySavedUpdates } from './data-update.js';
 import { renderSettings } from './settings.js';
 
 const state = {
@@ -44,11 +45,16 @@ async function init() {
     return;
   }
 
+  applySavedUpdates(dataManager);
+
   if (dataManager.hasErrors()) {
     console.warn('Data validation warnings:', dataManager.getErrors());
   }
 
-  state.currentClass = state.settings.selectedClass || '26虚拟现实技术应用3';
+  const classes = dataManager.getClasses();
+  state.currentClass = classes.some(c => c.className === state.settings.selectedClass)
+    ? state.settings.selectedClass
+    : (classes[0]?.className || '');
   const info = dataManager.getSemesterInfo();
   state.currentWeek = getCurrentWeek(info.semesterStart);
   state.scheduleWeek = Math.max(info.firstWeek, Math.min(info.lastWeek, state.currentWeek));
@@ -136,11 +142,8 @@ function setupSingleClassSelector({ btnId, dropdownId, nameId, isMobile }) {
           closeDropdown();
           return;
         }
-        state.currentClass = className;
-        setSelectedClass(className);
-        updateAllClassDisplays();
+        selectClass(className);
         closeDropdown();
-        rerenderCurrentPage();
       });
     });
   }
@@ -184,6 +187,15 @@ function updateAllClassDisplays() {
   const mobileName = $('current-class-name-mobile');
   if (desktopName) desktopName.textContent = state.currentClass;
   if (mobileName) mobileName.textContent = state.currentClass;
+}
+
+export function selectClass(className) {
+  if (!dataManager.getClasses().some(c => c.className === className)) return;
+  state.currentClass = className;
+  setSelectedClass(className);
+  state.settings = getSettings();
+  updateAllClassDisplays();
+  rerenderCurrentPage();
 }
 
 function setupNavigation() {
@@ -433,8 +445,15 @@ export function rerenderCurrentPage() {
 }
 
 function startClock() {
+  let lastDate = getTodayStr();
   function tick() {
     state.now = new Date();
+    const today = getTodayStr();
+    if (today !== lastDate) {
+      lastDate = today;
+      state.currentWeek = getCurrentWeek(dataManager.getSemesterInfo().semesterStart);
+      rerenderCurrentPage();
+    }
     document.dispatchEvent(new CustomEvent('app:tick', { detail: { now: state.now } }));
   }
   tick();

@@ -438,13 +438,17 @@
 .today-stats-row {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1px;
-  background: var(--color-border);
+  gap: 0;
+  background: var(--color-surface);
   border-radius: var(--radius-lg);
-  padding: 1px;
+  padding: 0;
   overflow: hidden;
   min-width: 0;
-  box-shadow: var(--shadow-xs);
+  box-shadow: none;
+}
+
+.stat-inline + .stat-inline {
+  border-left: 1px solid var(--color-border-light);
 }
 
 .stat-inline {
@@ -864,7 +868,7 @@
 
 /* Past / Finished state */
 .tl-item.tl-finished {
-  opacity: 0.45;
+  opacity: 1;
 }
 
 .tl-item.tl-finished .tl-marker {
@@ -872,7 +876,7 @@
 }
 
 .tl-item.tl-finished:hover {
-  opacity: 0.65;
+  background: var(--color-surface-subtle);
 }
 
 /* Current / In-progress state */
@@ -955,12 +959,12 @@
 
 /* End of day */
 .tl-end-block {
-  display: flex;
+  display: grid;
+  grid-template-columns: 52px 10px minmax(0, 1fr);
+  column-gap: 14px;
   align-items: center;
-  gap: 14px;
-  padding: 8px 0 0 0;
+  padding: 14px 0 0;
   position: relative;
-  margin-left: 0;
 }
 
 .tl-end-marker {
@@ -968,7 +972,7 @@
   height: 10px;
   border-radius: 50%;
   background: var(--color-text-tertiary);
-  margin-left: 56px;
+  grid-column: 2;
   flex-shrink: 0;
   transition: background var(--transition-fast);
 }
@@ -979,6 +983,7 @@
 }
 
 .tl-end-text {
+  grid-column: 3;
   display: flex;
   align-items: center;
   gap: 8px;

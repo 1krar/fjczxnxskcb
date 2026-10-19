@@ -3,6 +3,7 @@ import { getCourseStartEnd } from './time.js';
 class DataManager {
   constructor() {
     this.raw = null;
+    this.baseRaw = null;
     this.normalized = new Map();
     this.errors = [];
   }
@@ -12,7 +13,8 @@ class DataManager {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
-      this.raw = json;
+      this.baseRaw = json;
+      this.raw = structuredClone(json);
       this.validate();
       this.normalize();
       return { success: true };
@@ -20,6 +22,19 @@ class DataManager {
       this.errors.push(`数据加载失败: ${err.message}`);
       return { success: false, error: err.message };
     }
+  }
+
+  setClassCourses(className, courses) {
+    if (!this.raw?.classes?.[className] || !Array.isArray(courses)) return false;
+    this.raw.classes[className].courses = structuredClone(courses);
+    this.validate();
+    this.normalize();
+    return true;
+  }
+
+  restoreClassCourses(className) {
+    const original = this.baseRaw?.classes?.[className]?.courses;
+    return Array.isArray(original) ? this.setClassCourses(className, original) : false;
   }
 
   validate() {

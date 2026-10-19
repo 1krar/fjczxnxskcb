@@ -201,7 +201,7 @@
   }
 
   .stat-inline-label {
-    font-size: 8px;
+    font-size: 10px;
     letter-spacing: 0.04em;
   }
 
@@ -293,7 +293,8 @@
   }
 
   .tl-item {
-    padding: 5px 0;
+    padding: 8px 0;
+    margin: 0;
     gap: 10px;
   }
 
@@ -302,11 +303,11 @@
   }
 
   .tl-start {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .tl-end {
-    font-size: 9px;
+    font-size: 11px;
   }
 
   .tl-marker {
@@ -320,7 +321,7 @@
   }
 
   .tl-meta {
-    font-size: 10px;
+    font-size: 11px;
     gap: 3px 6px;
     margin-top: 1px;
   }
@@ -330,39 +331,40 @@
   }
 
   .tl-item::after {
-    left: 47px;
-    top: 12px;
-    bottom: -5px;
+    left: 53px;
+    top: 16px;
+    bottom: -8px;
   }
 
   .tl-gap {
-    padding-left: 50px;
+    padding-left: 67px;
     padding-top: 2px;
     padding-bottom: 2px;
   }
 
   .tl-gap-text {
-    font-size: 9px;
+    font-size: 11px;
     gap: 4px;
   }
 
-  .tl-end {
-    padding-top: 4px;
+  .tl-end-block {
+    grid-template-columns: 40px 7px minmax(0, 1fr);
+    column-gap: 10px;
+    padding-top: 12px;
     gap: 10px;
   }
 
   .tl-end-marker {
-    margin-left: 47px;
     width: 7px;
     height: 7px;
   }
 
   .tl-end-text {
-    font-size: 11px;
+    font-size: 12px;
   }
 
   .tl-end-time {
-    font-size: 9px;
+    font-size: 11px;
   }
 
   /* ========== Schedule ========== */
@@ -1046,6 +1048,16 @@
   .tab-bar-item:active {
     opacity: 0.6;
   }
+}
+
+/* ===== Narrow data layout ===== */
+@media (max-width: 560px) {
+  .data-info-grid { grid-template-columns: 1fr; }
+  .data-info-item:nth-child(odd),
+  .data-info-item:nth-child(even) { padding: 10px 0; }
+  .data-info-label,
+  .data-info-value { white-space: normal; }
+  .data-info-value { text-align: right; }
 }
 
 /* ===== Landscape mobile ===== */

@@ -1,5 +1,6 @@
 import { formatClockDisplay, formatCountdown, getTodayStr, getDayName, formatDate, formatDateShort, getCurrentWeek, getWeekDates, getCourseState, getNextCourse, getCurrentCourse } from './time.js';
 import { showCourseDetail } from './app.js';
+import { formatLocation } from './location.js';
 
 let tickHandler = null;
 let dashState = { courses: [], state: 'NO_CLASS', currentCourse: null, nextCourse: null, prevCourse: null, remainingCount: 0 };
@@ -410,7 +411,7 @@ function buildTodayHTML({ courses, dashState, freeTimeInfo, semProgress, todaySt
     <div class="today-timeline-section">
       <div class="section-label-row">
         <span class="section-label">今日时间线</span>
-        <span class="badge badge-muted">${courses.length} 节</span>
+        <span class="badge badge-muted">${courses.length} 次课</span>
       </div>
       <div class="today-timeline" id="dash-timeline">
         ${renderTimeline(courses, dashState, now, state)}
@@ -478,7 +479,7 @@ function renderStatusBlock(dashState, course, stateInfo, state, freeTimeInfo) {
       </div>
       <div class="status-title">${course.courseName}</div>
       <div class="status-meta">
-        ${course.location ? `<span>${course.location}</span>` : ''}
+        ${course.location ? `<span>${formatLocation(course.location, state.settings.showFullLocation)}</span>` : ''}
         ${course.teacher && state.settings.showTeacher ? `<span class="dot-sep"></span><span>${course.teacher}</span>` : ''}
       </div>
       <div class="status-section mono">
@@ -557,7 +558,7 @@ function renderTimeline(courses, dashState, now, state) {
           <div class="tl-name">${c.courseName}</div>
           <div class="tl-meta">
             <span class="tl-section mono">第${c.startSection}-${c.endSection}节</span>
-            ${c.location ? `<span class="tl-loc">${c.location}</span>` : ''}
+            ${c.location ? `<span class="tl-loc">${formatLocation(c.location, state.settings.showFullLocation)}</span>` : ''}
             ${c.teacher && state.settings.showTeacher ? `<span class="tl-teacher">${c.teacher}</span>` : ''}
           </div>
         </div>
@@ -579,7 +580,7 @@ function renderTimeline(courses, dashState, now, state) {
             <div class="tl-gap-line"></div>
             <div class="tl-gap-text mono">
               ${isNowGap ? `<span class="tl-gap-now">${isLunch ? '午休中' : '空闲中'}</span>` : ''}
-              <span>${isLunch ? '午休' : formatMinCompact(gapMin) + ' 空闲'}</span>
+              <span>${formatMinCompact(gapMin)} ${isLunch ? '午休' : '空闲'}</span>
             </div>
             <div class="tl-gap-line"></div>
           </div>`);
@@ -591,7 +592,7 @@ function renderTimeline(courses, dashState, now, state) {
   const lastCourse = courses[courses.length - 1];
   const allDone = lastCourse && lastCourse.endDateTime && now >= lastCourse.endDateTime;
   items.push(`
-    <div class="tl-end ${allDone ? 'done' : ''}">
+    <div class="tl-end-block ${allDone ? 'done' : ''}">
       <div class="tl-end-marker"></div>
       <div class="tl-end-text">
         <span>今日结束</span>
@@ -745,7 +746,7 @@ function tick(container, state, dm) {
     });
 
     // Update end state
-    const endEl = timelineEl.querySelector('.tl-end');
+    const endEl = timelineEl.querySelector('.tl-end-block');
     if (endEl && courses.length > 0) {
       const lastCourse = courses[courses.length - 1];
       const allDone = lastCourse.endDateTime && now >= lastCourse.endDateTime;

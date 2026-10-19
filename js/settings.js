@@ -1,5 +1,5 @@
-import { getSettings, saveSettings, setSelectedClass } from './storage.js';
-import { rerenderCurrentPage } from './app.js';
+import { getSettings, saveSettings } from './storage.js';
+import { rerenderCurrentPage, selectClass } from './app.js';
 
 export function renderSettings(container, state, dm) {
   const settings = getSettings();
@@ -23,13 +23,13 @@ export function renderSettings(container, state, dm) {
           <div class="settings-row">
             <span class="settings-label">显示教师</span>
             <div class="settings-control">
-              <div class="toggle-switch ${settings.showTeacher ? 'on' : ''}" id="setting-showTeacher"></div>
+              <button type="button" class="toggle-switch ${settings.showTeacher ? 'on' : ''}" id="setting-showTeacher" role="switch" aria-label="显示教师" aria-checked="${settings.showTeacher}"></button>
             </div>
           </div>
           <div class="settings-row">
             <span class="settings-label">显示教室完整名称</span>
             <div class="settings-control">
-              <div class="toggle-switch ${settings.showFullLocation ? 'on' : ''}" id="setting-showFullLocation"></div>
+              <button type="button" class="toggle-switch ${settings.showFullLocation ? 'on' : ''}" id="setting-showFullLocation" role="switch" aria-label="显示教室完整名称" aria-checked="${settings.showFullLocation}"></button>
             </div>
           </div>
         </div>
@@ -68,6 +68,7 @@ export function renderSettings(container, state, dm) {
 
   container.querySelector('#setting-showTeacher').addEventListener('click', (e) => {
     const isOn = e.currentTarget.classList.toggle('on');
+    e.currentTarget.setAttribute('aria-checked', String(isOn));
     saveSettings({ showTeacher: isOn });
     state.settings = getSettings();
     rerenderCurrentPage();
@@ -75,15 +76,13 @@ export function renderSettings(container, state, dm) {
 
   container.querySelector('#setting-showFullLocation').addEventListener('click', (e) => {
     const isOn = e.currentTarget.classList.toggle('on');
+    e.currentTarget.setAttribute('aria-checked', String(isOn));
     saveSettings({ showFullLocation: isOn });
     state.settings = getSettings();
     rerenderCurrentPage();
   });
 
   container.querySelector('#setting-defaultClass').addEventListener('change', (e) => {
-    setSelectedClass(e.target.value);
-    state.currentClass = e.target.value;
-    state.settings = getSettings();
-    rerenderCurrentPage();
+    selectClass(e.target.value);
   });
 }
