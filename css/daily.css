@@ -1,0 +1,94 @@
+.daily-advice, .daily-tomorrow, .wardrobe-card { min-width: 0; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; padding: 20px; }
+.daily-advice { margin: 0 0 20px; background: var(--color-primary-50); border-color: var(--color-primary-100); }
+.daily-tomorrow { margin-top: 20px; }
+.daily-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.daily-heading h2, .wardrobe-card h2 { margin: 0; font-size: 17px; font-weight: 700; line-height: 1.6; }
+.daily-heading h2 > span, .daily-date, .daily-tag { font-size: 12px; font-weight: 400; color: var(--color-text-secondary); }
+.daily-heading h2 > span { margin-left: 8px; }
+.daily-sentence { font-size: 16px; line-height: 1.9; color: var(--color-text); margin: 4px 0 12px; overflow-wrap: anywhere; }
+.daily-advice-footer { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.daily-advice-footer details { min-width: 0; flex: 1; }
+.daily-advice-footer summary { min-height: 44px; padding: 10px 0; font-size: 12px; color: var(--color-text-secondary); cursor: pointer; }
+.daily-advice-footer details p { color: var(--color-text-secondary); font-size: 12px; line-height: 1.8; margin: 4px 0; overflow-wrap: anywhere; }
+.daily-advice-footer > a, .daily-link { display: inline-flex; align-items: center; min-height: 44px; color: var(--color-primary-dark); font-size: 14px; }
+.daily-advice-footer > a { white-space: nowrap; font-size: 13px; }
+.daily-text-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 8px 10px; background: transparent; border: 1px solid transparent; border-radius: 8px; color: var(--color-primary-dark); cursor: pointer; font: inherit; font-size: 13px; }
+.daily-text-button:hover { background: var(--color-primary-100); }
+.daily-feedback, .daily-muted, .daily-local-note { font-size: 14px; line-height: 1.8; color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.daily-feedback { color: var(--color-primary-dark); }
+.daily-feedback:empty, .daily-error:empty { display: none; }
+.daily-error { font-size: 14px; line-height: 1.8; color: #b91c1c; }
+.daily-small { display: block; color: var(--color-text-secondary); font-size: 12px; line-height: 1.8; overflow-wrap: anywhere; }
+.daily-fit-preview { margin: 6px 0; font-size: 15px; line-height: 1.8; font-weight: 600; overflow-wrap: anywhere; }
+.daily-tomorrow .daily-muted { margin: 8px 0; }
+.daily-local-note { margin: 0 0 18px; }
+.wardrobe-page { max-width: 1160px; margin: 0 auto; padding-bottom: 88px; }
+.wardrobe-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 16px; }
+.wardrobe-header h1 { font-size: 25px; line-height: 1.6; margin: 0; }
+.wardrobe-header p { color: var(--color-text-secondary); font-size: 14px; line-height: 1.8; margin: 5px 0 0; }
+.wardrobe-layout { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(290px, 1fr); gap: 20px; align-items: start; }
+.wardrobe-main-column, .wardrobe-side-column { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.wardrobe-card h3 { font-size: 15px; line-height: 1.7; margin: 0 0 8px; overflow-wrap: anywhere; }
+.wardrobe-card > summary, .wardrobe-card details > summary { font-size: 15px; font-weight: 600; line-height: 1.8; min-height: 44px; padding: 8px 0; cursor: pointer; }
+.wardrobe-card details { margin: 14px 0; padding-top: 10px; border-top: 1px solid var(--color-border-light); }
+.wardrobe-card form > button[type=submit] { margin-top: 18px; min-height: 44px; }
+.wardrobe-card label { display: grid; gap: 7px; min-width: 0; font-size: 13px; color: var(--color-text-secondary); line-height: 1.7; }
+.wardrobe-card input:not([type=checkbox]), .wardrobe-card select { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%; min-height: 44px; padding: 10px 12px; background: var(--color-surface); color: var(--color-text); border: 1px solid var(--color-border); border-radius: 9px; font: inherit; font-size: 16px; }
+.wardrobe-card input[type=checkbox] { flex: 0 0 20px; width: 20px; height: 20px; margin: 0; accent-color: var(--color-primary); }
+.wardrobe-card .daily-heading > select { width: auto; max-width: 160px; font-size: 14px; }
+.wardrobe-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px 12px; margin: 14px 0; }
+.wardrobe-card .daily-check-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; min-height: 44px; }
+.daily-check-row > label { display: flex; align-items: center; gap: 10px; }
+.wardrobe-card fieldset { border: 1px solid var(--color-border); border-radius: 12px; min-width: 0; margin: 14px 0; padding: 12px; }
+.wardrobe-card legend { color: var(--color-text); font-size: 14px; font-weight: 600; padding: 0 5px; }
+.wardrobe-category-choices, .outfit-picker-group { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.wardrobe-category-choices label, .outfit-picker-group label { display: flex; align-items: center; min-height: 44px; padding: 8px; gap: 8px; border: 1px solid var(--color-border-light); border-radius: 8px; cursor: pointer; color: var(--color-text); overflow-wrap: anywhere; }
+.outfit-picker-group { grid-template-columns: minmax(0, 1fr); }
+.outfit-picker-group label { flex-wrap: wrap; }
+.outfit-picker-group label .daily-small { margin-left: auto; }
+.wardrobe-plan-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 16px; padding-bottom: 12px; border-bottom: 1px solid var(--color-border-light); }
+.wardrobe-plan-controls > label:first-child { flex: 1; min-width: 150px; }
+.wardrobe-plan-controls .btn { min-height: 44px; }
+.wardrobe-warning { background: var(--color-warning-50); color: var(--color-text); border-left: 3px solid var(--color-warning-600); border-radius: 8px; padding: 12px; font-size: 14px; line-height: 1.8; }
+.wardrobe-suggestion { border-top: 1px solid var(--color-border-light); padding-top: 16px; margin-top: 16px; }
+.wardrobe-suggestion ul { padding-left: 20px; font-size: 13px; color: var(--color-text-secondary); line-height: 1.8; }
+.outfit-chain { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+.outfit-piece { min-width: 0; max-width: 100%; font-size: 13px; line-height: 1.8; padding: 7px 10px; color: var(--color-text); background: var(--color-surface-subtle); border: 1px solid var(--color-border); border-radius: 10px; overflow-wrap: anywhere; }
+.outfit-chain-link { width: 16px; height: 2px; background: var(--color-primary-300); flex: 0 0 16px; }
+.saved-outfit { padding: 16px 0; border-bottom: 1px solid var(--color-border-light); }
+.wardrobe-laundry { padding: 12px; background: var(--color-surface-subtle); border-radius: 12px; margin-bottom: 12px; }
+.wardrobe-bulk-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+.wardrobe-bulk-actions .btn { min-height: 44px; font-size: 13px; }
+.wardrobe-dry-date { max-width: 270px; margin-top: 12px; }
+.garment-row { padding: 18px 0; border-bottom: 1px solid var(--color-border-light); }
+.wardrobe-card .garment-choice { display: flex; align-items: center; gap: 12px; min-height: 44px; cursor: pointer; }
+.garment-choice strong { display: block; font-size: 15px; line-height: 1.8; color: var(--color-text); overflow-wrap: anywhere; }
+.garment-choice > span { min-width: 0; }
+.garment-details { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin: 8px 0; padding-left: 32px; }
+.garment-state { display: inline-flex; padding: 2px 8px; border-radius: 6px; font-size: 12px; color: var(--color-text-secondary); background: var(--color-surface-subtle); }
+.garment-state.state-ready { color: #166534; background: var(--color-success-50); }
+.garment-state.state-drying { color: #92400e; background: var(--color-warning-50); }
+.garment-actions { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; padding-left: 32px; }
+.garment-actions > label { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.garment-actions select { width: auto; font-size: 13px; padding: 8px; }
+.archive-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; }
+#daily-import-preview { padding: 14px; margin-top: 14px; background: var(--color-surface-subtle); border-radius: 10px; font-size: 13px; line-height: 1.8; }
+#daily-import-preview[hidden] { display: none; }
+.wardrobe-page :is(input, select, button, summary, a):focus-visible, .daily-advice :is(button, summary, a):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+body:has(#view-wardrobe.active) #quick-capture { display: none; }
+@media (max-width: 900px) {
+  .wardrobe-layout { grid-template-columns: minmax(0, 1fr); }
+  .wardrobe-main-column, .wardrobe-side-column { display: contents; }
+  #add-garments { grid-row: 2; }
+}
+@media (max-width: 768px) {
+  .daily-advice, .daily-tomorrow, .wardrobe-card { padding: 18px; }
+  .daily-advice { margin-bottom: 16px; }
+  .daily-tomorrow { margin-top: 16px; }
+  .wardrobe-header h1 { font-size: 22px; }
+  .wardrobe-header { gap: 8px; }
+}
+@media (max-width: 360px) {
+  .wardrobe-fields { grid-template-columns: minmax(0, 1fr); }
+  .garment-actions, .garment-details { padding-left: 0; }
+}

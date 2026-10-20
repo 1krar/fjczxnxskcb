@@ -1,14 +1,15 @@
-import { dataManager } from './data.js';
-import { getSettings, setSelectedClass } from './storage.js';
-import { getCurrentWeek, getTodayStr } from './time.js';
-import { renderDashboard, cleanupDashboard } from './dashboard.js';
-import { renderSchedule, cleanupSchedule } from './schedule.js';
-import { renderAnalytics, cleanupAnalytics } from './analytics.js';
-import { renderCompare, cleanupCompare } from './compare.js';
-import { renderData } from './data-page.js';
-import { applySavedUpdates } from './data-update.js';
-import { renderSettings } from './settings.js';
-import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js';
+import { dataManager } from './data.js?v=20261020-6';
+import { getSettings, setSelectedClass } from './storage.js?v=20261020-6';
+import { getCurrentWeek, getTodayStr } from './time.js?v=20261020-6';
+import { renderDashboard, cleanupDashboard } from './dashboard.js?v=20261020-6';
+import { renderSchedule, cleanupSchedule } from './schedule.js?v=20261020-6';
+import { renderAnalytics, cleanupAnalytics } from './analytics.js?v=20261020-6';
+import { renderCompare, cleanupCompare } from './compare.js?v=20261020-6';
+import { renderData } from './data-page.js?v=20261020-6';
+import { applySavedUpdates } from './data-update.js?v=20261020-6';
+import { renderSettings } from './settings.js?v=20261020-6';
+import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js?v=20261020-6';
+import { renderWardrobe } from './wardrobe.js?v=20261020-6';
 
 const state = {
   currentClass: '',
@@ -29,6 +30,7 @@ const routes = {
   data: { render: renderData, cleanup: null },
   settings: { render: renderSettings, cleanup: null },
   tasks: { render: renderTasks, cleanup: null },
+  wardrobe: { render: renderWardrobe, cleanup: null },
 };
 
 function $(id) { return document.getElementById(id); }
@@ -237,7 +239,8 @@ function updateNavActiveState() {
   const bottomNav = $('bottom-nav');
   if (bottomNav) {
     bottomNav.querySelectorAll('.bottom-nav-item').forEach(item => {
-      item.classList.toggle('active', item.dataset.route === route);
+      const mobileRoute = ['wardrobe', 'analytics', 'compare', 'data'].includes(route) ? 'settings' : route;
+      item.classList.toggle('active', item.dataset.route === mobileRoute);
     });
   }
 }

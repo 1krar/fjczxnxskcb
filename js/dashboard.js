@@ -1,9 +1,10 @@
-import { formatClockDisplay, formatCountdown, getTodayStr, getDayName, formatDateShort, getCurrentWeek, getCourseState } from './time.js';
-import { showCourseDetail } from './app.js';
-import { formatLocation } from './location.js';
-import { mountTodayItems } from './tasks.js';
-import { escapeText } from './tasks-store.js';
-import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js';
+import { formatClockDisplay, formatCountdown, getTodayStr, getDayName, formatDateShort, getCurrentWeek, getCourseState } from './time.js?v=20261020-6';
+import { showCourseDetail } from './app.js?v=20261020-6';
+import { formatLocation } from './location.js?v=20261020-6';
+import { mountTodayItems } from './tasks.js?v=20261020-6';
+import { escapeText } from './tasks-store.js?v=20261020-6';
+import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261020-6';
+import { mountDailyAssistant } from './daily-widgets.js?v=20261020-6';
 
 const esc = escapeText;
 let tickHandler = null;
@@ -158,6 +159,7 @@ export function renderDashboard(container, state, dm) {
     ${courses.length ? `<section class="today-timeline-section"><div class="section-label-row"><h2>今日时间线</h2><span class="badge badge-muted">${courses.length} 次课 · ${getCourseSummary(courses).totalSections} 节</span></div><div class="today-timeline" id="dash-timeline">${renderTimeline(courses, context, now, state)}</div></section>` : '<section class="today-empty-section"><h2>课表留白，也可以有自己的安排</h2><p>休息、运动或约朋友都可以。需要记的事情，随手记一下就好。</p><a href="#/schedule">查看课表 →</a></section>'}
     ${renderOverview(courses, now, dm.getSemesterInfo())}</div></section>`;
   mountTodayItems(container, state, dm);
+  const cleanupAssistant = mountDailyAssistant(container, state, dm);
   const allCourses = [...courses, ...(nextDay?.courses || [])];
   const onClick = event => {
     const button = event.target.closest('[data-course-key]');
@@ -201,6 +203,7 @@ export function renderDashboard(container, state, dm) {
   tickHandler = handler;
   document.addEventListener('app:tick', handler);
   return () => {
+    cleanupAssistant();
     document.removeEventListener('app:tick', handler);
     container.removeEventListener('click', onClick);
     if (tickHandler === handler) tickHandler = null;

@@ -1,7 +1,7 @@
-import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse } from './time.js';
-import { showCourseDetail } from './app.js';
-import { formatLocation } from './location.js';
-import { getCourseGaps, getDayWindow } from './day-plan.js';
+import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse } from './time.js?v=20261020-6';
+import { showCourseDetail } from './app.js?v=20261020-6';
+import { formatLocation } from './location.js?v=20261020-6';
+import { getCourseGaps, getDayWindow } from './day-plan.js?v=20261020-6';
 
 let tickHandler = null;
 let scheduleState = { week: 1, selectedDay: 1, searchOpen: false };

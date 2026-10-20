@@ -1,5 +1,5 @@
-import { getSettings, saveSettings } from './storage.js';
-import { rerenderCurrentPage, selectClass } from './app.js';
+import { getSettings, saveSettings } from './storage.js?v=20261020-6';
+import { rerenderCurrentPage, selectClass } from './app.js?v=20261020-6';
 
 export function renderSettings(container, state, dm) {
   const settings = getSettings();
@@ -7,7 +7,7 @@ export function renderSettings(container, state, dm) {
 
   container.innerHTML = `
     <nav class="more-links" aria-label="更多功能">
-      <a href="#/analytics">课程分析</a><a href="#/compare">班级对比</a><a href="#/data">课表数据与更新</a>
+      <a href="#/wardrobe">小衣橱与生活偏好</a><a href="#/analytics">课程分析</a><a href="#/compare">班级对比</a><a href="#/data">课表数据与更新</a>
     </nav>
     <div class="analytics-grid">
       <div class="analytics-card">
