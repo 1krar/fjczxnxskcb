@@ -1,6 +1,6 @@
-import { readDailyData, DAILY_KEY } from './daily-store.js?v=20261020-8';
-import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261020-8';
-import { buildAdvice, chooseAdvice, outfitRecommendation, departurePlan, localDate, nextDate } from './daily-model.js?v=20261020-8';
+import { readDailyData, DAILY_KEY } from './daily-store.js?v=20261020-9';
+import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261020-9';
+import { buildAdvice, chooseAdvice, outfitRecommendation, departurePlan, localDate, nextDate } from './daily-model.js?v=20261020-9';
 
 function getContext(state, dm, now) {
   const today = localDate(now);

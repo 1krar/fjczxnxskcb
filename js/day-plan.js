@@ -1,3 +1,4 @@
+import { getCoursePhase } from './time.js?v=20261020-9';
 // Shared course counts and time calculations. All intervals are [start, end).
 const MINUTE = 60000;
 
@@ -20,7 +21,7 @@ export function getCourseSummary(courses) {
     sessionCount: courses.length,
     uniqueCourseCount: new Set(courses.map(course => course.courseName)).size,
     totalSections,
-    totalHours: Math.round(totalSections * 45 / 60 * 10) / 10,
+    totalHours: Math.round(courses.reduce((sum, course) => sum + (course.segments?.length ? course.segments.filter(part => part.kind === 'lesson').reduce((minutes, part) => minutes + (part.end - part.start) / MINUTE, 0) : (course.endSection - course.startSection + 1) * 45), 0) / 60 * 10) / 10,
     endTime: last?.endTime || '—',
   };
 }
@@ -48,6 +49,7 @@ export function getFreeTimeInfo(courses, now) {
   const nextGap = currentCourse ? gaps.find(gap => gap.start >= currentCourse.endDateTime) : null;
   return {
     gaps,
+    internalBreakMin: courses.reduce((sum, course) => sum + (course.segments || []).filter(part => part.kind === 'break').reduce((minutes, part) => minutes + (part.end - part.start) / MINUTE, 0), 0),
     totalMin: Math.round(gaps.reduce((sum, gap) => sum + gap.durationMin, 0)),
     longestMin: Math.round(Math.max(0, ...gaps.map(gap => gap.durationMin))),
     isInFreeTime: Boolean(currentGap),
@@ -86,6 +88,13 @@ export function getTodayState(courses, now) {
   const result = { currentCourse: current, nextCourse: next, prevCourse: previous,
     remainingCount: sorted.filter(course => course.startDateTime > now).length,
     countdown: current ? current.endDateTime - now : next ? next.startDateTime - now : null };
+  if (current) {
+    const phase = getCoursePhase(current, now);
+    if (phase.kind === 'unknown') return { ...result, state: 'TIME_UNKNOWN', countdown: null };
+    result.currentSegment = phase.segment;
+    if (phase.segment) result.countdown = phase.segment.end - now;
+    if (phase.kind === 'break') return { ...result, state: 'INTERNAL_BREAK' };
+  }
   if (!courses.length) return { ...result, state: now.getDay() === 0 || now.getDay() === 6 ? 'WEEKEND' : 'NO_CLASS' };
   if (!sorted.length) return { ...result, state: 'TIME_UNKNOWN' };
   if (current) return { ...result, state: 'IN_CLASS' };

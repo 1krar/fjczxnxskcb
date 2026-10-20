@@ -1,2 +1,2 @@
 // Keep app.js at one URL so circular view imports share one application instance.
-import './app.js?v=20261020-8';
+import './app.js?v=20261020-9';

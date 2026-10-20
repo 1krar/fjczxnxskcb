@@ -1,15 +1,19 @@
-import { dataManager } from './data.js?v=20261020-8';
-import { getSettings, setSelectedClass } from './storage.js?v=20261020-8';
-import { getCurrentWeek, getTodayStr } from './time.js?v=20261020-8';
-import { renderDashboard, cleanupDashboard } from './dashboard.js?v=20261020-8';
-import { renderSchedule, cleanupSchedule } from './schedule.js?v=20261020-8';
-import { renderAnalytics, cleanupAnalytics } from './analytics.js?v=20261020-8';
-import { renderCompare, cleanupCompare } from './compare.js?v=20261020-8';
-import { renderData } from './data-page.js?v=20261020-8';
-import { applySavedUpdates } from './data-update.js?v=20261020-8';
-import { renderSettings } from './settings.js?v=20261020-8';
-import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js?v=20261020-8';
-import { renderWardrobe } from './wardrobe.js?v=20261020-8';
+import { dataManager } from './data.js?v=20261020-9';
+import { getSettings, setSelectedClass } from './storage.js?v=20261020-9';
+import { getCurrentWeek, getTodayStr } from './time.js?v=20261020-9';
+import { renderDashboard, cleanupDashboard } from './dashboard.js?v=20261020-9';
+import { renderSchedule, cleanupSchedule } from './schedule.js?v=20261020-9';
+import { renderAnalytics, cleanupAnalytics } from './analytics.js?v=20261020-9';
+import { renderCompare, cleanupCompare } from './compare.js?v=20261020-9';
+import { renderData } from './data-page.js?v=20261020-9';
+import { applySavedUpdates } from './data-update.js?v=20261020-9';
+import { renderSettings } from './settings.js?v=20261020-9';
+import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js?v=20261020-9';
+import { renderWardrobe } from './wardrobe.js?v=20261020-9';
+import { renderAgenda, selectAgendaDate } from './agenda.js?v=20261020-9';
+import { setupReminders, renderReminderSettings } from './reminders.js?v=20261020-9';
+import { renderApiSettings } from './api-settings.js?v=20261020-9';
+import { segmentMarkup } from './course-segments.js?v=20261020-9';
 
 const state = {
   currentClass: '',
@@ -25,6 +29,9 @@ const state = {
 const routes = {
   today: { render: renderDashboard, cleanup: cleanupDashboard },
   schedule: { render: renderSchedule, cleanup: cleanupSchedule },
+  agenda: { render: renderAgenda },
+  reminders: { render: renderReminderSettings },
+  api: { render: renderApiSettings },
   analytics: { render: renderAnalytics, cleanup: cleanupAnalytics },
   compare: { render: renderCompare, cleanup: cleanupCompare },
   data: { render: renderData, cleanup: null },
@@ -70,6 +77,7 @@ async function init() {
   setupNavigation();
   setupDetailOverlay();
   setupPersonalItems(state, dataManager, rerenderCurrentPage, closeDetailPanel);
+  setupReminders(state, dataManager);
   startClock();
   setupResizeHandler();
 
@@ -232,14 +240,14 @@ function updateNavActiveState() {
   const desktopNav = $('main-nav-desktop');
   if (desktopNav) {
     desktopNav.querySelectorAll('.nav-item').forEach(item => {
-      item.classList.toggle('active', item.dataset.route === route);
+        item.classList.toggle('active', item.dataset.route === (route === 'agenda' ? 'schedule' : ['api','reminders'].includes(route) ? 'settings' : route));
     });
   }
   // Mobile
   const bottomNav = $('bottom-nav');
   if (bottomNav) {
     bottomNav.querySelectorAll('.bottom-nav-item').forEach(item => {
-      const mobileRoute = ['wardrobe', 'analytics', 'compare', 'data'].includes(route) ? 'settings' : route;
+      const mobileRoute = route === 'agenda' ? 'schedule' : ['wardrobe', 'analytics', 'compare', 'data','api','reminders'].includes(route) ? 'settings' : route;
       item.classList.toggle('active', item.dataset.route === mobileRoute);
     });
   }
@@ -278,6 +286,7 @@ export function showCourseDetail(course) {
       <div class="detail-row"><span class="detail-label">时间</span><span class="detail-value mono">${dateLabel}</span></div>
       <div class="detail-row"><span class="detail-label">节次</span><span class="detail-value mono">第${course.startSection}-${course.endSection}节</span></div>
       <div class="detail-row"><span class="detail-label">时段</span><span class="detail-value mono">${course.startTime} — ${course.endTime}</span></div>
+      ${segmentMarkup(course, false)}
       <div class="detail-row"><span class="detail-label">季节</span><span class="detail-value">${course.seasonName || course.season}</span></div>
       <div class="detail-row"><span class="detail-label">地点</span><span class="detail-value ${!course.location ? 'muted' : ''}" style="word-break:break-all;text-align:right;">${location}</span></div>
       <div class="detail-row"><span class="detail-label">教师</span><span class="detail-value ${!course.teacher ? 'muted' : ''}">${teacher}</span></div>
@@ -411,6 +420,7 @@ function setupSheetDragGesture(panel) {
 function handleRoute() {
   const hash = location.hash.replace('#/', '') || 'today';
   const route = routes[hash] ? hash : 'today';
+  if (route === 'agenda' && state.route === 'today') selectAgendaDate(getTodayStr());
   state.route = route;
 
   updateNavActiveState();

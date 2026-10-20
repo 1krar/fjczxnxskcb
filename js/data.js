@@ -1,5 +1,5 @@
-import { getCourseStartEnd } from './time.js?v=20261020-8';
-import { getDayWindow } from './day-plan.js?v=20261020-8';
+import { getCourseStartEnd, getCourseSegments, getCoursePhase, localDate } from './time.js?v=20261020-9';
+import { getDayWindow } from './day-plan.js?v=20261020-9';
 
 class DataManager {
   constructor() {
@@ -30,6 +30,7 @@ class DataManager {
     this.raw.classes[className].courses = structuredClone(courses);
     this.validate();
     this.normalize();
+    if (typeof window !== 'undefined') window.dispatchEvent(new CustomEvent('courses:changed'));
     return true;
   }
 
@@ -119,6 +120,8 @@ class DataManager {
       course.startDateTime = null;
       course.endDateTime = null;
     }
+    course.segments = getCourseSegments(course, sectionTimes);
+    if (!course.segments.length) { course.startDateTime = null; course.endDateTime = null; }
     return course;
   }
 
@@ -187,9 +190,8 @@ class DataManager {
   }
 
   getCurrentCourse(className, now) {
-    const courses = this.getTodayCourses(className);
     const t = now || new Date();
-    return courses.find(c => c.startDateTime && c.endDateTime && t >= c.startDateTime && t < c.endDateTime) || null;
+    return this.getCoursesByDate(className, localDate(t)).find(c => getCoursePhase(c, t).kind === 'lesson') || null;
   }
 
   getNextCourse(className, now) {

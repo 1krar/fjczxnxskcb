@@ -1,7 +1,8 @@
-import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse } from './time.js?v=20261020-8';
-import { showCourseDetail } from './app.js?v=20261020-8';
-import { formatLocation } from './location.js?v=20261020-8';
-import { getCourseGaps, getDayWindow } from './day-plan.js?v=20261020-8';
+import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse, localDate } from './time.js?v=20261020-9';
+import { segmentMarkup } from './course-segments.js?v=20261020-9';
+import { showCourseDetail } from './app.js?v=20261020-9';
+import { formatLocation } from './location.js?v=20261020-9';
+import { getCourseGaps, getDayWindow } from './day-plan.js?v=20261020-9';
 
 let tickHandler = null;
 let scheduleState = { week: 1, selectedDay: 1, searchOpen: false };
@@ -148,7 +149,7 @@ export function renderSchedule(container, state, dm) {
 
   const currentWeek = Math.max(1, getCurrentWeek(info.semesterStart));
   const now = new Date();
-  const todayStr = now.toISOString().slice(0, 10);
+  const todayStr = localDate(now);
   const todayWeekday = now.getDay() === 0 ? 7 : now.getDay();
 
   if (scheduleState.week === currentWeek) {
@@ -452,6 +453,7 @@ export function renderSchedule(container, state, dm) {
             <div class="m-ag-bar"></div>
             <div class="m-ag-body">
               ${cState === 'in_progress' ? '<div class="m-ag-now-tag">正在上课</div>' : ''}
+              ${cState === 'break' ? '<div class="m-ag-break-tag">大课内课间</div>' : ''}
               ${isNext && cState === 'before' ? '<div class="m-ag-next-tag">下一次课</div>' : ''}
               <div class="m-ag-name">${c.courseName}</div>
               <div class="m-ag-meta">
@@ -459,6 +461,7 @@ export function renderSchedule(container, state, dm) {
                 ${state.settings.showTeacher && c.teacher ? `<span class="m-ag-teacher">${c.teacher}</span>` : ''}
               </div>
               <div class="m-ag-sec mono">第${c.startSection}-${c.endSection}节</div>
+              ${segmentMarkup(c)}
             </div>
           </div>`;
 
@@ -562,7 +565,7 @@ export function renderSchedule(container, state, dm) {
   }
 
   // ========== Render + Events ==========
-  container.innerHTML = buildHTML();
+  container.innerHTML = `<nav class="agenda-view-switch" aria-label="课表视图"><a href="#/schedule" aria-current="page">周课表</a><a href="#/agenda">日历与日程</a><a href="#/reminders">提醒设置</a></nav>` + buildHTML();
   attachEvents();
 
   // Tick (real-time updates)
@@ -649,6 +652,8 @@ export function renderSchedule(container, state, dm) {
 
       // Update NOW/NEXT tags
       const nowTag = item.querySelector('.m-ag-now-tag');
+      item.querySelector('.m-ag-break-tag')?.remove();
+      if (cState === 'break') item.querySelector('.m-ag-body')?.insertAdjacentHTML('afterbegin', '<div class="m-ag-break-tag">大课内课间</div>');
       const nextTag = item.querySelector('.m-ag-next-tag');
       if (cState === 'in_progress' && !nowTag) {
         const body = item.querySelector('.m-ag-body');
@@ -752,7 +757,8 @@ export function renderSchedule(container, state, dm) {
     const agenda = document.getElementById('m-agenda');
     if (agenda) {
       agenda.querySelectorAll('.m-agenda-item').forEach(item => {
-        item.addEventListener('click', () => {
+        item.addEventListener('click', event => {
+          if (event.target.closest('.course-segments-details')) return;
           const idx = parseInt(item.dataset.courseIdx);
           const dayCourses = dm.getCoursesByWeekday(state.currentClass, scheduleState.week, scheduleState.selectedDay);
           if (dayCourses[idx]) showCourseDetail(dayCourses[idx]);
@@ -814,7 +820,7 @@ export function renderSchedule(container, state, dm) {
   }
 
   function rerender() {
-    container.innerHTML = buildHTML();
+    container.innerHTML = `<nav class="agenda-view-switch" aria-label="课表视图"><a href="#/schedule" aria-current="page">周课表</a><a href="#/agenda">日历与日程</a><a href="#/reminders">提醒设置</a></nav>` + buildHTML();
     attachEvents();
   }
 

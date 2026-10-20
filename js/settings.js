@@ -1,5 +1,5 @@
-import { getSettings, saveSettings } from './storage.js?v=20261020-8';
-import { rerenderCurrentPage, selectClass } from './app.js?v=20261020-8';
+import { getSettings, saveSettings } from './storage.js?v=20261020-9';
+import { rerenderCurrentPage, selectClass } from './app.js?v=20261020-9';
 
 export function renderSettings(container, state, dm) {
   const settings = getSettings();
@@ -7,6 +7,7 @@ export function renderSettings(container, state, dm) {
 
   container.innerHTML = `
     <nav class="more-links" aria-label="更多功能">
+      <a href="#/agenda">日历与活动日程</a><a href="#/reminders">提前提醒与大A</a><a href="#/api">API与服务连接</a>
       <a href="#/wardrobe">小衣橱与生活偏好</a><a href="#/analytics">课程分析</a><a href="#/compare">班级对比</a><a href="#/data">课表数据与更新</a>
     </nav>
     <div class="analytics-grid">

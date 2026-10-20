@@ -102,6 +102,38 @@ export function getCourseStartEnd(course, sectionTimes) {
   return { startDate, endDate, startTime: startInfo.start, endTime: endInfo.end };
 }
 
+// Keep the parent course for notes/counts; derive real teaching periods and breaks.
+export function getCourseSegments(course, sectionTimes = null) {
+  if (!sectionTimes) return course?.segments || [];
+  const segments = [];
+  for (let section = Number(course.startSection || course.start_section); section <= Number(course.endSection || course.end_section || course.startSection); section++) {
+    const time = getSectionTime(section, course.season, sectionTimes);
+    if (!time || !course.date) return [];
+    const start = new Date(`${course.date}T${time.start}:00`);
+    const end = new Date(`${course.date}T${time.end}:00`);
+    if (!Number.isFinite(+start) || end <= start) return [];
+    const previous = segments.at(-1);
+    if (previous && start < previous.end) return [];
+    if (previous && start > previous.end) segments.push({ kind: 'break', start: previous.end, end: start,
+      startTime: previous.endTime, endTime: time.start, nextSection: section });
+    segments.push({ kind: 'lesson', section, start, end, startTime: time.start, endTime: time.end });
+  }
+  return segments;
+}
+
+export function getCoursePhase(course, now) {
+  if (!course?.startDateTime || !course.endDateTime) return { kind: 'unknown', segment: null };
+  if (Array.isArray(course.segments) && !course.segments.length) return { kind: 'unknown', segment: null };
+  if (now < course.startDateTime) return { kind: 'before', segment: null };
+  if (now >= course.endDateTime) return { kind: 'finished', segment: null };
+  const segment = getCourseSegments(course).find(part => now >= part.start && now < part.end);
+  return { kind: segment?.kind || (course.segments?.length ? 'unknown' : 'lesson'), segment: segment || null };
+}
+
+export function localDate(date = new Date()) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 export function getWeekDates(week, semesterStart) {
   const start = new Date(semesterStart + 'T00:00:00');
   const weekStart = new Date(start);
@@ -137,7 +169,7 @@ export function clampWeek(week, firstWeek, lastWeek) {
 export function getCourseState(course, now) {
   if (!course || !course.startDateTime || !course.endDateTime) return 'before';
   if (now >= course.endDateTime) return 'finished';
-  if (now >= course.startDateTime && now < course.endDateTime) return 'in_progress';
+  if (now >= course.startDateTime && now < course.endDateTime) return getCoursePhase(course, now).kind === 'break' ? 'break' : 'in_progress';
   return 'before';
 }
 
@@ -157,6 +189,6 @@ export function getCurrentCourse(courses, now) {
   if (!courses || courses.length === 0) return null;
   return courses.find(c => {
     if (!c.startDateTime || !c.endDateTime) return false;
-    return now >= c.startDateTime && now < c.endDateTime;
+    return now >= c.startDateTime && now < c.endDateTime && getCoursePhase(c, now).kind === 'lesson';
   }) || null;
 }

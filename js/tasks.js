@@ -1,5 +1,5 @@
-import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261020-8';
-import { getTodayStr } from './time.js?v=20261020-8';
+import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261020-9';
+import { getTodayStr } from './time.js?v=20261020-9';
 
 let context = null;
 let editingId = '';

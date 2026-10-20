@@ -1,10 +1,11 @@
-import { getTodayStr, getDayName, getCurrentWeek, getCourseState } from './time.js?v=20261020-8';
-import { showCourseDetail } from './app.js?v=20261020-8';
-import { formatLocation } from './location.js?v=20261020-8';
-import { mountTodayItems } from './tasks.js?v=20261020-8';
-import { escapeText } from './tasks-store.js?v=20261020-8';
-import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261020-8';
-import { mountDailyAssistant } from './daily-widgets.js?v=20261020-8';
+import { getTodayStr, getDayName, getCurrentWeek, getCourseState } from './time.js?v=20261020-9';
+import { showCourseDetail } from './app.js?v=20261020-9';
+import { formatLocation } from './location.js?v=20261020-9';
+import { mountTodayItems } from './tasks.js?v=20261020-9';
+import { escapeText } from './tasks-store.js?v=20261020-9';
+import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261020-9';
+import { mountDailyAssistant } from './daily-widgets.js?v=20261020-9';
+import { mountTodayAgenda } from './today-agenda.js?v=20261020-9';
 
 const esc = escapeText;
 let tickHandler = null;
@@ -14,6 +15,7 @@ const STATE_LABELS = {
   EARLY_MORNING: { label: '夜间 · 今日准备', accent: 'muted' },
   BEFORE_FIRST_CLASS: { label: '今日首课', accent: 'before' },
   IN_CLASS: { label: '正在上课', accent: 'primary' },
+  INTERNAL_BREAK: { label: '大课内课间', accent: 'info' },
   BREAK: { label: '课间', accent: 'info' },
   LUNCH: { label: '午间空档', accent: 'warning' },
   BEFORE_NEXT_CLASS: { label: '下一次课', accent: 'info' },
@@ -69,10 +71,11 @@ function renderStatus(context, courses, nextDay, state, now) {
   } else {
     const course = context.currentCourse || context.nextCourse;
     content = courseButton(course, state);
+    if (context.currentSegment) content += `<p class="status-sub">${context.currentSegment.kind === 'break' ? `下一小节：第${context.currentSegment.nextSection}节 · ${context.currentSegment.endTime}开始` : `当前：第${context.currentSegment.section}节 · ${context.currentSegment.startTime}—${context.currentSegment.endTime}`}</p>`;
     if (context.state === 'EARLY_MORNING') content += '<p class="status-sub">夜里先把需要的东西准备好，临近上课时再看倒计时。</p>';
     if (current) content += `<div class="status-progress-mini" aria-hidden="true"><div class="status-progress-mini-fill" id="dash-progress" style="width:${progressPercent(course, now)}%"></div></div>`;
   }
-  const countdown = !resting && context.state !== 'EARLY_MORNING' && context.countdown !== null ? `<span class="status-countdown"><span id="dash-countdown">${countdownText(context.countdown)}</span>${current ? '后下课' : '后开课'}</span>` : '';
+  const countdown = !resting && context.state !== 'EARLY_MORNING' && context.countdown !== null ? `<span class="status-countdown"><span id="dash-countdown">${countdownText(context.countdown)}</span>${current ? '后本小节下课' : context.state === 'INTERNAL_BREAK' ? '后继续上课' : '后开课'}</span>` : '';
   return `<div class="status-main"><div class="status-heading"><div class="status-tag accent-${label.accent}">${label.label}</div>${countdown}</div>${content}</div>`;
 }
 
@@ -84,7 +87,7 @@ function progressPercent(course, now) {
 function renderCourseRow(course, context, now, state) {
   const status = getCourseState(course, now);
   const isNext = course === context.nextCourse;
-  const tag = status === 'in_progress' ? '进行中' : status === 'finished' ? '已结束' : isNext ? '下一次课' : '';
+  const tag = status === 'in_progress' ? '进行中' : status === 'break' ? '课间' : status === 'finished' ? '已结束' : isNext ? '下一次课' : '';
   return `<button type="button" class="tl-item ${status === 'finished' ? 'tl-finished' : status === 'in_progress' ? 'tl-in-progress' : 'tl-before'}${isNext ? ' tl-next' : ''}" data-course-key="${esc(courseKey(course))}">
     <span class="tl-time mono"><span class="tl-start">${esc(course.startTime || '待确认')}</span><span class="tl-end">${esc(course.endTime)}</span></span>
     <span class="tl-marker ${status === 'in_progress' ? 'active' : ''}" aria-hidden="true"></span>
@@ -130,7 +133,7 @@ function renderOverview(courses, now, info) {
     <div class="stat-inline"><span class="stat-inline-label">课程种类</span><span class="stat-inline-value">${summary.uniqueCourseCount} 门</span></div>
     <div class="stat-inline"><span class="stat-inline-label">节次</span><span class="stat-inline-value">${summary.totalSections} 节</span></div>
     <div class="stat-inline"><span class="stat-inline-label">教学时长</span><span class="stat-inline-value">${summary.totalHours} 小时</span></div></div>
-    <div class="overview-gaps"><span>课间空档合计 <strong>${formatMinutes(free.totalMin)}</strong></span><span>最长一段 <strong>${formatMinutes(free.longestMin)}</strong></span></div>
+    <div class="overview-gaps"><span>两次课间空档 <strong>${formatMinutes(free.totalMin)}</strong></span><span>最长一段 <strong>${formatMinutes(free.longestMin)}</strong></span><span>大课内短课间 <strong>${formatMinutes(free.internalBreakMin)}</strong></span></div>
     <p class="overview-note">空档仅统计今日相邻课程之间，不含首课前、末课后；尚未扣除吃饭、走路和个人安排。</p>
     <div class="today-semester"><div class="semester-week"><span>学期进度</span><span>${semester.label}</span></div><div class="semester-bar"><div class="semester-bar-fill" style="width:${semester.progress}%"></div></div></div></details>`;
 }
@@ -143,13 +146,14 @@ export function renderDashboard(container, state, dm) {
   const nextDay = findNextClassDay(dm, state.currentClass, today);
   const context = getTodayState(courses, now);
   const semester = getSemesterProgress(dm.getSemesterInfo());
-  container.innerHTML = `<section class="today-page"><header class="today-header-row"><h1 class="today-date-sub"><time datetime="${today}">${Number(today.slice(5, 7))}月${Number(today.slice(8))}日 · 星期${getDayName(today)}</time></h1><span class="today-week-badge">${semester.label}</span></header>
+  container.innerHTML = `<section class="today-page"><header class="today-header-row"><h1 class="today-date-sub"><a href="#/agenda" aria-label="打开日历与日程"><time datetime="${today}">${Number(today.slice(5, 7))}月${Number(today.slice(8))}日 · 星期${getDayName(today)}</time></a></h1><span class="today-week-badge">${semester.label}</span></header>
     <div class="today-body-grid"><div class="today-now-column"><section class="today-status accent-${STATE_LABELS[context.state].accent}" id="dash-status" aria-label="当前课程与下一次安排">${renderStatus(context, courses, nextDay, state, now)}</section>
-    <div class="today-priority" id="dash-personal-slot"></div><div id="dash-advice-slot"></div></div>
+    <div id="dash-planner-slot"></div><div class="today-priority" id="dash-personal-slot"></div><div id="dash-advice-slot"></div></div>
     <div class="today-support-column">${courses.length ? `<details class="today-course-list" id="dash-course-list"><summary>${courseListSummary(courses, context, now)}</summary><div class="today-timeline" id="dash-timeline">${renderTimeline(courses, context, now, state)}</div><a class="personal-view-all" href="#/schedule">查看完整课表 →</a></details>` : ''}
     <div id="dash-prep-slot"></div>${renderOverview(courses, now, dm.getSemesterInfo())}</div></div></section>`;
   mountTodayItems(container, state, dm);
   const cleanupAssistant = mountDailyAssistant(container, state, dm);
+  const cleanupAgendaBrief = mountTodayAgenda(container, state, dm);
   const allCourses = [...courses, ...(nextDay?.courses || [])];
   const onClick = event => {
     const button = event.target.closest('[data-course-key]');
@@ -194,6 +198,7 @@ export function renderDashboard(container, state, dm) {
   document.addEventListener('app:tick', handler);
   return () => {
     cleanupAssistant();
+    cleanupAgendaBrief();
     document.removeEventListener('app:tick', handler);
     container.removeEventListener('click', onClick);
     if (tickHandler === handler) tickHandler = null;
@@ -201,7 +206,7 @@ export function renderDashboard(container, state, dm) {
 }
 
 function stateKey(context) {
-  return [context.state, courseKey(context.currentCourse), courseKey(context.nextCourse), context.remainingCount].join('::');
+  return [context.state, context.currentSegment?.section, context.currentSegment?.nextSection, courseKey(context.currentCourse), courseKey(context.nextCourse), context.remainingCount].join('::');
 }
 
 export function cleanupDashboard() {
