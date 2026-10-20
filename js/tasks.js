@@ -1,5 +1,5 @@
-import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261020-6';
-import { getTodayStr } from './time.js?v=20261020-6';
+import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261020-8';
+import { getTodayStr } from './time.js?v=20261020-8';
 
 let context = null;
 let editingId = '';
@@ -144,7 +144,7 @@ function attachItemActions(container, refresh) {
 
 export function mountTodayItems(container, state, dm) {
   const block = document.createElement('section');
-  block.className = 'personal-today card';
+  block.className = 'personal-today';
   const slot = container.querySelector('#dash-personal-slot');
   const timeline = container.querySelector('.today-timeline-section, .today-empty-section');
   if (slot) slot.append(block);
@@ -155,9 +155,13 @@ export function mountTodayItems(container, state, dm) {
   const today = getTodayStr();
   const todayCourses = new Set(dm.getTodayCourses(state.currentClass).map(course => course.courseName));
   const important = items.filter(item => (item.dueDate && item.dueDate <= today) || item.needsConfirmation || (todayCourses.has(item.courseName) && !item.dueDate));
-  const shown = (important.length ? important : items).slice(0, 3);
-  block.innerHTML = `<div class="personal-section-heading"><div><h2>今天要记得</h2><p>${items.length ? `${items.length} 条未完成 · 先看眼前这些` : '作业、带物品和口头通知，都可以先记一句。'}</p></div><button type="button" class="btn btn-primary" data-today-capture>＋ 记一下</button></div>
-    ${shown.length ? shown.map(item => itemCard(item, today, true)).join('') : '<p class="personal-muted">目前没有记录的事项。</p>'}<a class="personal-view-all" href="#/tasks">查看全部事项 →</a>`;
+  const tomorrow = new Date(`${today}T00:00:00`); tomorrow.setDate(tomorrow.getDate() + 1);
+  const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+  const rank = item => !item.needsConfirmation && item.dueDate && item.dueDate <= today ? 0 : !item.needsConfirmation && item.dueDate === tomorrowStr ? 1 : important.includes(item) ? 2 : 3;
+  const shown = [...items].sort((a, b) => rank(a) - rank(b)).slice(0, 2);
+  block.innerHTML = `<div class="personal-section-heading"><h2>要记得</h2><button type="button" class="btn btn-primary" data-today-capture>＋ 记一句</button></div>
+    ${shown.length ? shown.map(item => `<article class="personal-item home-personal-item" data-personal-id="${esc(item.id)}"><button type="button" class="home-personal-open" data-item-action="edit" aria-label="查看并补充：${esc(item.text)}"><span class="personal-text">${esc(item.text)}</span><span class="personal-meta${isOverdue(item, today) ? ' is-overdue' : ''}">${isOverdue(item, today) ? '已过所设时间 · ' : ''}${esc(dateLabel(item, today))}${item.needsConfirmation && item.dueDate ? ' · 通知待核对' : ''}${item.courseName ? ` · ${esc(item.courseName)}` : ''}</span></button><button type="button" class="home-personal-complete" data-item-action="complete" aria-label="完成：${esc(item.text)}">完成</button></article>`).join('') : '<p class="personal-muted personal-home-empty">还没有记录的事项，先记一句就好。</p>'}
+    ${items.length ? `<a class="personal-view-all" href="#/tasks">全部${items.length}条未完成事项 →</a>` : ''}`;
   block.querySelector('[data-today-capture]')?.addEventListener('click', () => openCapture());
   attachItemActions(block, () => context.rerender());
 }

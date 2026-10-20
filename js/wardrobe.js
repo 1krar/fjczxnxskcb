@@ -1,7 +1,7 @@
 import { CATEGORIES, COLORS, CLOTHING_STATES, DEFAULT_PROFILE, DAILY_KEY, readDailyData, rawDailyData, emptyDailyData,
-  validateDailyData, addGarments, editGarment, changeGarmentState, setArchived, saveOutfit, saveRunPlan, saveDailyProfile, mergeDailyBackup } from './daily-store.js?v=20261020-6';
-import { localDate, nextDate, outfitRecommendation, runningSuitable } from './daily-model.js?v=20261020-6';
-import { escapeText as esc, validDate } from './tasks-store.js?v=20261020-6';
+  validateDailyData, addGarments, editGarment, changeGarmentState, setArchived, saveOutfit, saveRunPlan, saveDailyProfile, mergeDailyBackup } from './daily-store.js?v=20261020-8';
+import { localDate, nextDate, outfitRecommendation, runningSuitable } from './daily-model.js?v=20261020-8';
+import { escapeText as esc, validDate } from './tasks-store.js?v=20261020-8';
 
 const optionHTML = (values, selected) => Object.entries(values).map(([value, label]) => `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(label)}</option>`).join('');
 const numberField = (label, name, value, max = 180) => `<label>${label}<input name="${name}" type="number" min="0" max="${max}" value="${value}"></label>`;
@@ -14,7 +14,7 @@ function download(contents, name) {
 }
 
 function profileForm(profile) {
-  return `<form id="daily-profile-form"><div class="daily-check-row"><label><input name="enabled" type="checkbox"${profile.enabled ? ' checked' : ''}> 显示温柔朋友型“今日一句”</label></div>
+  return `<form id="daily-profile-form"><div class="daily-check-row"><label><input name="enabled" type="checkbox"${profile.enabled ? ' checked' : ''}> 显示“今日一句”</label></div>
     <div class="wardrobe-fields">${numberField('每分钟最多换几句（1—10）', 'refreshPerMinute', profile.refreshPerMinute, 10)}${textField('天气地区（先记录偏好）', 'city', profile.city, '城市或区县')}</div>
     <details><summary>出行与早餐</summary><p class="daily-muted">填写常用路线后，遇到对应教室会提示准备出发；预算可以随时调整。</p>
       <div class="wardrobe-fields">${textField('常用出发区域', 'baseArea', profile.baseArea)}${textField('需要提前去的教学楼关键词', 'destinationKeyword', profile.destinationKeyword)}${textField('该教学楼所在区域', 'destinationArea', profile.destinationArea)}${numberField('跨区到课预留（分钟，0表示未设置）', 'travelMinutes', profile.travelMinutes)}</div>
