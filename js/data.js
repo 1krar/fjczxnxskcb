@@ -1,4 +1,5 @@
 import { getCourseStartEnd } from './time.js';
+import { getDayWindow } from './day-plan.js';
 
 class DataManager {
   constructor() {
@@ -390,70 +391,25 @@ class DataManager {
   }
 
   _analyzeDayFreeTime(courses, dateStr, weekday) {
-    const sectionTimes = this.getSectionTimes();
     const dayName = ['一', '二', '三', '四', '五'][weekday - 1] || String(weekday);
-    if (courses.length === 0) {
-      return {
-        weekday,
-        dayName,
-        date: dateStr,
-        slots: [{ type: 'free', label: '全天无课', duration: '8h+' }],
-        totalFreeMin: 780,
-      };
-    }
-
-    const firstCourse = courses[0];
-    const lastCourse = courses[courses.length - 1];
-    const dayStart = new Date(dateStr + 'T08:00:00');
-    const dayEnd = new Date(dateStr + 'T21:00:00');
+    const window = getDayWindow(courses, dateStr);
     const slots = [];
-    let totalFreeMin = 0;
-
-    if (firstCourse.startDateTime && firstCourse.startDateTime > dayStart) {
-      const freeMin = Math.round((firstCourse.startDateTime - dayStart) / 60000);
-      if (freeMin > 0) {
-        slots.push({ type: 'free', label: '早晨空闲', duration: this._formatMin(freeMin), start: '08:00', end: firstCourse.startTime });
-        totalFreeMin += freeMin;
-      }
+    const clock = value => { const date = new Date(value); return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`; };
+    const addFree = (start, end) => {
+      if (end <= start) return;
+      const midday = window.busy.length > 0 && new Date(start).getHours() < 14 && new Date(end).getHours() >= 12;
+      slots.push({ type: midday ? 'lunch' : 'free', label: midday ? '无课时段（含午间）' : '无课时段',
+        duration: this._formatMin(Math.round((end - start) / 60000)), start: clock(start), end: clock(end) });
+    };
+    let cursor = +window.start;
+    for (const interval of window.busy) {
+      addFree(cursor, interval.start);
+      slots.push({ type: 'busy', label: interval.courses.map(course => course.courseName).join(' / '),
+        duration: `${clock(interval.start)}-${clock(interval.end)}`, location: interval.courses[0].location });
+      cursor = interval.end;
     }
-
-    for (let i = 0; i < courses.length; i++) {
-      const c = courses[i];
-      slots.push({
-        type: 'busy',
-        label: c.courseName,
-        duration: `${c.startTime}-${c.endTime}`,
-        location: c.location,
-      });
-
-      if (i < courses.length - 1) {
-        const next = courses[i + 1];
-        if (c.endDateTime && next.startDateTime) {
-          const gapMin = Math.round((next.startDateTime - c.endDateTime) / 60000);
-          if (gapMin > 0) {
-            const isLunch = c.endDateTime.getHours() <= 12 && next.startDateTime.getHours() >= 13;
-            slots.push({
-              type: isLunch ? 'lunch' : 'free',
-              label: isLunch ? '午休' : '课间空闲',
-              duration: this._formatMin(gapMin),
-              start: c.endTime,
-              end: next.startTime,
-            });
-            totalFreeMin += gapMin;
-          }
-        }
-      }
-    }
-
-    if (lastCourse.endDateTime && lastCourse.endDateTime < dayEnd) {
-      const freeMin = Math.round((dayEnd - lastCourse.endDateTime) / 60000);
-      if (freeMin > 0) {
-        slots.push({ type: 'free', label: '晚间空闲', duration: this._formatMin(freeMin), start: lastCourse.endTime, end: '21:00' });
-        totalFreeMin += freeMin;
-      }
-    }
-
-    return { weekday, dayName, date: dateStr, slots, totalFreeMin };
+    addFree(cursor, +window.end);
+    return { weekday, dayName, date: dateStr, slots, totalFreeMin: window.freeMin };
   }
 
   _formatMin(min) {

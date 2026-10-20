@@ -100,7 +100,7 @@ function renderOverview(dm, className, week, info) {
         <div class="weekly-load">
           <div class="load-stat">
             <div class="load-stat-value">${weekStats.courseCount}</div>
-            <div class="load-stat-label">课程 / 门</div>
+            <div class="load-stat-label">上课次数 / 次</div>
           </div>
           <div class="load-stat">
             <div class="load-stat-value">${weekStats.totalSections}</div>
@@ -117,7 +117,7 @@ function renderOverview(dm, className, week, info) {
             <div class="stat-bar-row" style="margin-bottom:6px;">
               <span style="font-size:12px;width:32px;color:var(--color-text-secondary);">${dayNames[parseInt(day)-1]}</span>
               <div class="stat-bar"><div class="stat-bar-fill" style="width:${(stats.courses / maxDayCourses) * 100}%"></div></div>
-              <span class="mono" style="font-size:12px;width:50px;text-align:right;color:var(--color-text-secondary);">${stats.courses}课 ${stats.sections}节</span>
+              <span class="mono" style="font-size:12px;min-width:70px;text-align:right;color:var(--color-text-secondary);">${stats.courses}次课 ${stats.sections}节</span>
             </div>`).join('')}
         </div>
       </div>
@@ -137,7 +137,7 @@ function renderCourseStats(dm, className) {
             <th>课程名称</th>
             <th>上课次数 / 次</th>
             <th>总节数 / 节</th>
-            <th>总课时 / 小时</th>
+            <th>教学时长 / 小时</th>
             <th>主要教师</th>
             <th>主要教室</th>
           </tr>
@@ -231,6 +231,7 @@ function renderFreeTime(dm, className, week) {
     <div class="analytics-grid">
       <div class="analytics-card analytics-full">
         <div class="analytics-card-title">本周无课时间</div>
+        <p class="overview-note">统计周一至周五 08:00—21:00 的无课时段，未扣除吃饭、通勤和个人安排；与首页的“课间空档”范围不同。</p>
         <div class="free-time-summary">
           <div class="free-time-chip">
             <span class="free-time-chip-label">本周无课 / 小时</span>
@@ -252,7 +253,7 @@ function renderFreeTime(dm, className, week) {
         <div style="margin-top:16px;display:flex;gap:16px;font-size:12px;color:var(--color-text-secondary);">
           <span><span style="display:inline-block;width:12px;height:12px;background:var(--color-primary);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>有课</span>
           <span><span style="display:inline-block;width:12px;height:12px;background:var(--color-border-light);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>无课</span>
-          <span><span style="display:inline-block;width:12px;height:12px;background:var(--color-warning-light);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>午休</span>
+          <span><span style="display:inline-block;width:12px;height:12px;background:var(--color-warning-light);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>含午间的无课时段</span>
         </div>
       </div>
     </div>`;

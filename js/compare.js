@@ -175,7 +175,7 @@ export function renderCompare(container, state, dm) {
         const cn = compareState.classes[i];
         if (!cn) { html += `<td></td>`; continue; }
         const stats = dm.getWeekStats(cn, w);
-        html += `<td class="mono">${stats.courseCount}课 · ${stats.totalSections}节 · ${stats.totalHours}小时</td>`;
+        html += `<td class="mono">${stats.courseCount}次课 · ${stats.totalSections}节 · ${stats.totalHours}小时</td>`;
       }
       html += `</tr>`;
     }
@@ -186,7 +186,7 @@ export function renderCompare(container, state, dm) {
 
   function renderFreetimeTab(dm) {
     const week = compareState.week;
-    let html = `<div class="analytics-grid">`;
+    let html = `<p class="overview-note">统计周一至周五 08:00—21:00 的无课时段，未扣除吃饭、通勤和个人安排。</p><div class="analytics-grid">`;
 
     for (let i = 0; i < 3; i++) {
       const cn = compareState.classes[i];

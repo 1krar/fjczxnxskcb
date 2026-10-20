@@ -1,0 +1,106 @@
+// Shared course counts and time calculations. All intervals are [start, end).
+const MINUTE = 60000;
+
+function timedCourses(courses) {
+  return courses.filter(course => course.startDateTime instanceof Date &&
+    course.endDateTime instanceof Date && Number.isFinite(+course.startDateTime) &&
+    Number.isFinite(+course.endDateTime) && course.endDateTime > course.startDateTime)
+    .sort((a, b) => a.startDateTime - b.startDateTime);
+}
+
+export function courseKey(course) {
+  return course ? [course.date, course.startSection, course.endSection, course.courseName, course.location].join('|') : '';
+}
+
+export function getCourseSummary(courses) {
+  const totalSections = courses.reduce((sum, course) => sum + Math.max(0, course.endSection - course.startSection + 1), 0);
+  const timed = timedCourses(courses);
+  const last = timed.reduce((latest, course) => !latest || course.endDateTime > latest.endDateTime ? course : latest, null);
+  return {
+    sessionCount: courses.length,
+    uniqueCourseCount: new Set(courses.map(course => course.courseName)).size,
+    totalSections,
+    totalHours: Math.round(totalSections * 45 / 60 * 10) / 10,
+    endTime: last?.endTime || '—',
+  };
+}
+
+export function getCourseGaps(courses) {
+  const sorted = timedCourses(courses);
+  const gaps = [];
+  let previous = sorted[0];
+  for (const next of sorted.slice(1)) {
+    if (next.startDateTime > previous.endDateTime) {
+      gaps.push({ start: previous.endDateTime, end: next.startDateTime,
+        durationMin: (next.startDateTime - previous.endDateTime) / MINUTE,
+        previousCourse: previous, nextCourse: next });
+    }
+    // Keep the end of the occupied union, including nested or overlapping classes.
+    if (next.endDateTime > previous.endDateTime) previous = next;
+  }
+  return gaps;
+}
+
+export function getFreeTimeInfo(courses, now) {
+  const gaps = getCourseGaps(courses);
+  const currentGap = gaps.find(gap => now >= gap.start && now < gap.end);
+  const currentCourse = timedCourses(courses).find(course => now >= course.startDateTime && now < course.endDateTime);
+  const nextGap = currentCourse ? gaps.find(gap => gap.start >= currentCourse.endDateTime) : null;
+  return {
+    gaps,
+    totalMin: Math.round(gaps.reduce((sum, gap) => sum + gap.durationMin, 0)),
+    longestMin: Math.round(Math.max(0, ...gaps.map(gap => gap.durationMin))),
+    isInFreeTime: Boolean(currentGap),
+    // Keep exact milliseconds for countdowns; round only at presentation time.
+    currentFreeMs: currentGap ? currentGap.end - now : 0,
+    currentFreeEnd: currentGap?.end || null,
+    nextFreeMin: nextGap?.durationMin || 0,
+    nextFreeStart: nextGap?.start || null,
+  };
+}
+
+export function getDayWindow(courses, dateStr) {
+  const start = new Date(`${dateStr}T08:00:00`);
+  const end = new Date(`${dateStr}T21:00:00`);
+  const busy = [];
+  for (const course of timedCourses(courses)) {
+    const courseStart = Math.max(+start, +course.startDateTime);
+    const courseEnd = Math.min(+end, +course.endDateTime);
+    if (courseEnd <= courseStart) continue;
+    const previous = busy.at(-1);
+    if (previous && courseStart <= previous.end) {
+      previous.end = Math.max(previous.end, courseEnd);
+      previous.courses.push(course);
+    } else busy.push({ start: courseStart, end: courseEnd, courses: [course] });
+  }
+  const occupiedMin = busy.reduce((sum, interval) => sum + (interval.end - interval.start) / MINUTE, 0);
+  return { start, end, busy, occupiedMin, freeMin: Math.max(0, 780 - occupiedMin) };
+}
+
+export function getTodayState(courses, now) {
+  const sorted = timedCourses(courses);
+  const current = sorted.find(course => now >= course.startDateTime && now < course.endDateTime) || null;
+  const next = sorted.find(course => course.startDateTime > now) || null;
+  const past = sorted.filter(course => course.endDateTime <= now);
+  const previous = past.reduce((latest, course) => !latest || course.endDateTime > latest.endDateTime ? course : latest, null);
+  const result = { currentCourse: current, nextCourse: next, prevCourse: previous,
+    remainingCount: sorted.filter(course => course.startDateTime > now).length,
+    countdown: current ? current.endDateTime - now : next ? next.startDateTime - now : null };
+  if (!courses.length) return { ...result, state: now.getDay() === 0 || now.getDay() === 6 ? 'WEEKEND' : 'NO_CLASS' };
+  if (!sorted.length) return { ...result, state: 'TIME_UNKNOWN' };
+  if (current) return { ...result, state: 'IN_CLASS' };
+  if (!previous && next) return { ...result, state: now.getHours() < 6 ? 'EARLY_MORNING' : 'BEFORE_FIRST_CLASS' };
+  if (previous && next) {
+    const gapMin = (next.startDateTime - previous.endDateTime) / MINUTE;
+    const midday = now.getHours() >= 12 && now.getHours() < 14;
+    return { ...result, state: midday && gapMin > 45 ? 'LUNCH' : gapMin <= 20 ? 'BREAK' : 'BEFORE_NEXT_CLASS' };
+  }
+  return { ...result, state: 'DAY_FINISHED' };
+}
+
+export function formatMinutes(value) {
+  const minutes = Math.max(0, Math.round(value));
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  return hours ? `${hours}小时${remainder ? `${remainder}分` : ''}` : `${minutes}分钟`;
+}

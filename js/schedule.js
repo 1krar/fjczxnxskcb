@@ -1,6 +1,7 @@
 import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse } from './time.js';
 import { showCourseDetail } from './app.js';
 import { formatLocation } from './location.js';
+import { getCourseGaps, getDayWindow } from './day-plan.js';
 
 let tickHandler = null;
 let scheduleState = { week: 1, selectedDay: 1, searchOpen: false };
@@ -57,34 +58,8 @@ function detectConflicts(coursesByDay) {
 
 // ========== Free Time Calculation ==========
 function getDayFreeIntervals(courses, sectionTimes, season, dateStr) {
-  if (courses.length === 0) return [];
-  const intervals = [];
-
-  // Sort by start time
-  const sorted = [...courses].sort((a, b) => (a.startSection || 0) - (b.startSection || 0));
-
-  // Gap between courses
-  for (let i = 0; i < sorted.length - 1; i++) {
-    const curr = sorted[i];
-    const next = sorted[i + 1];
-    const currEnd = getSectionTime(curr.endSection, season, sectionTimes);
-    const nextStart = getSectionTime(next.startSection, season, sectionTimes);
-    if (currEnd && nextStart && currEnd.end !== nextStart.start) {
-      const endMin = timeToMin(currEnd.end);
-      const startMin = timeToMin(nextStart.start);
-      const diffMin = startMin - endMin;
-      if (diffMin > 5) {
-        intervals.push({
-          type: 'free',
-          start: currEnd.end,
-          end: nextStart.start,
-          durationMin: diffMin,
-        });
-      }
-    }
-  }
-
-  return intervals;
+  return getCourseGaps(courses).map(gap => ({ type: 'free', start: gap.previousCourse.endTime,
+    end: gap.nextCourse.startTime, durationMin: gap.durationMin }));
 }
 
 function timeToMin(timeStr) {
@@ -98,7 +73,6 @@ function getWeekStats(dm, className, week) {
   const uniqueCourses = new Set();
   let totalPeriods = 0;
   let totalMinutes = 0; // 教学时长：每节 45 分钟
-  let totalOccupiedMin = 0; // 时间占用：含课间休息（用于空闲时间估算）
   const byDay = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   const dayOccupiedMin = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
   const MINUTES_PER_SECTION = 45;
@@ -110,12 +84,6 @@ function getWeekStats(dm, className, week) {
     byDay[c.weekday] = (byDay[c.weekday] || 0) + sections;
     // 教学时长按每节 45 分钟计算
     totalMinutes += sections * MINUTES_PER_SECTION;
-    // 时间占用（含课间）用于空闲时间估算
-    if (c.startDateTime && c.endDateTime) {
-      const occMin = Math.round((c.endDateTime - c.startDateTime) / 60000);
-      totalOccupiedMin += occMin;
-      dayOccupiedMin[c.weekday] = (dayOccupiedMin[c.weekday] || 0) + occMin;
-    }
   }
 
   // Busiest day
@@ -128,13 +96,13 @@ function getWeekStats(dm, className, week) {
     }
   }
 
-  // Free time per day (approximate: 8:00-21:00 minus occupied time)
+  // Weekday window, shared with Analytics; merge overlaps and clip to 08:00—21:00.
   const dayFree = {};
+  const dates = getWeekDates(week, dm.getSemesterInfo().semesterStart);
   for (let d = 1; d <= 5; d++) {
-    const occMin = dayOccupiedMin[d] || 0;
-    // Approximate free time between 8:00 and 21:00 = 780 min
-    const freeMin = Math.max(0, 780 - occMin);
-    dayFree[d] = freeMin;
+    const window = getDayWindow(courses.filter(course => course.weekday === d), dates[d - 1]);
+    dayOccupiedMin[d] = window.occupiedMin;
+    dayFree[d] = window.freeMin;
   }
   const totalFreeMin = Object.values(dayFree).reduce((a, b) => a + b, 0);
 
@@ -451,7 +419,7 @@ export function renderSchedule(container, state, dm) {
       html += `
         <div class="m-agenda-empty">
           <div class="m-agenda-empty-title">今日无课</div>
-          <div class="m-agenda-empty-sub">空闲日</div>
+          <div class="m-agenda-empty-sub">课表上没有课程安排</div>
           <div class="m-agenda-empty-stats">
             <div class="m-empty-stat">
               <span class="m-empty-stat-num mono">00</span>
@@ -484,7 +452,7 @@ export function renderSchedule(container, state, dm) {
             <div class="m-ag-bar"></div>
             <div class="m-ag-body">
               ${cState === 'in_progress' ? '<div class="m-ag-now-tag">正在上课</div>' : ''}
-              ${isNext && cState === 'before' ? '<div class="m-ag-next-tag">下一节</div>' : ''}
+              ${isNext && cState === 'before' ? '<div class="m-ag-next-tag">下一次课</div>' : ''}
               <div class="m-ag-name">${c.courseName}</div>
               <div class="m-ag-meta">
                 ${c.location ? `<span class="m-ag-loc">${formatLocation(c.location, state.settings.showFullLocation)}</span>` : ''}
@@ -506,8 +474,8 @@ export function renderSchedule(container, state, dm) {
           html += `
             <div class="m-ag-free ${isNowInFree ? 'now' : ''}">
               <span class="m-ag-free-text mono">
-                ${isNowInFree ? '<span class="m-ag-free-now">空闲中</span>' : ''}
-                <span>空闲 · ${formatMinCompact(freeInterval.durationMin)}</span>
+                ${isNowInFree ? '<span class="m-ag-free-now">当前空档</span>' : ''}
+                <span>课表空档 · ${formatMinCompact(freeInterval.durationMin)}</span>
               </span>
             </div>`;
         }
@@ -542,7 +510,7 @@ export function renderSchedule(container, state, dm) {
           </div>
           <div class="sch-stat-item">
             <span class="sch-stat-num mono">${stats.totalHours}</span>
-            <span class="sch-stat-label">课时 / 小时</span>
+            <span class="sch-stat-label">教学时长 / 小时</span>
           </div>
           <div class="sch-stat-item">
             <span class="sch-stat-num">周${stats.busiestDayName}</span>
@@ -550,10 +518,11 @@ export function renderSchedule(container, state, dm) {
           </div>
           <div class="sch-stat-item">
             <span class="sch-stat-num mono">${formatMinCompact(Math.round(stats.totalFreeMin / 5))}</span>
-            <span class="sch-stat-label">日均空闲</span>
+            <span class="sch-stat-label">工作日日均无课</span>
           </div>
         </div>
 
+        <p class="sch-window-note">无课统计范围：周一至周五 08:00—21:00，未扣除吃饭、通勤和个人安排。</p>
         <div class="sch-load">
           <div class="sch-load-label">本周课程负荷</div>
           <div class="sch-load-bars">
@@ -689,7 +658,7 @@ export function renderSchedule(container, state, dm) {
       }
       if (isNext && !nextTag) {
         const body = item.querySelector('.m-ag-body');
-        if (body) body.insertAdjacentHTML('afterbegin', '<div class="m-ag-next-tag">下一节</div>');
+        if (body) body.insertAdjacentHTML('afterbegin', '<div class="m-ag-next-tag">下一次课</div>');
       } else if (!isNext && nextTag) {
         nextTag.remove();
       }

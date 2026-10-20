@@ -145,8 +145,10 @@ function attachItemActions(container, refresh) {
 export function mountTodayItems(container, state, dm) {
   const block = document.createElement('section');
   block.className = 'personal-today card';
+  const slot = container.querySelector('#dash-personal-slot');
   const timeline = container.querySelector('.today-timeline-section, .today-empty-section');
-  container.insertBefore(block, timeline);
+  if (slot) slot.append(block);
+  else container.insertBefore(block, timeline);
   let items;
   try { items = sortItems(itemsForScope(scope(state, dm)).filter(item => !item.completedAt && !item.deletedAt)); }
   catch (error) { block.innerHTML = `<h2>今天要记得</h2><p class="personal-error">${esc(error.message)}</p><a class="btn" href="#/tasks">检查个人事项</a>`; return; }
@@ -154,8 +156,8 @@ export function mountTodayItems(container, state, dm) {
   const todayCourses = new Set(dm.getTodayCourses(state.currentClass).map(course => course.courseName));
   const important = items.filter(item => (item.dueDate && item.dueDate <= today) || item.needsConfirmation || (todayCourses.has(item.courseName) && !item.dueDate));
   const shown = (important.length ? important : items).slice(0, 3);
-  block.innerHTML = `<div class="personal-section-heading"><div><h2>今天要记得</h2><p>${items.length ? `${items.length} 条未完成 · 先看眼前这些` : '作业、带物品和口头通知，都可以先记一句。'}</p></div><a href="#/tasks">查看全部</a></div>
-    ${shown.length ? shown.map(item => itemCard(item, today, true)).join('') : '<button type="button" class="btn" data-today-capture>记第一件事</button>'}`;
+  block.innerHTML = `<div class="personal-section-heading"><div><h2>今天要记得</h2><p>${items.length ? `${items.length} 条未完成 · 先看眼前这些` : '作业、带物品和口头通知，都可以先记一句。'}</p></div><button type="button" class="btn btn-primary" data-today-capture>＋ 记一下</button></div>
+    ${shown.length ? shown.map(item => itemCard(item, today, true)).join('') : '<p class="personal-muted">目前没有记录的事项。</p>'}<a class="personal-view-all" href="#/tasks">查看全部事项 →</a>`;
   block.querySelector('[data-today-capture]')?.addEventListener('click', () => openCapture());
   attachItemActions(block, () => context.rerender());
 }

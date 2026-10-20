@@ -1,0 +1,114 @@
+/* Scoped dashboard layout, loaded after the shared responsive styles. */
+.today-page { padding-bottom: 24px; }
+.today-page .today-header-row { align-items: center; margin: 0 0 18px; }
+.today-page .today-clock { margin: 0; font-size: clamp(28px, 4vw, 42px); }
+.today-page .today-clock .seconds { font-size: 18px; color: var(--color-text-secondary); }
+.today-page .clock-period { font-size: 14px; }
+.today-page .today-date-sub { font-size: 13px; line-height: 1.7; }
+.today-page .today-week-badge { font-size: 12px; color: var(--color-text-secondary); padding: 8px 12px; }
+.today-page .today-status { padding: 24px; margin: 0 0 20px; border: 1px solid var(--color-border); border-left: 4px solid var(--color-primary); background: var(--color-surface); border-radius: 18px; }
+.today-page .today-status::before { content: none; }
+.today-page .today-status.accent-muted { border-left-color: var(--color-slate-400); }
+.today-page .today-status.accent-success { border-left-color: var(--color-success-600); }
+.today-page .today-status.accent-warning { border-left-color: var(--color-warning-600); }
+.today-page .status-main { animation: none; gap: 10px; }
+.today-page .status-tag { font-size: 13px; letter-spacing: .02em; line-height: 1.6; margin: 0; }
+.today-page .status-tag.accent-muted, .today-page .status-tag.accent-before { color: var(--color-text-secondary); }
+.today-page .status-course { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; width: 100%; padding: 0; border: 0; background: transparent; color: var(--color-text); text-align: left; cursor: pointer; font: inherit; border-radius: 8px; }
+.today-page .status-title { display: block; overflow: visible; font-size: clamp(20px, 2.5vw, 28px); line-height: 1.5; letter-spacing: 0; -webkit-line-clamp: unset; overflow-wrap: anywhere; }
+.today-page .status-meta { font-size: 17px; line-height: 1.6; font-weight: 600; color: var(--color-text); overflow-wrap: anywhere; }
+.today-page .status-section { font-family: var(--font-sans); font-size: 13px; white-space: normal; line-height: 1.7; }
+.today-page .status-teacher, .today-page .status-detail-hint { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; }
+.today-page .status-detail-hint { color: var(--color-primary-dark); }
+.today-page .status-countdown { margin-top: 6px; padding-top: 14px; gap: 8px 14px; }
+.today-page .countdown-text { font-size: 13px; color: var(--color-text-secondary); }
+.today-page .countdown-value { font-size: 20px; }
+.today-page .countdown-sec { font-size: 13px; color: var(--color-text-secondary); }
+.today-page .status-progress-mini { margin-top: 2px; height: 4px; }
+.today-page .status-next { display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px 12px; padding: 12px 0 0; border: 0; border-top: 1px solid var(--color-border-light); width: 100%; margin: 4px 0 0; background: transparent; text-align: left; font: inherit; cursor: pointer; min-height: 44px; }
+.today-page .next-prefix, .today-page .next-time { font-size: 13px; color: var(--color-text-secondary); }
+.today-page .next-name { flex: 1; min-width: 100px; white-space: normal; overflow-wrap: anywhere; font-size: 14px; color: var(--color-text); }
+.today-page .status-remaining { margin: 0; font-size: 12px; color: var(--color-text-secondary); }
+.today-page .status-rest-title { font-size: 22px; line-height: 1.5; font-weight: 700; margin: 0; }
+.today-page .status-sub { margin: 0; font-size: 14px; line-height: 1.8; color: var(--color-text-secondary); }
+.today-page .today-next-day { margin-top: 8px; padding: 16px 0 0; border: 0; border-top: 1px solid var(--color-border); border-radius: 0; background: transparent; box-shadow: none; gap: 12px; }
+.today-page .next-day-info { font-size: 13px; line-height: 1.8; }
+.today-page .today-next-day .status-title { font-size: 20px; }
+.today-page .status-schedule-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; color: var(--color-primary-dark); }
+.today-body-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr); grid-template-rows: auto 1fr; gap: 20px; align-items: start; }
+.today-priority { grid-column: 2; grid-row: 1; min-width: 0; }
+.today-page .personal-today { margin: 0; padding: 22px; }
+.today-page .personal-section-heading { align-items: flex-start; gap: 12px; }
+.today-page .personal-section-heading h2 { font-size: 17px; line-height: 1.5; }
+.today-page .personal-section-heading .btn { white-space: nowrap; flex-shrink: 0; min-height: 44px; }
+.personal-view-all { display: inline-flex; align-items: center; margin-top: 10px; min-height: 44px; font-size: 13px; color: var(--color-primary-dark); }
+.today-page .today-timeline-section, .today-page .today-empty-section { grid-column: 1; grid-row: 1 / span 2; margin: 0; padding: 22px; }
+.today-page .section-label-row { gap: 12px; align-items: center; margin-bottom: 18px; }
+.today-page .section-label-row h2, .today-page .today-empty-section h2 { margin: 0; color: var(--color-text); font-size: 17px; font-weight: 700; line-height: 1.6; }
+.today-page .badge-muted { padding: 5px 9px; font-size: 12px; line-height: 1.5; color: var(--color-text-secondary); white-space: nowrap; }
+.today-page .tl-item { display: grid; grid-template-columns: 52px 10px minmax(0, 1fr); column-gap: 14px; width: 100%; margin: 0; padding: 16px 0; min-height: 76px; border: 0; border-radius: 10px; font: inherit; text-align: left; background: transparent; color: var(--color-text); }
+.today-page .tl-item::after { left: 70px; top: 26px; bottom: 0; }
+.today-page .tl-item.tl-in-progress { background: var(--color-primary-50); box-shadow: 0 0 0 10px var(--color-primary-50); }
+.today-page .tl-time { width: auto; gap: 7px; padding-top: 3px; }
+.today-page .tl-start { font-size: 13px; color: var(--color-text); line-height: 1.5; }
+.today-page .tl-end { font-size: 12px; line-height: 1.5; color: var(--color-text-secondary); }
+.today-page .tl-marker { width: 10px; height: 10px; margin-top: 7px; }
+.today-page .tl-content { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 0; }
+.today-page .tl-name { display: block; overflow: visible; -webkit-line-clamp: unset; color: var(--color-text); font-size: 16px; line-height: 1.65; overflow-wrap: anywhere; }
+.today-page .tl-meta { margin: 0; gap: 6px 10px; font-size: 12px; line-height: 1.6; }
+.today-page .tl-state { color: var(--color-primary-dark); font-weight: 600; }
+.today-page .tl-loc { max-width: none; white-space: normal; overflow-wrap: anywhere; font-size: 14px; line-height: 1.6; color: var(--color-text-secondary); }
+.today-page .tl-teacher { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; }
+.today-page .tl-finished .tl-name { color: var(--color-text-secondary); }
+.today-page .tl-finished .tl-state { color: var(--color-text-secondary); }
+.today-page .tl-gap { padding: 12px 0 12px 66px; gap: 10px; }
+.today-page .tl-gap-text { font-size: 12px; white-space: normal; flex-wrap: wrap; gap: 4px 8px; line-height: 1.7; color: var(--color-text-secondary); }
+.today-page .tl-gap-line { flex: 1 0 10px; }
+.today-page .tl-history { margin-bottom: 6px; border-bottom: 1px solid var(--color-border-light); }
+.today-page .tl-history summary, .today-overview summary { cursor: pointer; min-height: 48px; font-size: 14px; color: var(--color-text-secondary); line-height: 1.7; }
+.today-page .tl-history summary { padding: 10px 0; }
+.today-page .tl-history summary span { margin-left: 12px; font-size: 12px; }
+.today-page .tl-history[open] summary span { display: none; }
+.today-page .tl-end-block { grid-template-columns: 52px 10px minmax(0, 1fr); column-gap: 14px; padding-top: 18px; }
+.today-page .tl-end-marker { width: 10px; height: 10px; grid-column: 2; }
+.today-page .tl-end-text { grid-column: 3; flex-wrap: wrap; font-size: 13px; line-height: 1.7; color: var(--color-text-secondary); }
+.today-page .tl-end-time { color: var(--color-text-secondary); font-size: 12px; }
+.today-overview { grid-column: 2; grid-row: 2; min-width: 0; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: 16px; padding: 4px 20px; }
+.today-overview summary { padding: 10px 0; }
+.today-overview summary > span { display: block; padding-left: 18px; font-size: 12px; }
+.today-page .today-stats-row { grid-template-columns: repeat(2, minmax(0, 1fr)); border-radius: 0; padding: 0; background: transparent; box-shadow: none; }
+.today-page .stat-inline { padding: 12px 8px; gap: 8px; border: 0; border-bottom: 1px solid var(--color-border-light); }
+.today-page .stat-inline-label { font-size: 12px; color: var(--color-text-secondary); letter-spacing: 0; }
+.today-page .stat-inline-value { font-size: 16px; }
+.overview-gaps { display: grid; gap: 8px; padding-top: 16px; font-size: 13px; color: var(--color-text-secondary); }
+.overview-note { margin: 12px 0; color: var(--color-text-secondary); font-size: 12px; line-height: 1.8; }
+.today-page .today-semester { padding: 14px 0; background: transparent; border: 0; box-shadow: none; }
+.today-page .semester-week { justify-content: space-between; font-size: 12px; color: var(--color-text-secondary); }
+.today-page .semester-week::before { content: none; }
+.today-page .semester-bar { height: 4px; margin-top: 6px; }
+.today-page .today-empty-section { align-items: flex-start; text-align: left; min-height: 180px; }
+.today-page .today-empty-section p { font-size: 14px; color: var(--color-text-secondary); line-height: 1.8; margin: 0; }
+.today-page .today-empty-section a { color: var(--color-primary-dark); min-height: 44px; align-content: center; font-size: 14px; }
+.today-page button:focus-visible, .today-page summary:focus-visible, .today-page a:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 4px; }
+body:has(#view-today.active .today-page) #quick-capture { display: none; }
+.sch-window-note { margin: 14px 0; font-size: 12px; line-height: 1.8; color: var(--color-text-secondary); }
+@media (max-width: 768px) {
+  .today-page .today-header-row { margin-bottom: 14px; }
+  .today-page .today-status { padding: 18px; margin-bottom: 16px; }
+  .today-page .status-title { font-size: 21px; }
+  .today-page .status-rest-title { font-size: 20px; }
+  .today-body-grid { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; gap: 16px; }
+  .today-priority, .today-page .today-timeline-section, .today-page .today-empty-section, .today-overview { grid-column: auto; grid-row: auto; }
+  .today-page .personal-today, .today-page .today-timeline-section { padding: 18px; }
+  .today-page .tl-item { grid-template-columns: 44px 8px minmax(0, 1fr); column-gap: 10px; }
+  .today-page .tl-item::after { left: 57px; }
+  .today-page .tl-marker { width: 8px; height: 8px; }
+  .today-page .tl-gap { padding-left: 54px; }
+  .today-page .tl-end-block { grid-template-columns: 44px 8px minmax(0, 1fr); column-gap: 10px; }
+  .today-page .tl-end-marker { width: 8px; height: 8px; }
+}
+@media (max-width: 360px) {
+  .today-page .today-week-badge { padding: 6px 8px; }
+  .today-page .section-label-row { flex-wrap: wrap; }
+  .today-page .personal-section-heading { flex-wrap: wrap; }
+}

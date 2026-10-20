@@ -46,6 +46,7 @@ Desktop.ini
 .cache/
 .private/
 __pycache__/
+output/playwright/
 
 # TRAE local skills
 .trae/
