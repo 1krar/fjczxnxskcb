@@ -1,8 +1,8 @@
-import { readDailyData, DAILY_KEY } from './daily-store.js?v=20261021-7';
-import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261021-7';
-import { buildAdvice, chooseAdvice, outfitRecommendation, departurePlan, localDate, nextDate, dailyFacts } from './daily-model.js?v=20261021-7';
-import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261021-7';
-import { aiEnabled, AI_KEY, cachedDaily, dailyIdentity, requestDaily } from './ai-client.js?v=20261021-7';
+import { readDailyData, DAILY_KEY } from './daily-store.js?v=20261021-8';
+import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261021-8';
+import { buildAdvice, chooseAdvice, outfitRecommendation, departurePlan, localDate, nextDate, dailyFacts } from './daily-model.js?v=20261021-8';
+import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261021-8';
+import { aiEnabled, AI_KEY, cachedDaily, dailyIdentity, requestDaily } from './ai-client.js?v=20261021-8';
 
 function getContext(state, dm, now) {
   const today = localDate(now);

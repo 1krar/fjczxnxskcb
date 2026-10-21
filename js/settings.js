@@ -1,5 +1,5 @@
-import { getSettings, saveSettings } from './storage.js?v=20261021-7';
-import { rerenderCurrentPage, selectClass } from './app.js?v=20261021-7';
+import { getSettings, saveSettings } from './storage.js?v=20261021-8';
+import { rerenderCurrentPage, selectClass } from './app.js?v=20261021-8';
 
 export function renderSettings(container, state, dm) {
   const settings = getSettings();

@@ -1,4 +1,4 @@
-import { validAccessToken } from './ai-access.js?v=20261021-7';
+import { validAccessToken } from './ai-access.js?v=20261021-8';
 export const AI_KEY = 'course-dashboard-ai-v1';
 const TOKEN_KEY = 'course-dashboard-ai-access';
 const CACHE_KEY = 'course-dashboard-ai-daily-v1';

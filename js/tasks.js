@@ -1,7 +1,7 @@
-import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems, sortHomeItems, saveHomeOrder } from './tasks-store.js?v=20261021-7';
-import { setupHoldSort } from './hold-sort.js?v=20261021-7';
-import { getTodayStr } from './time.js?v=20261021-7';
-import { setupCaptureAI } from './capture-ai.js?v=20261021-7';
+import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems, sortHomeItems, saveHomeOrder } from './tasks-store.js?v=20261021-8';
+import { setupHoldSort } from './hold-sort.js?v=20261021-8';
+import { getTodayStr } from './time.js?v=20261021-8';
+import { setupCaptureAI } from './capture-ai.js?v=20261021-8';
 
 let context = null;
 let editingId = '';
@@ -205,7 +205,7 @@ export function mountTodayItems(container, state, dm) {
       list.innerHTML=shown.length?shown.map((item,index)=>homeItemCard(item,today,tomorrowStr,sorting,index,shown.length)).join(''):'<p class="personal-muted personal-home-empty">还没有记录的事项，先记一句就好。</p>';
       block.querySelector('#home-order-help').textContent=manual?'手动顺序 · 长按卡片可调整':'临近时间优先 · 长按卡片拖动';
       block.querySelector('[data-order-reset]').hidden=!manual;
-      block.querySelector('[data-order-edit]').hidden=items.length<2;
+      block.querySelector('[data-order-edit]').hidden=items.length<2&&!sorting;
       block.querySelector('[data-order-edit]').textContent=sorting?'完成排序':'调整顺序';
       block.querySelector('.home-order-more').innerHTML=`${items.length>shown.length?`<button type="button" data-order-more>展开更多（${items.length-shown.length}）</button>`:limit>2&&items.length>2?'<button type="button" data-order-collapse>收起</button>':''}${items.length?`<a class="personal-view-all" href="#/tasks">全部${items.length}条未完成事项 →</a>`:''}`;
       controller=setupHoldSort(list,{announce,onCommit:commit});
