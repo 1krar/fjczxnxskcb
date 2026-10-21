@@ -38,6 +38,23 @@
 .today-page .personal-today .home-personal-item { display: block; margin: 8px 0 0; padding: 12px 14px 0; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); }
 .today-page .personal-today .home-personal-item + .home-personal-item { margin-top: 10px; }
 .home-personal-date { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; color: var(--color-text-secondary); font-size: 12px; line-height: 1.7; }
+.home-personal-list .home-personal-date { position: relative; min-height: 28px; padding-right: 34px; align-items: center; }
+.home-drag-handle { position: absolute; top: -8px; right: -8px; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; border-radius: 8px; background: transparent; color: var(--color-text-secondary); cursor: grab; touch-action: none; }
+.home-drag-handle:hover, .home-drag-handle:active { background: var(--color-surface-subtle); }
+.home-personal-list { -webkit-touch-callout: none; }
+.home-personal-list .home-personal-item { user-select: none; }
+.home-personal-list .home-personal-item.is-dragging { position: relative; z-index: 1; outline: 2px solid var(--color-primary); outline-offset: -2px; box-shadow: var(--shadow-xs); }
+.home-personal-list.is-reordering, .home-personal-list.is-reordering * { cursor: grabbing; }
+.home-order-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 0 12px; color: var(--color-text-secondary); font-size: 12px; line-height: 1.7; }
+.home-order-toolbar button, .home-order-more > button, .home-order-steps button { min-width: 44px; min-height: 44px; padding: 6px 8px; border: 0; border-radius: 8px; background: transparent; color: var(--color-primary-dark); font: inherit; cursor: pointer; }
+.home-order-toolbar button[hidden] { display: none; }
+.home-order-steps { display: flex; gap: 12px; border-top: 1px solid var(--color-border-light); }
+.home-order-steps button { flex: 1; font-size: 13px; }
+.home-order-steps button:disabled { color: var(--color-text-secondary); opacity: .5; cursor: default; }
+.home-order-more { display: flex; align-items: center; flex-wrap: wrap; gap: 0 12px; font-size: 13px; }
+.home-order-more > button { padding-left: 0; }
+.home-order-status { margin: 4px 0 0; font-size: 12px; line-height: 1.7; color: var(--color-text-secondary); }
+.home-order-status:empty { display: none; }
 .home-personal-state { color: var(--color-text); }
 .today-page .home-personal-open { display: grid; grid-template-columns: 70px minmax(0,1fr); gap: 12px; width: 100%; min-width: 0; min-height: 44px; margin: 8px 0; padding: 4px 0; border: 0; border-radius: 5px; background: transparent; text-align: left; font: inherit; color: var(--color-text); cursor: pointer; }
 .home-personal-time { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; min-width: 0; padding-right: 10px; border-right: 1px solid var(--color-border-light); }
@@ -88,7 +105,9 @@
 .today-page .semester-bar { height: 4px; margin-top: 6px; }
 
 /* Optional advice is one quiet row; concrete uncovered reminders stay visible. */
-.today-page .daily-advice-inline { margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
+.today-page .daily-advice-inline { margin: 0 0 16px; padding: 8px 16px 12px; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); box-shadow: none; }
+.daily-topline { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--color-text-secondary); font-size: 12px; }
+.daily-topline button { min-height: 44px; min-width: 44px; }
 .today-page .daily-advice-inline[hidden], .today-page .today-preparation[hidden] { display: none; }
 .today-page .daily-quiet-note > summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; min-height: 44px; padding: 8px 0; color: var(--color-text-secondary); font-size: 13px; line-height: 1.8; list-style: none; cursor: pointer; }
 .today-page .daily-quiet-note > summary::after { content: '+'; font-size: 17px; }

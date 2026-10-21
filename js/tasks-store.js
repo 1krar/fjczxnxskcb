@@ -31,6 +31,8 @@ export function validateItem(item) {
   for (const [key,max,label] of [['title',300,'事项名称'],['location',300,'地点'],['timeContext',500,'时间区间'],['referenceAt',100,'通知参考时间']]) result[key] = cleanText(item[key] ?? '', max, label);
   result.timeRole = item.timeRole ?? '';
   if (!['','start','deadline'].includes(result.timeRole)) throw new Error('事项时间类型无效');
+  result.homeOrder = item.homeOrder ?? null;
+  if (result.homeOrder !== null && (!Number.isInteger(result.homeOrder) || result.homeOrder < 0 || result.homeOrder > 5000)) throw new Error('事项排序无效');
   if (result.referenceAt && !validTimestamp(result.referenceAt)) throw new Error('通知参考时间无效');
   if (!result.id || !result.semester || !result.className || !result.text.trim()) throw new Error('事项缺少必要内容');
   if (!Object.hasOwn(KINDS, item.kind) || !Object.hasOwn(SOURCES, item.source)) throw new Error('事项类别或来源无效');
@@ -84,6 +86,7 @@ export function saveItem(fields, id = '') {
   const now = new Date().toISOString();
   const item = validateItem({
     ...fields,
+    homeOrder:previous?.homeOrder ?? null,
     id: previous?.id || crypto.randomUUID(),
     createdAt: previous?.createdAt || now,
     updatedAt: now,
@@ -157,4 +160,29 @@ export function isOverdue(item, today, now = new Date()) {
 export function sortItems(items) {
   return [...items].sort((a, b) => (a.dueDate || '9999').localeCompare(b.dueDate || '9999') ||
     (a.dueTime || '23:59').localeCompare(b.dueTime || '23:59') || b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export function sortHomeItems(items, now = new Date(), manual = true) {
+  const timed = item => {
+    if (!item.dueDate) return {group:2,time:0};
+    const clock=item.dueTime||item.windowStart;
+    const moment=clock?+new Date(`${item.dueDate}T${clock}:00`):+new Date(`${item.dueDate}T23:59:59.999`);
+    return {group:moment>=+now?0:1,time:moment};
+  };
+  return [...items].sort((a,b)=>{
+    if(manual){const x=a.homeOrder??Infinity,y=b.homeOrder??Infinity;if(x!==y)return x-y;}
+    const x=timed(a),y=timed(b);
+    return x.group-y.group || (x.group===1?y.time-x.time:x.time-y.time) || String(b.createdAt).localeCompare(String(a.createdAt)) || a.id.localeCompare(b.id);
+  });
+}
+
+export function saveHomeOrder(scope, ids = null) {
+  if (!scope?.semester || !scope?.className || ids!==null && (!Array.isArray(ids) || ids.length>5000 || ids.some(id=>typeof id!=='string') || new Set(ids).size!==ids.length)) throw new Error('排序内容无效');
+  const all=readItems(),matches=item=>item.semester===scope.semester&&item.className===scope.className;
+  const active=all.filter(item=>matches(item)&&!item.completedAt&&!item.deletedAt);
+  const available=new Set(active.map(item=>item.id));
+  const supplied=new Set(ids||[]);
+  const ordered=ids===null?[]:[...ids.filter(id=>available.has(id)),...sortHomeItems(active).filter(item=>!supplied.has(item.id)).map(item=>item.id)];
+  const positions=new Map(ordered.map((id,index)=>[id,index])),stamp=new Date().toISOString();
+  writeItems(all.map(item=>matches(item)&&(ids===null||positions.has(item.id))?{...item,homeOrder:ids===null?null:positions.get(item.id),updatedAt:stamp}:item));
 }

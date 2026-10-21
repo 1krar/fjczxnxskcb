@@ -1,6 +1,7 @@
-import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261021-6';
-import { getTodayStr } from './time.js?v=20261021-6';
-import { setupCaptureAI } from './capture-ai.js?v=20261021-6';
+import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems, sortHomeItems, saveHomeOrder } from './tasks-store.js?v=20261021-7';
+import { setupHoldSort } from './hold-sort.js?v=20261021-7';
+import { getTodayStr } from './time.js?v=20261021-7';
+import { setupCaptureAI } from './capture-ai.js?v=20261021-7';
 
 let context = null;
 let editingId = '';
@@ -160,7 +161,7 @@ function attachItemActions(container, refresh) {
   });
 }
 
-function homeItemCard(item,today,tomorrow) {
+function homeItemCard(item,today,tomorrow,sorting=false,index=0,total=1) {
   const title=item.title||item.text;
   const date=!item.dueDate?'日期未定':item.dueDate===today?'今天':item.dueDate===tomorrow?'明天':`${Number(item.dueDate.slice(5,7))}月${Number(item.dueDate.slice(8))}日${item.dueDate.slice(0,4)!==today.slice(0,4)?' · '+item.dueDate.slice(0,4):''}`;
   const clock=item.dueTime||item.windowStart||'';
@@ -168,7 +169,7 @@ function homeItemCard(item,today,tomorrow) {
   const end=item.windowEnd&&clock===item.windowStart?item.windowEnd:'';
   const elapsed=isOverdue(item,today);
   return `<article class="personal-item home-personal-item" data-personal-id="${esc(item.id)}">
-    <div class="home-personal-date"><span>${esc(date)}</span>${item.needsConfirmation?'<span class="home-personal-state">有待确认项</span>':elapsed?`<span class="home-personal-state">${item.timeRole==='deadline'?'已过截止':item.dueTime?'已到所设时间':'已过日期'}</span>`:''}</div>
+    <div class="home-personal-date"><span>${esc(date)}</span>${item.needsConfirmation?'<span class="home-personal-state">有待确认项</span>':elapsed?`<span class="home-personal-state">${item.timeRole==='deadline'?'已过截止':item.dueTime?'已到所设时间':'已过日期'}</span>`:''}<button type="button" class="home-drag-handle" data-drag-handle aria-pressed="false" aria-label="调整顺序：${esc(title)}" aria-describedby="home-order-help" title="长按拖动，或点击显示上移下移"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></button></div>
     <button type="button" class="home-personal-open" data-item-action="edit">
       <span class="home-personal-time"><span>${role}</span><strong>${esc(clock||'未定时')}</strong>${end?`<small>— ${esc(end)}</small>`:''}</span>
       <span class="home-personal-content"><strong class="personal-text">${esc(title)}</strong>
@@ -178,6 +179,7 @@ function homeItemCard(item,today,tomorrow) {
       </span>
     </button>
     <div class="home-personal-footer"><button type="button" class="home-personal-detail" data-item-action="edit" aria-label="查看原通知与详情：${esc(title)}">原通知与详情 <span aria-hidden="true">→</span></button><button type="button" class="home-personal-complete" data-item-action="complete" aria-label="完成：${esc(title)}">完成</button></div>
+    ${sorting?`<div class="home-order-steps"><button type="button" data-order-step="-1" ${index===0?'disabled':''} aria-label="上移：${esc(title)}">↑ 上移</button><button type="button" data-order-step="1" ${index===total-1?'disabled':''} aria-label="下移：${esc(title)}">↓ 下移</button></div>`:''}
   </article>`;
 }
 
@@ -188,21 +190,51 @@ export function mountTodayItems(container, state, dm) {
   const timeline = container.querySelector('.today-timeline-section, .today-empty-section');
   if (slot) slot.append(block);
   else container.insertBefore(block, timeline);
-  let items;
-  try { items = sortItems(itemsForScope(scope(state, dm)).filter(item => !item.completedAt && !item.deletedAt)); }
-  catch (error) { block.innerHTML = `<h2>今天要记得</h2><p class="personal-error">${esc(error.message)}</p><a class="btn" href="#/tasks">检查个人事项</a>`; return; }
-  const today = getTodayStr();
-  const todayCourses = new Set(dm.getTodayCourses(state.currentClass).map(course => course.courseName));
-  const important = items.filter(item => (item.dueDate && item.dueDate <= today) || item.needsConfirmation || (todayCourses.has(item.courseName) && !item.dueDate));
-  const tomorrow = new Date(`${today}T00:00:00`); tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
-  const rank = item => !item.needsConfirmation && item.dueDate && item.dueDate <= today ? 0 : !item.needsConfirmation && item.dueDate === tomorrowStr ? 1 : important.includes(item) ? 2 : 3;
-  const shown = [...items].sort((a, b) => rank(a) - rank(b)).slice(0, 2);
   block.innerHTML = `<div class="personal-section-heading"><h2>要记得</h2><button type="button" class="btn btn-primary" data-today-capture>＋ 记一句</button></div>
-    ${shown.length ? shown.map(item => homeItemCard(item,today,tomorrowStr)).join('') : '<p class="personal-muted personal-home-empty">还没有记录的事项，先记一句就好。</p>'}
-    ${items.length ? `<a class="personal-view-all" href="#/tasks">全部${items.length}条未完成事项 →</a>` : ''}`;
+    <div class="home-order-toolbar"><span id="home-order-help">临近时间优先 · 长按卡片拖动</span><button type="button" data-order-edit>调整顺序</button><button type="button" data-order-reset hidden>恢复按时间</button></div><div class="home-personal-list"></div><div class="home-order-more"></div><p class="home-order-status" role="status" aria-live="polite" aria-atomic="true"></p>`;
+  const list=block.querySelector('.home-personal-list'),status=block.querySelector('.home-order-status');
+  let limit=2,sorting=false,controller,minute=-1;
+  const announce=message=>{status.textContent=message;};
+  const activeItems=()=>itemsForScope(scope(state,dm)).filter(item=>!item.completedAt&&!item.deletedAt);
+  function renderList(now=new Date()) {
+    controller?.destroy();
+    try {
+      const items=sortHomeItems(activeItems(),now),shown=items.slice(0,limit),manual=items.some(item=>item.homeOrder!==null);
+      const today=getTodayStr(),tomorrow=new Date(`${today}T12:00`);tomorrow.setDate(tomorrow.getDate()+1);
+      const tomorrowStr=`${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,'0')}-${String(tomorrow.getDate()).padStart(2,'0')}`;
+      list.innerHTML=shown.length?shown.map((item,index)=>homeItemCard(item,today,tomorrowStr,sorting,index,shown.length)).join(''):'<p class="personal-muted personal-home-empty">还没有记录的事项，先记一句就好。</p>';
+      block.querySelector('#home-order-help').textContent=manual?'手动顺序 · 长按卡片可调整':'临近时间优先 · 长按卡片拖动';
+      block.querySelector('[data-order-reset]').hidden=!manual;
+      block.querySelector('[data-order-edit]').hidden=items.length<2;
+      block.querySelector('[data-order-edit]').textContent=sorting?'完成排序':'调整顺序';
+      block.querySelector('.home-order-more').innerHTML=`${items.length>shown.length?`<button type="button" data-order-more>展开更多（${items.length-shown.length}）</button>`:limit>2&&items.length>2?'<button type="button" data-order-collapse>收起</button>':''}${items.length?`<a class="personal-view-all" href="#/tasks">全部${items.length}条未完成事项 →</a>`:''}`;
+      controller=setupHoldSort(list,{announce,onCommit:commit});
+    }catch(error){list.innerHTML=`<p class="personal-error">${esc(error.message)}</p><a href="#/tasks">检查个人事项</a>`;}
+  }
+  function commit(ids,focusId) {
+    saveHomeOrder(scope(state,dm),ids);renderList();
+    const row=[...list.querySelectorAll('[data-personal-id]')].find(row=>row.dataset.personalId===focusId);
+    row?.querySelector('[data-drag-handle]')?.focus({preventScroll:true});announce('已保存手动顺序，可随时恢复按时间排序。');
+  }
+  block.addEventListener('click',event=>{
+    const button=event.target.closest('button');if(!button)return;
+    try{
+      if(button.matches('[data-order-edit],[data-drag-handle]')){sorting=button.matches('[data-drag-handle]')||!sorting;if(sorting)limit=Math.max(10,limit);renderList();}
+      else if(button.matches('[data-order-reset]')){saveHomeOrder(scope(state,dm));renderList();announce('已恢复按时间排序');}
+      else if(button.matches('[data-order-more]')){limit+=10;renderList();}
+      else if(button.matches('[data-order-collapse]')){limit=2;sorting=false;renderList();}
+      else if(button.matches('[data-order-step]')){
+        const ids=[...list.querySelectorAll('[data-personal-id]')].map(row=>row.dataset.personalId),id=button.closest('[data-personal-id]').dataset.personalId,index=ids.indexOf(id),next=index+Number(button.dataset.orderStep);
+        if(next>=0&&next<ids.length){[ids[index],ids[next]]=[ids[next],ids[index]];commit(ids,id);}
+      }
+    }catch(error){announce(error.message);}
+  });
   block.querySelector('[data-today-capture]')?.addEventListener('click', () => openCapture());
   attachItemActions(block, () => context.rerender());
+  renderList();
+  const tick=event=>{const now=event.detail?.now||new Date(),next=Math.floor(+now/60000);if(next!==minute){minute=next;if(!sorting&&!controller?.active&&!block.contains(document.activeElement))renderList(now);}};
+  document.addEventListener('app:tick',tick);
+  return ()=>{controller?.destroy();document.removeEventListener('app:tick',tick);};
 }
 
 export function mountCourseItems(container, course) {

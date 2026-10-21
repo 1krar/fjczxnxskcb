@@ -1,11 +1,11 @@
-import { getTodayStr, getDayName, getCurrentWeek, getCourseState } from './time.js?v=20261021-6';
-import { showCourseDetail } from './app.js?v=20261021-6';
-import { formatLocation } from './location.js?v=20261021-6';
-import { mountTodayItems } from './tasks.js?v=20261021-6';
-import { escapeText } from './tasks-store.js?v=20261021-6';
-import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261021-6';
-import { mountDailyAssistant } from './daily-widgets.js?v=20261021-6';
-import { mountTodayAgenda } from './today-agenda.js?v=20261021-6';
+import { getTodayStr, getDayName, getCurrentWeek, getCourseState } from './time.js?v=20261021-7';
+import { showCourseDetail } from './app.js?v=20261021-7';
+import { formatLocation } from './location.js?v=20261021-7';
+import { mountTodayItems } from './tasks.js?v=20261021-7';
+import { escapeText } from './tasks-store.js?v=20261021-7';
+import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261021-7';
+import { mountDailyAssistant } from './daily-widgets.js?v=20261021-7';
+import { mountTodayAgenda } from './today-agenda.js?v=20261021-7';
 
 const esc = escapeText;
 let tickHandler = null;
@@ -146,12 +146,12 @@ export function renderDashboard(container, state, dm) {
   const nextDay = findNextClassDay(dm, state.currentClass, today);
   const context = getTodayState(courses, now);
   const semester = getSemesterProgress(dm.getSemesterInfo());
-  container.innerHTML = `<section class="today-page"><header class="today-header-row"><h1 class="today-date-sub"><a href="#/agenda" aria-label="打开日历与日程"><time datetime="${today}">${Number(today.slice(5, 7))}月${Number(today.slice(8))}日 · 星期${getDayName(today)}</time></a></h1><span class="today-week-badge">${semester.label}</span></header>
+  container.innerHTML = `<section class="today-page"><div id="dash-advice-slot"></div><header class="today-header-row"><h1 class="today-date-sub"><a href="#/agenda" aria-label="打开日历与日程"><time datetime="${today}">${Number(today.slice(5, 7))}月${Number(today.slice(8))}日 · 星期${getDayName(today)}</time></a></h1><span class="today-week-badge">${semester.label}</span></header>
     <div class="today-body-grid"><div class="today-now-column"><section class="today-status accent-${STATE_LABELS[context.state].accent}" id="dash-status" aria-label="当前课程与下一次安排">${renderStatus(context, courses, nextDay, state, now)}</section>
-    <div id="dash-planner-slot"></div><div class="today-priority" id="dash-personal-slot"></div><div id="dash-advice-slot"></div></div>
+    <div id="dash-planner-slot"></div><div class="today-priority" id="dash-personal-slot"></div></div>
     <div class="today-support-column">${courses.length ? `<details class="today-course-list" id="dash-course-list"><summary>${courseListSummary(courses, context, now)}</summary><div class="today-timeline" id="dash-timeline">${renderTimeline(courses, context, now, state)}</div><a class="personal-view-all" href="#/schedule">查看完整课表 →</a></details>` : ''}
     <div id="dash-prep-slot"></div>${renderOverview(courses, now, dm.getSemesterInfo())}</div></div></section>`;
-  mountTodayItems(container, state, dm);
+  const cleanupItems = mountTodayItems(container, state, dm);
   const cleanupAssistant = mountDailyAssistant(container, state, dm);
   const cleanupAgendaBrief = mountTodayAgenda(container, state, dm);
   const allCourses = [...courses, ...(nextDay?.courses || [])];
@@ -197,6 +197,7 @@ export function renderDashboard(container, state, dm) {
   tickHandler = handler;
   document.addEventListener('app:tick', handler);
   return () => {
+    cleanupItems?.();
     cleanupAssistant();
     cleanupAgendaBrief();
     document.removeEventListener('app:tick', handler);

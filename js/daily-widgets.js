@@ -1,8 +1,8 @@
-import { readDailyData, DAILY_KEY } from './daily-store.js?v=20261021-6';
-import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261021-6';
-import { buildAdvice, chooseAdvice, outfitRecommendation, departurePlan, localDate, nextDate, dailyFacts } from './daily-model.js?v=20261021-6';
-import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261021-6';
-import { aiEnabled, AI_KEY, cachedDaily, dailyIdentity, requestDaily } from './ai-client.js?v=20261021-6';
+import { readDailyData, DAILY_KEY } from './daily-store.js?v=20261021-7';
+import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261021-7';
+import { buildAdvice, chooseAdvice, outfitRecommendation, departurePlan, localDate, nextDate, dailyFacts } from './daily-model.js?v=20261021-7';
+import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261021-7';
+import { aiEnabled, AI_KEY, cachedDaily, dailyIdentity, requestDaily } from './ai-client.js?v=20261021-7';
 
 function getContext(state, dm, now) {
   const today = localDate(now);
@@ -63,14 +63,12 @@ export function mountDailyAssistant(container, state, dm) {
       if (shouldRequest) { busyKey = key; settled.add(key); }
       const local = chooseAdvice(pool, `${context.scope.semester}|${context.scope.className}`, now, data.profile.refreshPerMinute, refresh && !useAI);
       const chosen = entry ? { id:'ai', priority:10, line:entry.sentence, basis:entry.basisIds.map(id => facts.find(fact=>fact.id===id)?.text || '').join(' '), href:'#/agenda' } : local;
-      const shownItem = [...container.querySelectorAll('[data-personal-id]')].some(row => chosen.id.startsWith(`item:${row.dataset.personalId}:`));
-      const prominent = chosen.priority >= 80 && !shownItem;
       const feedback = local.limited ? `这分钟已经换了${data.profile.refreshPerMinute}次，约${local.retrySeconds}秒后可以再换。` : aiNote || local.storageWarning || '';
-      const content = `<p class="daily-sentence">${esc(chosen.line)}</p>
+      const content = `<div class="daily-topline"><span>每日一句</span><button type="button" class="daily-text-button" data-refresh-advice ${busyKey === key ? 'disabled' : ''}>${busyKey === key ? '生成中…' : '换一句'}</button></div><p class="daily-sentence">${esc(chosen.line)}</p>
         <details class="daily-inline-tools" data-detail="advice-tools"><summary>${entry ? '千问 AI' : '本地内容'} · 依据与换句</summary><p class="daily-small">${esc(chosen.basis)}</p>
-        <div class="daily-inline-actions"><button type="button" class="daily-text-button" data-refresh-advice ${busyKey === key ? 'disabled' : ''}>${busyKey === key ? '生成中…' : '换一句'}</button><a class="daily-link" href="${chosen.href}">去看看 →</a><a class="daily-link" href="#/api">AI 设置</a></div><p class="daily-small">${useAI ? '每日自动生成一次；记录变化后可手动换句。AI各功能合计每分钟最多2次。' : `随日期与记录更新；每分钟最多换${data.profile.refreshPerMinute}次。AI尚未启用时使用本地内容。`}</p></details>
+        <div class="daily-inline-actions"><a class="daily-link" href="${chosen.href}">去看看 →</a><a class="daily-link" href="#/api">AI 设置</a></div><p class="daily-small">${useAI ? '每日自动生成一次；记录变化后可手动换句。AI各功能合计每分钟最多2次。' : `随日期与记录更新；每分钟最多换${data.profile.refreshPerMinute}次。AI尚未启用时使用本地内容。`}</p></details>
         ${note ? `<p class="daily-error">${esc(note)}</p>` : ''}<p class="daily-feedback" role="status">${esc(feedback)}</p>`;
-      update(advice, prominent ? `<div class="daily-context-note">${content}</div>` : `<details class="daily-quiet-note" data-detail="advice"><summary>${shownItem ? '这件事的准备建议' : '今日一句'}</summary>${content}</details>`);
+      update(advice, content);
       if (retainFocus) advice.querySelector('[data-refresh-advice]')?.focus({ preventScroll: true });
       if (shouldRequest) {
         requestDaily(key, facts, refresh).then(value => {
