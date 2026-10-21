@@ -1,4 +1,4 @@
-import { CATEGORIES } from './daily-store.js?v=20261020-9';
+import { CATEGORIES } from './daily-store.js?v=20261021-1';
 
 export function localDate(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -80,7 +80,7 @@ export function departurePlan(course, profile, previous = null) {
     basis: '出发时刻来自你的时间预算，未核验实时位置和路况；未设置的排队时间需另留。' };
 }
 
-export function buildAdvice({ now, courses, tomorrowCourses, items, data, futureCourses = [] }) {
+export function buildAdvice({ now, courses, tomorrowCourses, items, data, futureCourses = [], activities = [] }) {
   const today = localDate(now);
   const tomorrow = nextDate(today);
   const pool = [];
@@ -89,7 +89,7 @@ export function buildAdvice({ now, courses, tomorrowCourses, items, data, future
   for (const item of confirmed) {
     const due = item.dueTime ? new Date(`${item.dueDate}T${item.dueTime}:00`) : new Date(`${nextDate(item.dueDate)}T00:00:00`);
     const hours = (due - now) / 3600000;
-    if (hours > 48) continue;
+    if (hours > 48 || hours < -24) continue;
     const when = item.dueDate === today ? '今天' : item.dueDate === tomorrow ? '明天' : item.dueDate;
     const shortText = item.text.length > 50 ? item.text.slice(0, 50) + '…' : item.text;
     const fact = `「${shortText}」${hours < 0 ? '所设时间已过' : `记在${when}${item.dueTime || ''}`}`;
@@ -100,8 +100,8 @@ export function buildAdvice({ now, courses, tomorrowCourses, items, data, future
   }
   for (const [date, dayCourses, label, priority] of [[today, courses.filter(course => course.endDateTime > now), '今天接下来的', 98], [tomorrow, tomorrowCourses, '明天', 95]]) {
     const fit = outfitRecommendation(data, date, dayCourses, futureCourses);
-    if (fit.requireShorts && !fit.readyShorts) add(`shortage:${date}`, priority,
-      [`${label}有体育课，短裤还没有确认可穿的备用。可以先看一下洗晒状态，准备时会省心一点。`, `${label}体育课要用短裤，先确认哪条已经洗好、收好，再决定搭配吧。`],
+    if (data.garments.some(item => !item.deletedAt && isShorts(item)) && fit.requireShorts && !fit.readyShorts) add(`shortage:${date}`, priority,
+      [`${label}有体育课，已录入的短裤目前都不在可穿状态。可以为洗晒留一点时间。`, `${label}体育课会用到短裤，按已录入的洗晒状态，提前准备会从容一点。`],
       '依据课表、你设置的短裤要求与当前衣物状态；晾晒中的衣服未自动算作可穿。', '#/wardrobe');
   }
   const upcoming = courses.filter(course => course.startDateTime > now);
@@ -130,10 +130,12 @@ export function buildAdvice({ now, courses, tomorrowCourses, items, data, future
   const drying = data.garments.filter(item => !item.deletedAt && item.state === 'drying' && item.expectedDate && item.expectedDate <= today);
   if (drying.length) add('drying', 50, [`有${drying.length}件衣服到了预计收衣日，方便时看看干了没有，再一起收好。`, '可以顺手检查一下晾着的衣服，确认干了再标记为可穿就好。'], '预计收衣日期来自你的记录，不代表实际已干。', '#/wardrobe');
   const hasAfternoon = courses.some(course => course.startDateTime && course.endDateTime && course.startDateTime.getHours() < 18 && (course.endDateTime.getHours() > 12 || course.endDateTime.getHours() === 12 && course.endDateTime.getMinutes() > 0));
-  if (!hasAfternoon && now.getHours() < 18) add('afternoon', 30, ['课表上今天下午没有课程。若没别的安排，可以约朋友走走，也可以安心休息。', '今天下午课表留了白，想出去玩一会儿或留给自己都可以。'], '只表示课表上下午无课，未记录的作业和私人安排可能仍然存在。', '#/tasks');
-  const pending = items.filter(item => !item.completedAt && !item.deletedAt && item.needsConfirmation);
-  if (pending.length) add('pending', 55, [`有${pending.length}条通知还待核对，方便时补一下日期或要求，之后提醒会更准确。`, '记下来的通知里还有待确认内容，先核对一条就好。'], '待确认事项没有被当成确定截止时间。', '#/tasks');
-  add('gentle', 10, ['先看看眼前最需要的一件事，做一点也好，休息一会儿也好。', '今天给自己留一点余地，课程和记下来的事可以一件件看。', '准备好下一步，再慢慢来就好。'], '根据当前已录入资料给出的轻量建议。', '#/tasks');
+  const confirmedActivities = activities.filter(item => item.status === 'confirmed');
+  const afternoonActivity = confirmedActivities.some(item => item.date <= today && (item.endDate || item.date) >= today && (item.date < today || item.startTime < '18:00') && ((item.endDate || item.date) > today || item.endTime > '12:00'));
+  if (!hasAfternoon && !afternoonActivity && now.getHours() < 18) add('afternoon', 30, ['课表上今天下午没有课程。若没别的安排，可以约朋友走走，也可以安心休息。', '今天下午课表留了白，想出去玩一会儿或留给自己都可以。'], '当前课表下午无课，且未记录已确认的下午活动；不代表没有其他私人安排。', '#/agenda');
+  const activity = confirmedActivities.find(item => item.date === today || item.date === tomorrow);
+  if (activity) add(`activity:${activity.id}`, 40, [`${activity.date === today ? '今天' : '明天'}还安排了「${activity.title}」，课程之外也有自己的小期待。`, `给「${activity.title}」留一点从容的时间，路上也不用太赶。`], `来自已确认活动：${activity.date} ${activity.startTime}—${activity.endTime}。`, '#/agenda');
+  add('gentle', 10, ['空下来的片刻，可以听首喜欢的歌，让今天慢一点。', '休息也可以成为今天安排里很舒服的一部分。', '一天不用塞得满满的，给喜欢的小事留点位置。', '想做点什么时，可以从最轻松的一小步开始。'], '一般性的轻量建议，不推断你的情绪或未记录的安排。', '#/agenda');
   return pool.sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id));
 }
 
@@ -145,7 +147,7 @@ function readChoices() {
   } catch { return {}; }
 }
 export function chooseAdvice(pool, scope, now, limit, refresh = false) {
-  const eligible = pool.filter(item => item.priority === pool[0]?.priority);
+  const eligible = pool[0]?.priority >= 80 ? pool.filter(item => item.priority === pool[0].priority) : pool;
   if (!eligible.length) return null;
   const variants = eligible.flatMap(item => item.lines.map(line => ({ ...item, line })));
   const fingerprint = JSON.stringify(eligible.map(item => [item.id, item.lines, item.basis]));
@@ -153,7 +155,8 @@ export function chooseAdvice(pool, scope, now, limit, refresh = false) {
   const cache = readChoices();
   const old = cache.scope === scope && cache.date === date && cache.fingerprint === fingerprint ? cache : {};
   const calls = Array.isArray(cache.calls) ? cache.calls.filter(time => Number.isFinite(time) && time > +now - 60000 && time <= +now) : [];
-  let index = Number.isInteger(old.index) && old.index >= 0 ? old.index % variants.length : 0;
+  const seed = [...date].reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  let index = Number.isInteger(old.index) && old.index >= 0 ? old.index % variants.length : eligible[0].priority >= 80 ? 0 : seed % variants.length;
   if (refresh) {
     if (calls.length >= limit) return { ...variants[index], limited: true, retrySeconds: Math.max(1, Math.ceil((calls[0] + 60000 - now) / 1000)) };
     index = (index + 1) % variants.length;
@@ -165,4 +168,17 @@ export function chooseAdvice(pool, scope, now, limit, refresh = false) {
     catch { return { ...variants[index], storageWarning: '换句状态未能保存，建议内容仍可查看。' }; }
   }
   return variants[index];
+}
+
+// Only this bounded summary is sent for daily prose, never the complete stores.
+export function dailyFacts({ now, courses, tomorrowCourses, items, activities = [] }) {
+  const today = localDate(now), tomorrow = nextDate(today);
+  const facts = [{ id:'date', text:`今天是${today}；明天是${tomorrow}。` }];
+  for (const [id, label, rows] of [['today','今天',courses],['tomorrow','明天',tomorrowCourses]]) {
+    facts.push({ id:`courses:${id}`, text:`${label}课表有${rows.length}大节课。${rows.length ? `首课${rows[0].startTime}「${rows[0].courseName}」${rows[0].location || ''}。` : '未排课程，不代表没有私人安排。'}`.slice(0,350) });
+    if (!rows.some(course => course.startTime < '18:00' && course.endTime > '12:00')) facts.push({ id:`afternoon:${id}`, text:`${label}下午课表无课；个人活动另见已确认活动，未记录的安排未知。` });
+  }
+  items.filter(item => !item.completedAt && !item.deletedAt && !item.needsConfirmation && [today,tomorrow].includes(item.dueDate)).slice(0,3).forEach((item,index) => facts.push({ id:`item:${index}`, text:`用户记录事项：${item.text.slice(0,180)}。所设日期${item.dueDate}${item.dueTime ? ' '+item.dueTime : '，未设具体时刻'}；只知道尚未标记完成。` }));
+  activities.filter(item => item.status === 'confirmed' && [today,tomorrow].includes(item.date)).slice(0,3).forEach((item,index) => facts.push({ id:`activity:${index}`, text:`已确认参加：${item.title.slice(0,150)}，${item.date} ${item.startTime}—${item.endTime}，${item.location || '未设地点'}。` }));
+  return facts.slice(0,12);
 }

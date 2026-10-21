@@ -78,3 +78,13 @@
   .personal-tabs button { flex: 1; padding: 12px 6px; }
   .personal-backup { padding: 12px 16px; }
 }
+.capture-ai { margin: 14px 0 18px; padding: 12px; border: 1px solid var(--color-border); border-radius: 12px; }
+.capture-ai-heading { display: flex; gap: 12px; align-items: center; justify-content: space-between; }
+.capture-ai p, .notice-preview p { overflow-wrap: anywhere; }
+.capture-ai details { margin: 8px 0; }
+.capture-ai summary { cursor: pointer; padding: 8px 0; }
+.capture-ai input { max-width: 100%; box-sizing: border-box; }
+.notice-preview { border-top: 1px solid var(--color-border); margin-top: 12px; padding-top: 12px; }
+.notice-preview h3 { margin: 0 0 8px; font-size: 16px; }
+.notice-preview .btn { min-height: 44px; white-space: normal; }
+.notice-issues { color: var(--color-text); background: color-mix(in srgb, #f59e0b 12%, transparent); border-radius: 8px; padding: 8px; }

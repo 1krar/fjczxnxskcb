@@ -1,5 +1,5 @@
-import { getCurrentWeek, formatDuration, getWeekDates } from './time.js?v=20261020-9';
-import { showCourseDetail } from './app.js?v=20261020-9';
+import { getCurrentWeek, formatDuration, getWeekDates } from './time.js?v=20261021-1';
+import { showCourseDetail } from './app.js?v=20261021-1';
 
 let tickHandler = null;
 let activeTab = 'overview';

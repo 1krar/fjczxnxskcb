@@ -1,5 +1,6 @@
-import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261020-9';
-import { getTodayStr } from './time.js?v=20261020-9';
+import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261021-1';
+import { getTodayStr } from './time.js?v=20261021-1';
+import { setupCaptureAI } from './capture-ai.js?v=20261021-1';
 
 let context = null;
 let editingId = '';
@@ -35,6 +36,8 @@ export function setupPersonalItems(state, dm, rerender, closeCourse) {
             <label>来源<select id="capture-source" name="source">${Object.entries(SOURCES).map(([key, value]) => `<option value="${key}">${value}</option>`).join('')}</select></label>
             <label>日期（截止或要记得的日期）<input type="date" id="capture-date" name="dueDate" min="2000-01-01" max="2100-12-31"></label>
             <label>具体时间<input type="time" id="capture-time" name="dueTime"></label>
+            <label>地点<input id="capture-location" name="location" maxlength="300"></label>
+            <label>课程或时间区间<input id="capture-context" name="timeContext" maxlength="500" placeholder="例如：第3、4节之间"></label>
           </div>
           <label class="capture-check"><input type="checkbox" id="capture-confirm" name="needsConfirmation"> 这条通知还需要核对</label>
           <label for="capture-next">容易开始的下一步</label><input type="text" id="capture-next" name="nextStep" maxlength="1000" placeholder="例如：先打开老师发的作业要求">
@@ -51,7 +54,6 @@ export function setupPersonalItems(state, dm, rerender, closeCourse) {
   document.getElementById('capture-date').addEventListener('change', event => {
     document.getElementById('capture-time').disabled = !event.target.value;
     if (!event.target.value) document.getElementById('capture-time').value = '';
-    document.getElementById('capture-confirm').checked = !event.target.value;
   });
   document.getElementById('capture-form').addEventListener('submit', event => {
     event.preventDefault();
@@ -62,12 +64,14 @@ export function setupPersonalItems(state, dm, rerender, closeCourse) {
         text: form.get('text').trim(), courseName: form.get('courseName'),
         kind: form.get('kind'), source: form.get('source'), dueDate: form.get('dueDate'), dueTime: form.get('dueTime') || '',
         needsConfirmation: form.has('needsConfirmation'), nextStep: form.get('nextStep').trim(),
+        location: form.get('location').trim(), timeContext: form.get('timeContext').trim(), referenceAt: dialog.captureReferenceAt || '',
       }, editingId);
       dialog.close();
       rerender();
       notify(editingId ? '已保存修改' : '已记下，查课表时也能看到');
     } catch (error) { document.getElementById('capture-error').textContent = error.message; }
   });
+  setupCaptureAI(dialog, dm, rerender, notify);
   window.addEventListener('storage', event => {
     if (event.key === 'course-dashboard-personal-items-v1' || event.key === null) rerender();
   });
@@ -83,9 +87,7 @@ export function openCapture({ courseName = '', item = null } = {}) {
   editingId = item?.id || '';
   dialog.captureScope = item ? { semester: item.semester, className: item.className } : scope(state, dm);
   const names = [...new Set(dm.getCourses(dialog.captureScope.className).map(course => course.courseName))];
-  const now = new Date();
-  const current = dm.getTodayCourses(dialog.captureScope.className).find(course => course.startDateTime <= now && course.endDateTime > now);
-  const selected = item ? item.courseName : (courseName || current?.courseName || '');
+  const selected = item ? item.courseName : courseName;
   if (selected && !names.includes(selected)) names.push(selected);
   const select = document.getElementById('capture-course');
   select.innerHTML = `<option value="">先不关联课程</option>${names.map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join('')}`;
@@ -97,11 +99,15 @@ export function openCapture({ courseName = '', item = null } = {}) {
   document.getElementById('capture-date').value = item?.dueDate || '';
   document.getElementById('capture-time').value = item?.dueTime || '';
   document.getElementById('capture-time').disabled = !item?.dueDate;
-  document.getElementById('capture-confirm').checked = item ? item.needsConfirmation : true;
+  document.getElementById('capture-confirm').checked = item ? item.needsConfirmation : false;
+  document.getElementById('capture-location').value = item?.location || '';
+  document.getElementById('capture-context').value = item?.timeContext || '';
+  dialog.captureReferenceAt = item?.referenceAt || '';
   document.getElementById('capture-next').value = item?.nextStep || '';
   document.getElementById('capture-error').textContent = '';
   document.getElementById('capture-extra').open = !!item;
   dialog.showModal();
+  dialog.resetAI(item);
   document.getElementById('capture-text').focus();
 }
 
@@ -111,6 +117,7 @@ function itemCard(item, today, compact = false) {
     <div class="personal-item-main">
       <div class="personal-tags"><span>${esc(KINDS[item.kind])}</span>${item.courseName ? `<span>${esc(item.courseName)}</span>` : ''}</div>
       <p class="personal-text">${esc(item.text)}</p>
+      ${item.location || item.timeContext ? `<p class="daily-small">${esc([item.location, item.timeContext].filter(Boolean).join(' · '))}</p>` : ''}
       <div class="personal-meta"><span class="${overdue ? 'is-overdue' : ''}">${overdue ? '已过所设时间 · ' : ''}${esc(dateLabel(item, today))}</span>${item.needsConfirmation && item.dueDate ? '<span>通知待核对</span>' : ''}<span>${esc(SOURCES[item.source])}</span></div>
       ${item.nextStep ? `<p class="personal-next">下一步：${esc(item.nextStep)}</p>` : ''}
     </div>

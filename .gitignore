@@ -50,3 +50,5 @@ output/playwright/
 
 # TRAE local skills
 .trae/
+.dev.vars
+.dev.vars.*

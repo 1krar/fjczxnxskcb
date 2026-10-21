@@ -87,6 +87,10 @@ assert.ok(!buildAdvice({ ...input, items: [{ ...item, completedAt: now.toISOStri
 const late = buildAdvice({ ...input, now: new Date(`${day}T23:59:30`), items: [{ ...item, dueTime: '' }] });
 assert.doesNotMatch(late[0].lines.join(''), /所设时间已过/, 'date-only reminder stays on its day');
 const original = chooseAdvice(advice, 'scope', now, 2);
+const emptyData = { ...store.readDailyData(), garments:[], outfits:[] };
+const quietInput = { ...input, data:emptyData, courses:[course(day,'体育')], tomorrowCourses:[course(nextDate(day),'体育')], items:[{...item,needsConfirmation:true}] };
+assert.ok(!buildAdvice(quietInput).some(row=>row.id.startsWith('shortage:') || row.id==='pending'), 'unrecorded wardrobe and optional dates must not create nagging advice');
+assert.ok(!buildAdvice({...input,items:[{...item,dueDate:'2020-01-01'}]}).some(row=>row.id.startsWith('item:')), 'ancient unfinished records must not dominate daily prose forever');
 assert.equal(chooseAdvice(advice, 'scope', now, 2).line, original.line, 'same date/context reuses wording');
 assert.notEqual(chooseAdvice(advice, 'scope', now, 2, true).line, original.line);
 assert.ok(chooseAdvice(advice, 'scope', now, 2, true).id.startsWith('item:'), 'refresh cannot hide urgent facts');

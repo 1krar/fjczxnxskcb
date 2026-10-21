@@ -1,6 +1,8 @@
-import { readDailyData, DAILY_KEY } from './daily-store.js?v=20261020-9';
-import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261020-9';
-import { buildAdvice, chooseAdvice, outfitRecommendation, departurePlan, localDate, nextDate } from './daily-model.js?v=20261020-9';
+import { readDailyData, DAILY_KEY } from './daily-store.js?v=20261021-1';
+import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261021-1';
+import { buildAdvice, chooseAdvice, outfitRecommendation, departurePlan, localDate, nextDate, dailyFacts } from './daily-model.js?v=20261021-1';
+import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261021-1';
+import { aiEnabled, AI_KEY, cachedDaily, dailyIdentity, requestDaily } from './ai-client.js?v=20261021-1';
 
 function getContext(state, dm, now) {
   const today = localDate(now);
@@ -21,6 +23,8 @@ export function mountDailyAssistant(container, state, dm) {
   container.querySelector('#dash-prep-slot').append(preparation);
   let lastMinute = -1;
   let preparationMode = null;
+  let disposed = false, busyKey = '', currentKey = '', aiNote = '', memoryEntry = null;
+  const settled = new Set();
   const markup = new Map();
   function update(element, html) {
     if (markup.get(element) === html) return;
@@ -45,19 +49,38 @@ export function mountDailyAssistant(container, state, dm) {
     let items = [];
     let note = '';
     try { items = itemsForScope(context.scope); } catch { note = '个人事项暂时无法读取，本句未使用截止信息。'; }
+    let activities = [];
+    try { activities = scopedActivities(context.scope); } catch { note += ' 日程暂时无法读取，本句未使用活动信息。'; }
     advice.hidden = !data.profile.enabled;
     if (data.profile.enabled) {
-      const pool = buildAdvice({ ...context, data, items });
-      const chosen = chooseAdvice(pool, `${context.scope.semester}|${context.scope.className}`, now, data.profile.refreshPerMinute, refresh);
+      const pool = buildAdvice({ ...context, data, items, activities });
+      const useAI = aiEnabled('daily');
+      const facts = dailyFacts({ ...context, items, activities });
+      const key = dailyIdentity(context.scope, context.today, facts);
+      if (key !== currentKey) { currentKey = key; aiNote = ''; }
+      const entry = useAI ? (memoryEntry?.key === key ? memoryEntry : cachedDaily(key)) : null;
+      const shouldRequest = useAI && busyKey !== key && (refresh || !entry && !settled.has(key));
+      if (shouldRequest) { busyKey = key; settled.add(key); }
+      const local = chooseAdvice(pool, `${context.scope.semester}|${context.scope.className}`, now, data.profile.refreshPerMinute, refresh && !useAI);
+      const chosen = entry ? { id:'ai', priority:10, line:entry.sentence, basis:entry.basisIds.map(id => facts.find(fact=>fact.id===id)?.text || '').join(' '), href:'#/agenda' } : local;
       const shownItem = [...container.querySelectorAll('[data-personal-id]')].some(row => chosen.id.startsWith(`item:${row.dataset.personalId}:`));
       const prominent = chosen.priority >= 80 && !shownItem;
-      const feedback = chosen.limited ? `这分钟已经换了${data.profile.refreshPerMinute}次，约${chosen.retrySeconds}秒后可以再换。` : chosen.storageWarning || '';
+      const feedback = local.limited ? `这分钟已经换了${data.profile.refreshPerMinute}次，约${local.retrySeconds}秒后可以再换。` : aiNote || local.storageWarning || '';
       const content = `<p class="daily-sentence">${esc(chosen.line)}</p>
-        <details class="daily-inline-tools" data-detail="advice-tools"><summary>依据与换句</summary><p class="daily-small">${esc(chosen.basis)}</p>
-        <div class="daily-inline-actions"><button type="button" class="daily-text-button" data-refresh-advice>换一句</button><a class="daily-link" href="${chosen.href}">去看看 →</a><a class="daily-link" href="#/wardrobe">偏好设置</a></div><p class="daily-small">随日期与记录更新；每分钟最多换${data.profile.refreshPerMinute}次。</p></details>
+        <details class="daily-inline-tools" data-detail="advice-tools"><summary>${entry ? '千问 AI' : '本地内容'} · 依据与换句</summary><p class="daily-small">${esc(chosen.basis)}</p>
+        <div class="daily-inline-actions"><button type="button" class="daily-text-button" data-refresh-advice ${busyKey === key ? 'disabled' : ''}>${busyKey === key ? '生成中…' : '换一句'}</button><a class="daily-link" href="${chosen.href}">去看看 →</a><a class="daily-link" href="#/api">AI 设置</a></div><p class="daily-small">${useAI ? '每日自动生成一次；记录变化后可手动换句。AI各功能合计每分钟最多2次。' : `随日期与记录更新；每分钟最多换${data.profile.refreshPerMinute}次。AI尚未启用时使用本地内容。`}</p></details>
         ${note ? `<p class="daily-error">${esc(note)}</p>` : ''}<p class="daily-feedback" role="status">${esc(feedback)}</p>`;
       update(advice, prominent ? `<div class="daily-context-note">${content}</div>` : `<details class="daily-quiet-note" data-detail="advice"><summary>${shownItem ? '这件事的准备建议' : '今日一句'}</summary>${content}</details>`);
       if (retainFocus) advice.querySelector('[data-refresh-advice]')?.focus({ preventScroll: true });
+      if (shouldRequest) {
+        requestDaily(key, facts, refresh).then(value => {
+          if (disposed || currentKey !== key) return;
+          if (value) { memoryEntry = value; aiNote = ''; }
+        }).catch(error => { if (!disposed && currentKey === key) aiNote = `显示本地内容：${error.message}`; }).finally(() => {
+          if (busyKey === key) busyKey = '';
+          if (!disposed && currentKey === key) render();
+        });
+      }
     }
 
     const night = now.getHours() >= 18 || now.getHours() < 6;
@@ -81,7 +104,7 @@ export function mountDailyAssistant(container, state, dm) {
   }
   const click = event => { if (event.target.closest('[data-refresh-advice]')) render(true); };
   const changed = () => render();
-  const storage = event => { if ([DAILY_KEY, 'course-dashboard-personal-items-v1', null].includes(event.key)) render(); };
+  const storage = event => { if ([DAILY_KEY, AGENDA_KEY, AI_KEY, 'course-dashboard-personal-items-v1', null].includes(event.key)) render(); };
   const tick = event => {
     const now = event.detail?.now || new Date();
     const minute = Math.floor(+now / 60000);
@@ -91,13 +114,18 @@ export function mountDailyAssistant(container, state, dm) {
   document.addEventListener('app:tick', tick);
   window.addEventListener('daily:changed', changed);
   window.addEventListener('personal-items:changed', changed);
+  window.addEventListener('agenda:changed', changed);
+  window.addEventListener('ai:changed', changed);
   window.addEventListener('storage', storage);
   render();
   return () => {
+    disposed = true;
     advice.removeEventListener('click', click);
     document.removeEventListener('app:tick', tick);
     window.removeEventListener('daily:changed', changed);
     window.removeEventListener('personal-items:changed', changed);
+    window.removeEventListener('agenda:changed', changed);
+    window.removeEventListener('ai:changed', changed);
     window.removeEventListener('storage', storage);
   };
 }

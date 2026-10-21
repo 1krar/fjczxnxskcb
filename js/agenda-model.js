@@ -1,4 +1,4 @@
-import { localDate, getCoursePhase } from './time.js?v=20261020-9';
+import { localDate, getCoursePhase } from './time.js?v=20261021-1';
 
 export const MARKET_CALENDAR = { from: '2026-01-01', through: '2026-12-31', checkedAt: '2026-10-20',
   source: 'https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml' };
