@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { resolveDateExpression as date, resolveTimeExpression as time, resolveSections, resolveNoticeItems, describeTimeContext } from '../js/notice-model.js';
+import { resolveDateExpression as date, resolveTimeExpression as time, resolveSections, resolveNoticeItems, describeTimeContext, noticeRecordFields } from '../js/notice-model.js';
 import { getCourseSegments } from '../js/time.js';
 process.env.TZ='Asia/Shanghai';
 const referenceAt='2026-10-21T12:00:00+08:00';
@@ -39,3 +39,13 @@ text='三点交';result=resolveNoticeItems([{...base,deadlineExpression:'三点'
 text='想到一个好点子';result=resolveNoticeItems([{...base,kind:'note'}],{...options,text})[0];assert.equal(result.needsConfirmation,false,'optional date/location absence is not uncertainty');
 text='下次课前交';result=resolveNoticeItems([{...base,relation:'before_next_class',relationEvidence:'下次课前'}],{...options,text})[0];assert.ok(result.issues.length,'unknown course never borrows arbitrary current class');
 console.log('通知换算：相对日期、星期冲突、中文时刻、真实小节与课间、下次课、可选字段及歧义检查通过。');
+let fields=noticeRecordFields({kind:'activity',date:'2026-10-22',startTime:'15:00',endTime:'16:00',dueTime:'',timeContext:'15:00—16:00',needsConfirmation:false});
+assert.equal(fields.dueTime,'15:00','an activity uses its starting time for the concrete-time field');
+assert.equal(fields.windowStart,'15:00');assert.equal(fields.windowEnd,'16:00');
+fields=noticeRecordFields({kind:'task',date:'2026-10-22',startTime:'10:00',endTime:'11:40',dueTime:'',needsConfirmation:false});
+assert.equal(fields.dueTime,'','a task period must not be turned into a made-up deadline');assert.equal(fields.windowStart,'10:00');
+fields=noticeRecordFields({kind:'task',date:'2026-10-22',startTime:'10:00',endTime:'11:40',dueTime:'18:00',needsConfirmation:false});
+assert.equal(fields.dueTime,'18:00','an explicit deadline takes precedence over a related period');
+fields=noticeRecordFields({kind:'activity',date:'',startTime:'15:00',endTime:'16:00',dueTime:'',needsConfirmation:true});
+assert.equal(fields.dueTime,'');assert.equal(fields.windowStart,'15:00');assert.match(fields.timeContext,/日期未定/,'a missing date cannot silently discard the known clock time');
+console.log('应用映射：活动开始、明确截止、相关小节区间、未定日期的时刻保留检查通过。');

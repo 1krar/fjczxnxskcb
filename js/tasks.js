@@ -1,6 +1,6 @@
-import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261021-2';
-import { getTodayStr } from './time.js?v=20261021-2';
-import { setupCaptureAI } from './capture-ai.js?v=20261021-2';
+import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261021-3';
+import { getTodayStr } from './time.js?v=20261021-3';
+import { setupCaptureAI } from './capture-ai.js?v=20261021-3';
 
 let context = null;
 let editingId = '';
@@ -35,10 +35,14 @@ export function setupPersonalItems(state, dm, rerender, closeCourse) {
             <label>类别<select id="capture-kind" name="kind">${Object.entries(KINDS).map(([key, value]) => `<option value="${key}">${value}</option>`).join('')}</select></label>
             <label>来源<select id="capture-source" name="source">${Object.entries(SOURCES).map(([key, value]) => `<option value="${key}">${value}</option>`).join('')}</select></label>
             <label>日期（截止或要记得的日期）<input type="date" id="capture-date" name="dueDate" min="2000-01-01" max="2100-12-31"></label>
-            <label>具体时间<input type="time" id="capture-time" name="dueTime"></label>
+            <label>具体时间（截止 / 提醒）<input type="time" id="capture-time" name="dueTime"></label>
+            <label>相关区间开始<input type="time" id="capture-window-start" name="windowStart"></label>
+            <label>相关区间结束<input type="time" id="capture-window-end" name="windowEnd"></label>
             <label>地点<input id="capture-location" name="location" maxlength="300"></label>
             <label>课程或时间区间<input id="capture-context" name="timeContext" maxlength="500" placeholder="例如：第3、4节之间"></label>
           </div>
+          <p id="capture-applied" class="capture-applied" role="status" hidden></p>
+          <p class="capture-hint">相关区间会保留供查看，不自动视为作业截止。活动可在识别结果里另存为候选日程。</p>
           <label class="capture-check"><input type="checkbox" id="capture-confirm" name="needsConfirmation"> 这条通知还需要核对</label>
           <label for="capture-next">容易开始的下一步</label><input type="text" id="capture-next" name="nextStep" maxlength="1000" placeholder="例如：先打开老师发的作业要求">
         </details>
@@ -65,6 +69,7 @@ export function setupPersonalItems(state, dm, rerender, closeCourse) {
         kind: form.get('kind'), source: form.get('source'), dueDate: form.get('dueDate'), dueTime: form.get('dueTime') || '',
         needsConfirmation: form.has('needsConfirmation'), nextStep: form.get('nextStep').trim(),
         location: form.get('location').trim(), timeContext: form.get('timeContext').trim(), referenceAt: dialog.captureReferenceAt || '',
+        windowStart: form.get('windowStart') || '', windowEnd: form.get('windowEnd') || '',
       }, editingId);
       dialog.close();
       rerender();
@@ -102,6 +107,9 @@ export function openCapture({ courseName = '', item = null } = {}) {
   document.getElementById('capture-confirm').checked = item ? item.needsConfirmation : false;
   document.getElementById('capture-location').value = item?.location || '';
   document.getElementById('capture-context').value = item?.timeContext || '';
+  document.getElementById('capture-window-start').value = item?.windowStart || '';
+  document.getElementById('capture-window-end').value = item?.windowEnd || '';
+  document.getElementById('capture-applied').hidden = true;
   dialog.captureReferenceAt = item?.referenceAt || '';
   document.getElementById('capture-next').value = item?.nextStep || '';
   document.getElementById('capture-error').textContent = '';

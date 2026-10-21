@@ -1,5 +1,5 @@
-import { localDate, getSectionTime } from './time.js?v=20261021-2';
-import { validDate } from './tasks-store.js?v=20261021-2';
+import { localDate, getSectionTime } from './time.js?v=20261021-3';
+import { validDate } from './tasks-store.js?v=20261021-3';
 const WEEKDAYS={'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'日':7,'天':7};
 const DIGITS={'零':0,'一':1,'二':2,'两':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9};
 function chineseNumber(value) {
@@ -116,4 +116,19 @@ export function resolveNoticeItems(rawItems,{text,referenceAt,courses,sectionTim
       needsConfirmation:issues.length>0,issues:[...new Set(issues)],basis,
       evidence:Object.keys(raw).filter(key=>key.endsWith('Expression')||key==='location'||key==='courseHint'||key==='relationEvidence').map(quote).filter(Boolean)};
   });
+}
+
+export function noticeRecordFields(item) {
+  // An activity/exam starts at a time; a task's period range is not a fabricated deadline.
+  const anchor = item.dueTime || (item.kind !== 'task' ? item.startTime : '') || '';
+  const startTime = item.startTime || '';
+  const endTime = item.endTime && (!startTime || item.endTime > startTime) ? item.endTime : '';
+  const clock = anchor || startTime;
+  const undated = !item.date && clock ? `${clock}${endTime ? '—'+endTime : ''}（日期未定）` : '';
+  return {
+    kind:item.kind === 'activity' ? 'note' : item.kind,
+    courseName:item.courseName || '', dueDate:item.date || '', dueTime:item.date ? anchor : '',
+    windowStart:startTime, windowEnd:endTime, location:item.location || '',
+    timeContext:item.timeContext || undated, needsConfirmation:!!item.needsConfirmation,
+  };
 }

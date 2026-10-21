@@ -1,4 +1,4 @@
-import { validDate } from './tasks-store.js?v=20261021-2';
+import { validDate } from './tasks-store.js?v=20261021-3';
 
 export const AGENDA_KEY = 'course-dashboard-agenda-v1';
 export const MARKET_GROUPS = { morning: '上午开市（09:15 / 09:30）', midday: '午间休市（11:30）', afternoon: '下午开市（13:00）', close: '下午收盘（14:57 / 15:00）' };

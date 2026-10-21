@@ -1,7 +1,7 @@
-import { getTodayStr } from './time.js?v=20261021-2';
-import { readAgenda, scopedActivities } from './agenda-store.js?v=20261021-2';
-import { activityInterval } from './agenda-model.js?v=20261021-2';
-import { escapeText as esc } from './tasks-store.js?v=20261021-2';
+import { getTodayStr } from './time.js?v=20261021-3';
+import { readAgenda, scopedActivities } from './agenda-store.js?v=20261021-3';
+import { activityInterval } from './agenda-model.js?v=20261021-3';
+import { escapeText as esc } from './tasks-store.js?v=20261021-3';
 export function mountTodayAgenda(container,state,dm) {
   const slot=container.querySelector('#dash-planner-slot');if(!slot)return ()=>{};
   let minute='';

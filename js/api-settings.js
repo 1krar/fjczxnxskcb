@@ -1,5 +1,5 @@
-import { escapeText as esc } from './tasks-store.js?v=20261021-2';
-import { readAISettings, accessToken, saveAISettings, serverStatus, callAI } from './ai-client.js?v=20261021-2';
+import { escapeText as esc } from './tasks-store.js?v=20261021-3';
+import { readAISettings, accessToken, saveAISettings, serverStatus, callAI } from './ai-client.js?v=20261021-3';
 export function renderApiSettings(container) {
   const saved = readAISettings(); let disposed = false;
   container.innerHTML = `<section class="agenda-page"><header class="agenda-heading"><div><h1>API 与服务连接</h1><p>通知识别与每日一句</p></div></header>

@@ -1,7 +1,7 @@
 import { CATEGORIES, COLORS, CLOTHING_STATES, DEFAULT_PROFILE, DAILY_KEY, readDailyData, rawDailyData, emptyDailyData,
-  validateDailyData, addGarments, editGarment, changeGarmentState, setArchived, saveOutfit, saveRunPlan, saveDailyProfile, mergeDailyBackup } from './daily-store.js?v=20261021-2';
-import { localDate, nextDate, outfitRecommendation, runningSuitable } from './daily-model.js?v=20261021-2';
-import { escapeText as esc, validDate } from './tasks-store.js?v=20261021-2';
+  validateDailyData, addGarments, editGarment, changeGarmentState, setArchived, saveOutfit, saveRunPlan, saveDailyProfile, mergeDailyBackup } from './daily-store.js?v=20261021-3';
+import { localDate, nextDate, outfitRecommendation, runningSuitable } from './daily-model.js?v=20261021-3';
+import { escapeText as esc, validDate } from './tasks-store.js?v=20261021-3';
 
 const optionHTML = (values, selected) => Object.entries(values).map(([value, label]) => `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(label)}</option>`).join('');
 const numberField = (label, name, value, max = 180) => `<label>${label}<input name="${name}" type="number" min="0" max="${max}" value="${value}"></label>`;

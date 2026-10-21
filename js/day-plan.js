@@ -1,4 +1,4 @@
-import { getCoursePhase } from './time.js?v=20261021-2';
+import { getCoursePhase } from './time.js?v=20261021-3';
 // Shared course counts and time calculations. All intervals are [start, end).
 const MINUTE = 60000;
 

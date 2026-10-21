@@ -1,7 +1,7 @@
-import { aiEnabled, callAI } from './ai-client.js?v=20261021-2';
-import { resolveNoticeItems } from './notice-model.js?v=20261021-2';
-import { escapeText as esc } from './tasks-store.js?v=20261021-2';
-import { saveActivity } from './agenda-store.js?v=20261021-2';
+import { aiEnabled, callAI } from './ai-client.js?v=20261021-3';
+import { resolveNoticeItems, noticeRecordFields } from './notice-model.js?v=20261021-3';
+import { escapeText as esc } from './tasks-store.js?v=20261021-3';
+import { saveActivity } from './agenda-store.js?v=20261021-3';
 
 const clockInput = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}T${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
 export function setupCaptureAI(dialog, dm, rerender, notify) {
@@ -57,13 +57,21 @@ export function setupCaptureAI(dialog, dm, rerender, notify) {
           date:item.date, endDate:'', startTime:item.date?item.startTime:'', endTime:item.date&&item.endTime>item.startTime?item.endTime:'', checkInTime:item.date?item.checkInTime:'', registrationDate:item.registrationDate, registrationTime:item.registrationDate?item.registrationTime:'', travelBefore:null, travelAfter:null, reminderMinutes:30 });
         activity.disabled = true; activity.textContent = '已存为候选活动'; rerender(); notify('已保存候选活动，可在日程里查看冲突后决定是否参加');
       } else {
-        input('kind').value = item.kind === 'activity' ? 'note' : item.kind;
-        input('course').value = item.courseName; input('date').value = item.date;
-        input('time').disabled = !item.date; input('time').value = item.date ? item.dueTime : '';
-        input('location').value = item.location; input('context').value = item.timeContext;
-        input('confirm').checked = item.needsConfirmation;
+        const fields = noticeRecordFields(item);
+        input('kind').value = fields.kind;
+        input('course').value = fields.courseName; input('date').value = fields.dueDate;
+        input('time').disabled = !fields.dueDate; input('time').value = fields.dueTime;
+        input('window-start').value = fields.windowStart; input('window-end').value = fields.windowEnd;
+        input('location').value = fields.location; input('context').value = fields.timeContext;
+        input('confirm').checked = fields.needsConfirmation;
         dialog.captureReferenceAt = new Date(reference.value).toISOString();
         input('extra').open = true; status.textContent = '已应用到表单，原话完整保留；保存前仍可修改。';
+        const feedback = input('applied');
+        feedback.hidden = false;
+        feedback.textContent = `已填入：${[fields.dueDate, fields.dueTime, fields.windowStart && fields.windowEnd ? `区间 ${fields.windowStart}—${fields.windowEnd}` : '', fields.location].filter(Boolean).join(' · ') || '记录内容'}。点击底部“保存”完成记录。`;
+        apply.textContent = '已应用 · 查看时间';
+        input('extra').scrollIntoView({block:'start',behavior:'instant'});
+        input('extra').querySelector('summary').focus({preventScroll:true});
       }
     } catch (error) { status.textContent = error.message; }
   };

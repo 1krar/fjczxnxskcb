@@ -35,6 +35,12 @@ export function validateItem(item) {
   if (typeof item.needsConfirmation !== 'boolean') throw new Error('事项确认状态无效');
   if (typeof item.dueDate !== 'string' || (item.dueDate !== '' && !validDate(item.dueDate))) throw new Error('事项日期无效');
   if (typeof item.dueTime !== 'string' || (item.dueTime !== '' && (!/^([01]\d|2[0-3]):[0-5]\d$/.test(item.dueTime) || !item.dueDate))) throw new Error('事项时间无效，请先选择日期');
+  for (const key of ['windowStart','windowEnd']) {
+    const value = item[key] ?? '';
+    if (typeof value !== 'string' || value && !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) throw new Error('相关区间的时刻无效');
+    result[key] = value;
+  }
+  if (result.windowStart && result.windowEnd && result.windowEnd <= result.windowStart) throw new Error('相关区间的结束时刻应晚于开始时刻');
   if (!validTimestamp(item.createdAt) || !validTimestamp(item.updatedAt) ||
       !validTimestamp(item.completedAt, true) || !validTimestamp(item.deletedAt, true)) throw new Error('事项保存时间无效');
   for (const key of ['kind', 'source', 'needsConfirmation', 'dueDate', 'dueTime', 'createdAt', 'updatedAt', 'completedAt', 'deletedAt']) result[key] = item[key];
@@ -128,10 +134,16 @@ export function exportBackup(raw = false) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+export function itemTimeLabel(item) {
+  const range = item.windowStart && item.windowEnd ? `${item.windowStart}—${item.windowEnd}` : item.windowStart || (item.windowEnd ? `至${item.windowEnd}` : '');
+  if (item.dueTime && range && item.dueTime !== item.windowStart) return `${item.dueTime} · 相关区间 ${range}`;
+  return range || item.dueTime || '';
+}
 export function dateLabel(item, today) {
-  if (!item.dueDate) return item.needsConfirmation ? '时间待确认' : '未设日期';
+  const time = itemTimeLabel(item);
+  if (!item.dueDate) return `${item.needsConfirmation ? '时间待确认' : '未设日期'}${time ? ' · '+time : ''}`;
   const prefix = item.dueDate === today ? '今天' : item.dueDate;
-  return `${prefix}${item.dueTime ? ` ${item.dueTime}` : ''}`;
+  return `${prefix}${time ? ` ${time}` : ''}`;
 }
 
 export function isOverdue(item, today, now = new Date()) {

@@ -88,3 +88,4 @@
 .notice-preview h3 { margin: 0 0 8px; font-size: 16px; }
 .notice-preview .btn { min-height: 44px; white-space: normal; }
 .notice-issues { color: var(--color-text); background: color-mix(in srgb, #f59e0b 12%, transparent); border-radius: 8px; padding: 8px; }
+.capture-applied { padding: 10px 12px; border: 1px solid var(--color-primary); border-radius: 10px; color: var(--color-text); background: color-mix(in srgb, var(--color-primary) 8%, transparent); }

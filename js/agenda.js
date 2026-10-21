@@ -1,10 +1,10 @@
-import { getTodayStr, localDate, getDayName } from './time.js?v=20261021-2';
-import { escapeText as esc, itemsForScope } from './tasks-store.js?v=20261021-2';
-import { readDailyData } from './daily-store.js?v=20261021-2';
-import { readAgenda, scopedActivities, saveActivity, exportAgenda, mergeAgenda, validateAgenda, validateActivity, downloadFile } from './agenda-store.js?v=20261021-2';
-import { at, addDate, clock, activityInterval, activityOnDate, checkActivity, buildReminders, marketReminders, tradingDay, exportCalendarEvents } from './agenda-model.js?v=20261021-2';
-import { showCourseDetail } from './app.js?v=20261021-2';
-import { segmentMarkup } from './course-segments.js?v=20261021-2';
+import { getTodayStr, localDate, getDayName } from './time.js?v=20261021-3';
+import { escapeText as esc, itemsForScope, itemTimeLabel } from './tasks-store.js?v=20261021-3';
+import { readDailyData } from './daily-store.js?v=20261021-3';
+import { readAgenda, scopedActivities, saveActivity, exportAgenda, mergeAgenda, validateAgenda, validateActivity, downloadFile } from './agenda-store.js?v=20261021-3';
+import { at, addDate, clock, activityInterval, activityOnDate, checkActivity, buildReminders, marketReminders, tradingDay, exportCalendarEvents } from './agenda-model.js?v=20261021-3';
+import { showCourseDetail } from './app.js?v=20261021-3';
+import { segmentMarkup } from './course-segments.js?v=20261021-3';
 
 let selectedDate = getTodayStr();
 let displayedMonth = selectedDate.slice(0,7);
@@ -49,7 +49,7 @@ export function renderAgenda(container,state,dm) {
     const time=item.date<selectedDate?'跨天':item.startTime||'待定';
     dayRows.push({sort:interval.start?Math.max(+interval.start,+at(selectedDate,'00:00')):Infinity,html:`<article class="agenda-item"><div class="agenda-time">${esc(time)}<small>${esc(item.endTime)}</small></div><div class="agenda-content"><div class="agenda-title-line"><strong>${esc(item.title)}</strong><span class="agenda-tag">${activityLabel(item)}</span></div><p>${esc(item.location||'地点待核对')}${item.checkInTime?` · ${esc(item.checkInTime)}签到`:''}${item.endDate&&item.endDate!==item.date?` · 至${esc(item.endDate)}`:''}</p>${warnings(checked.get(item.id))}<button type="button" class="agenda-text-button" data-edit-activity="${esc(item.id)}">查看 / 修改</button></div></article>`});
   }
-  for(const item of dateTasks)dayRows.push({sort:item.dueTime?+at(item.dueDate,item.dueTime):Infinity,html:`<article class="agenda-item"><div class="agenda-time">${esc(item.dueTime||'未定时')}</div><div class="agenda-content"><div class="agenda-title-line"><strong>${esc(item.text)}</strong><span class="agenda-tag">${item.needsConfirmation?'待核对':'事项截止 / 提醒'}</span></div><p>${esc(item.nextStep||item.courseName||'日期节点，不占用全天')}</p><a class="agenda-text-button" href="#/tasks">去待办处理 →</a></div></article>`});
+  for(const item of dateTasks)dayRows.push({sort:item.dueTime||item.windowStart?+at(item.dueDate,item.dueTime||item.windowStart):Infinity,html:`<article class="agenda-item"><div class="agenda-time">${esc(item.dueTime||item.windowStart||'未定时')}${item.windowEnd?`<small>${esc(item.windowEnd)}</small>`:''}</div><div class="agenda-content"><div class="agenda-title-line"><strong>${esc(item.text)}</strong><span class="agenda-tag">${item.needsConfirmation?'待核对':'日期事项'}</span></div><p>${esc([itemTimeLabel(item),item.location,item.nextStep||item.courseName||'日期节点，不占用全天'].filter(Boolean).join(' · '))}</p><a class="agenda-text-button" href="#/tasks">去待办处理 →</a></div></article>`});
   for(const item of activities.filter(item=>item.status!=='cancelled'&&item.registrationDate===selectedDate))dayRows.push({sort:item.registrationTime?+at(selectedDate,item.registrationTime):Infinity,html:`<article class="agenda-item"><div class="agenda-time">${esc(item.registrationTime||'未定时')}</div><div class="agenda-content"><strong>${esc(item.title)} · 报名截止</strong><p>报名节点，与活动时间分开记录。</p><button type="button" class="agenda-text-button" data-edit-activity="${esc(item.id)}">查看通知</button></div></article>`});
   const reminderRows=dateReminders.map(item=>`<article class="agenda-item agenda-reminder"><div class="agenda-time">${clock(item.remindAt)}</div><div class="agenda-content"><span class="agenda-tag">提前提醒</span><strong>${esc(item.title)}</strong><p>${esc(item.detail)}</p></div></article>`).join('');
   dayRows.sort((a,b)=>a.sort-b.sort);
