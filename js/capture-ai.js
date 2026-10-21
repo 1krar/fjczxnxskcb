@@ -1,7 +1,8 @@
-import { aiEnabled, callAI } from './ai-client.js?v=20261021-3';
-import { resolveNoticeItems, noticeRecordFields } from './notice-model.js?v=20261021-3';
-import { escapeText as esc } from './tasks-store.js?v=20261021-3';
-import { saveActivity } from './agenda-store.js?v=20261021-3';
+import { aiEnabled, callAI } from './ai-client.js?v=20261021-4';
+import { resolveNoticeItems, noticeRecordFields, resolvedTimeContext } from './notice-model.js?v=20261021-4';
+import { NOTICE_VERSION } from './notice-form.js?v=20261021-4';
+import { escapeText as esc } from './tasks-store.js?v=20261021-4';
+import { saveActivity } from './agenda-store.js?v=20261021-4';
 
 const clockInput = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}T${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
 export function setupCaptureAI(dialog, dm, rerender, notify) {
@@ -28,13 +29,20 @@ export function setupCaptureAI(dialog, dm, rerender, notify) {
     const version = ++revision, capturedScope = { ...dialog.captureScope };
     lastText = original; active = true; button.disabled = true; status.textContent = '正在识别，原话随时可以保存…'; results.innerHTML = '';
     try {
-      const value = await callAI('notice', { text: original });
+      const knownCourses = [...new Set(dm.getCourses(capturedScope.className).map(course=>course.courseName))];
+      const selectedCourse = input('course').value;
+      if(selectedCourse&&!knownCourses.includes(selectedCourse))knownCourses.push(selectedCourse);
+      const value = await callAI('notice', { schemaVersion:NOTICE_VERSION,text:original,referenceAt:new Date(stamp).toISOString(),knownCourses:knownCourses.slice(0,60),selectedCourse });
       if (revision !== version || !dialog.open || text.value.trim() !== original || reference.value !== stamp) return;
+      if(value.schemaVersion!==NOTICE_VERSION)throw new Error('通知识别服务正在更新，请稍后刷新重试');
       const courses = dm.getCourses(capturedScope.className);
       parsed = resolveNoticeItems(value.items, { text: original, referenceAt: stamp, courses, sectionTimes: dm.getSectionTimes(), seasonRule: dm.getSemesterInfo().seasonRule, selectedCourseName: input('course').value });
       status.textContent = parsed.length ? `识别到${parsed.length}项。可查看原文依据，再应用到记录或存为候选活动。` : '未识别到独立事项，原话仍可直接保存。';
-      results.innerHTML = parsed.map((item, index) => `<article class="notice-preview"><h3>${esc(item.title)}</h3><p>${esc([item.date, item.startTime && item.endTime ? '' : item.dueTime || item.startTime, item.timeContext, item.location, item.courseName].filter(Boolean).join(' · ') || '随手记，未指定时间地点')}</p>
-        ${item.issues.length ? `<p class="notice-issues">${esc(item.issues.join('；'))}</p>` : ''}<details><summary>识别依据</summary><p>${item.evidence.map(line=>`「${esc(line)}」`).join('、') || '仅整理了通知内容'}</p>${item.basis.map(line=>`<p>${esc(line)}</p>`).join('')}</details>
+      const states={stated:'原文明示',interpreted:'结合上下文',uncertain:'确有歧义',missing:'未提到'};
+      results.innerHTML = parsed.map((item, index) => `<article class="notice-preview"><h3>${esc(item.title)}</h3>
+        <dl class="notice-fields">${item.fieldDetails.filter(cell=>cell.value!==null||cell.status==='uncertain').map(cell=>`<div><dt>${esc(cell.label)}</dt><dd><strong>${esc(cell.value??'待确认')}</strong><small>${states[cell.status]}</small></dd></div>`).join('')}</dl>
+        ${item.timeContext?`<p class="daily-small">时间对应：${esc([item.date,item.timeContext].filter(Boolean).join(' · '))}</p>`:''}${!item.date&&(item.startTime||item.dueTime)?'<p class="daily-small">原文未注明日期，已保留时刻；尚未生成日期提醒。</p>':''}
+        ${item.issues.length ? `<p class="notice-issues">${esc(item.issues.join('；'))}</p>` : ''}<details><summary>查看各字段依据</summary>${item.fieldDetails.filter(cell=>cell.evidence.length||cell.note).map(cell=>`<p><strong>${esc(cell.label)}</strong>：${cell.evidence.map(line=>`「${esc(line)}」`).join(' ＋ ')}${cell.note?' · '+esc(cell.note):''}</p>`).join('')}${item.basis.map(line=>`<p>${esc(line)}</p>`).join('')}</details>
         <div class="personal-backup-actions"><button type="button" class="btn" data-apply-notice="${index}">应用到这条记录</button>${item.kind==='activity'?`<button type="button" class="btn" data-save-notice-activity="${index}">存为候选活动</button>`:''}</div>${item.kind==='change'?'<p class="daily-small">仅记录变更通知，不会改写原课表。</p>':''}</article>`).join('');
     } catch (error) { if (revision === version && dialog.open) status.textContent = `${error.message}。原话仍可保存。`; }
     finally { if (revision === version) { active = false; button.disabled = false; } }
@@ -54,21 +62,22 @@ export function setupCaptureAI(dialog, dm, rerender, notify) {
     try {
       if (activity) {
         saveActivity({ ...dialog.captureScope, title: item.title, sourceText: text.value.trim(), location: item.location, status:'candidate',
-          date:item.date, endDate:'', startTime:item.date?item.startTime:'', endTime:item.date&&item.endTime>item.startTime?item.endTime:'', checkInTime:item.date?item.checkInTime:'', registrationDate:item.registrationDate, registrationTime:item.registrationDate?item.registrationTime:'', travelBefore:null, travelAfter:null, reminderMinutes:30 });
+          date:item.date, endDate:'', startTime:item.startTime, endTime:item.endTime>item.startTime?item.endTime:'', checkInTime:item.checkInTime, registrationDate:item.registrationDate, registrationTime:item.registrationTime, travelBefore:null, travelAfter:null, reminderMinutes:30 });
         activity.disabled = true; activity.textContent = '已存为候选活动'; rerender(); notify('已保存候选活动，可在日程里查看冲突后决定是否参加');
       } else {
         const fields = noticeRecordFields(item);
         input('kind').value = fields.kind;
-        input('course').value = fields.courseName; input('date').value = fields.dueDate;
-        input('time').disabled = !fields.dueDate; input('time').value = fields.dueTime;
-        input('window-start').value = fields.windowStart; input('window-end').value = fields.windowEnd;
-        input('location').value = fields.location; input('context').value = fields.timeContext;
-        input('confirm').checked = fields.needsConfirmation;
+        for(const [id,key]of [['course','courseName'],['date','dueDate'],['time','dueTime'],['window-start','windowStart'],['window-end','windowEnd'],['location','location'],['next','nextStep']])if(fields[key])input(id).value=fields[key];
+        input('time').disabled = false;
+        const courses=dm.getCourses(dialog.captureScope.className);
+        const effectiveContext=resolvedTimeContext(item,input('date').value,courses,dm.getSectionTimes(),dm.getSemesterInfo().seasonRule);
+        if(effectiveContext)input('context').value=effectiveContext;
+        input('confirm').checked = input('confirm').checked || fields.needsConfirmation;
         dialog.captureReferenceAt = new Date(reference.value).toISOString();
         input('extra').open = true; status.textContent = '已应用到表单，原话完整保留；保存前仍可修改。';
         const feedback = input('applied');
         feedback.hidden = false;
-        feedback.textContent = `已填入：${[fields.dueDate, fields.dueTime, fields.windowStart && fields.windowEnd ? `区间 ${fields.windowStart}—${fields.windowEnd}` : '', fields.location].filter(Boolean).join(' · ') || '记录内容'}。点击底部“保存”完成记录。`;
+        feedback.textContent = `已填入：${[input('date').value, fields.dueTime, fields.windowStart && fields.windowEnd ? `区间 ${fields.windowStart}—${fields.windowEnd}` : '', fields.location,fields.nextStep].filter(Boolean).join(' · ') || '记录内容'}。点击底部“保存”完成记录。`;
         apply.textContent = '已应用 · 查看时间';
         input('extra').scrollIntoView({block:'start',behavior:'instant'});
         input('extra').querySelector('summary').focus({preventScroll:true});

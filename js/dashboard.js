@@ -1,11 +1,11 @@
-import { getTodayStr, getDayName, getCurrentWeek, getCourseState } from './time.js?v=20261021-3';
-import { showCourseDetail } from './app.js?v=20261021-3';
-import { formatLocation } from './location.js?v=20261021-3';
-import { mountTodayItems } from './tasks.js?v=20261021-3';
-import { escapeText } from './tasks-store.js?v=20261021-3';
-import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261021-3';
-import { mountDailyAssistant } from './daily-widgets.js?v=20261021-3';
-import { mountTodayAgenda } from './today-agenda.js?v=20261021-3';
+import { getTodayStr, getDayName, getCurrentWeek, getCourseState } from './time.js?v=20261021-4';
+import { showCourseDetail } from './app.js?v=20261021-4';
+import { formatLocation } from './location.js?v=20261021-4';
+import { mountTodayItems } from './tasks.js?v=20261021-4';
+import { escapeText } from './tasks-store.js?v=20261021-4';
+import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261021-4';
+import { mountDailyAssistant } from './daily-widgets.js?v=20261021-4';
+import { mountTodayAgenda } from './today-agenda.js?v=20261021-4';
 
 const esc = escapeText;
 let tickHandler = null;

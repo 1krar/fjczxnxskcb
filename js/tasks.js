@@ -1,6 +1,6 @@
-import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261021-3';
-import { getTodayStr } from './time.js?v=20261021-3';
-import { setupCaptureAI } from './capture-ai.js?v=20261021-3';
+import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261021-4';
+import { getTodayStr } from './time.js?v=20261021-4';
+import { setupCaptureAI } from './capture-ai.js?v=20261021-4';
 
 let context = null;
 let editingId = '';
@@ -56,8 +56,7 @@ export function setupPersonalItems(state, dm, rerender, closeCourse) {
   document.getElementById('quick-capture').addEventListener('click', () => openCapture());
   root.querySelector('.capture-close').addEventListener('click', () => dialog.close());
   document.getElementById('capture-date').addEventListener('change', event => {
-    document.getElementById('capture-time').disabled = !event.target.value;
-    if (!event.target.value) document.getElementById('capture-time').value = '';
+    document.getElementById('capture-time').disabled = false;
   });
   document.getElementById('capture-form').addEventListener('submit', event => {
     event.preventDefault();
@@ -103,7 +102,7 @@ export function openCapture({ courseName = '', item = null } = {}) {
   document.getElementById('capture-source').value = item?.source || (selected ? 'oral' : 'other');
   document.getElementById('capture-date').value = item?.dueDate || '';
   document.getElementById('capture-time').value = item?.dueTime || '';
-  document.getElementById('capture-time').disabled = !item?.dueDate;
+  document.getElementById('capture-time').disabled = false;
   document.getElementById('capture-confirm').checked = item ? item.needsConfirmation : false;
   document.getElementById('capture-location').value = item?.location || '';
   document.getElementById('capture-context').value = item?.timeContext || '';

@@ -34,7 +34,7 @@ export function validateItem(item) {
   if (!Object.hasOwn(KINDS, item.kind) || !Object.hasOwn(SOURCES, item.source)) throw new Error('事项类别或来源无效');
   if (typeof item.needsConfirmation !== 'boolean') throw new Error('事项确认状态无效');
   if (typeof item.dueDate !== 'string' || (item.dueDate !== '' && !validDate(item.dueDate))) throw new Error('事项日期无效');
-  if (typeof item.dueTime !== 'string' || (item.dueTime !== '' && (!/^([01]\d|2[0-3]):[0-5]\d$/.test(item.dueTime) || !item.dueDate))) throw new Error('事项时间无效，请先选择日期');
+  if (typeof item.dueTime !== 'string' || (item.dueTime !== '' && !/^([01]\d|2[0-3]):[0-5]\d$/.test(item.dueTime))) throw new Error('事项时刻格式无效');
   for (const key of ['windowStart','windowEnd']) {
     const value = item[key] ?? '';
     if (typeof value !== 'string' || value && !/^([01]\d|2[0-3]):[0-5]\d$/.test(value)) throw new Error('相关区间的时刻无效');

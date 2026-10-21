@@ -1,4 +1,4 @@
-import { validDate } from './tasks-store.js?v=20261021-3';
+import { validDate } from './tasks-store.js?v=20261021-4';
 
 export const AGENDA_KEY = 'course-dashboard-agenda-v1';
 export const MARKET_GROUPS = { morning: '上午开市（09:15 / 09:30）', midday: '午间休市（11:30）', afternoon: '下午开市（13:00）', close: '下午收盘（14:57 / 15:00）' };
@@ -18,7 +18,7 @@ export function validateActivity(value) {
   result.status = value.status;
   for (const key of ['date', 'endDate', 'registrationDate']) { if (value[key] !== '' && !validDate(value[key])) throw new Error('活动日期无效'); result[key] = value[key]; }
   for (const key of ['startTime', 'endTime', 'checkInTime', 'registrationTime']) { if (value[key] !== '' && !time(value[key])) throw new Error('活动时间无效'); result[key] = value[key]; }
-  if ((result.startTime || result.endTime || result.checkInTime) && !result.date || result.registrationTime && !result.registrationDate) throw new Error('请先补充对应日期');
+  if (result.status === 'confirmed' && ((result.startTime || result.endTime || result.checkInTime) && !result.date || result.registrationTime && !result.registrationDate)) throw new Error('请先补充对应日期');
   if (result.endDate && (!result.date || result.endDate < result.date)) throw new Error('结束日期不能早于开始日期');
   if (result.checkInTime && result.startTime && result.checkInTime > result.startTime) throw new Error('签到时间不能晚于活动开始');
   if (result.date && result.startTime && result.endTime && new Date(`${result.endDate || result.date}T${result.endTime}`) <= new Date(`${result.date}T${result.startTime}`)) throw new Error('结束应晚于开始；跨天活动请补充结束日期');

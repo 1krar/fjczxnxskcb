@@ -76,6 +76,11 @@ reminders=buildReminders({date:day,courses:[],activities:[],tasks:[{...task,dueT
 assert.equal(clock(reminders.find(item=>item.type==='task').remindAt),'20:00');
 assert.match(reminders.find(item=>item.type==='task').detail,/具体截止时间未设/);
 assert.equal(buildReminders({date:day,courses:[],activities:[],tasks:[{...task,completedAt:'yes'}],prefs:{...prefs,market:false}}).length,0);
+const undated=store.saveActivity({...fields,title:'日期未定的说明会',date:'',startTime:'15:40',endTime:'',checkInTime:'',registrationDate:'',registrationTime:'12:00'});
+assert.equal(store.readAgenda().activities.find(row=>row.id===undated.id).startTime,'15:40');
+assert.throws(()=>store.setActivityStatus(undated.id,'confirmed'),/日期|补齐/);
+assert.deepEqual(activityInterval(undated),{start:null,end:null});
+assert.equal(buildReminders({date:day,courses:[],activities:[undated],tasks:[{...task,dueDate:'',dueTime:'15:40'}],prefs:{...prefs,market:false}}).length,0,'undated clocks do not create dated reminders');
 const registration={...item,status:'candidate',registrationDate:'2026-10-21',registrationTime:'12:00'};
 assert.equal(buildReminders({date:day,courses:[],activities:[registration],tasks:[],prefs:{...prefs,market:false}})[0].type,'registration');
 const raw=exportCalendarEvents([{key:'test',title:'长通知标题'.repeat(50),start:winter.startDateTime,end:winter.endDateTime,detail:'第一行\n第二行,分号;反斜杠\\'},{key:'date',dateOnly:'2026-10-21',title:'日期事项'}],[{key:'test',title:'提前提醒',remindAt:at('13:50')}],at('08:00'));

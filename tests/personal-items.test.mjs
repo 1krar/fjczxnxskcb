@@ -55,6 +55,11 @@ const another = { ...first, id: 'other-device', text: 'QQ群通知', updatedAt: 
 assert.deepEqual(store.mergeBackup({ schemaVersion: 1, items: [another] }), { added: 1, updated: 0 });
 assert.deepEqual(store.mergeBackup({ schemaVersion: 1, items: [another] }), { added: 0, updated: 0 });
 assert.equal(store.readItems().length, 2);
+const undated=store.saveItem({...fields,text:'下午说明会',kind:'note',dueTime:'15:40',windowStart:'15:40',needsConfirmation:false});
+assert.equal(store.readItems().find(row=>row.id===undated.id).dueTime,'15:40');
+assert.match(store.dateLabel(undated,'2026-10-21'),/15:40/);
+assert.equal(store.isOverdue(undated,'2026-10-24'),false,'an undated clock must never become overdue');
+assert.equal(store.validateBackup({schemaVersion:1,items:[undated]}).items[0].dueDate,'');
 assert.throws(() => store.validateBackup({ schemaVersion: 1, items: [another, another] }));
 const beforeFailure = [...memory.values()][0];
 failWrite = true;
