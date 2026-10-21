@@ -1,4 +1,4 @@
-import { validDate } from './tasks-store.js?v=20261021-1';
+import { validDate } from './tasks-store.js?v=20261021-2';
 
 export const DAILY_KEY = 'course-dashboard-daily-v1';
 export const CATEGORIES = {

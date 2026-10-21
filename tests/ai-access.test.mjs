@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { validAccessToken } from '../js/ai-access.js';
+import { saveAISettings, accessToken, aiEnabled } from '../js/ai-client.js';
+const session=new Map(),persistent=new Map();
+globalThis.sessionStorage={getItem:key=>session.get(key)??null,setItem:(key,value)=>session.set(key,value)};
+globalThis.localStorage={getItem:key=>persistent.get(key)??null,setItem:(key,value)=>persistent.set(key,value)};
+globalThis.window=new EventTarget();
+assert.equal(validAccessToken('012345'),true);
+assert.equal(validAccessToken('test-long-token-with-24-characters'),true);
+for(const value of ['12345','1234567','abcdef','123456\n',' 123456','１２３４５６',123456,null])assert.equal(validAccessToken(value),false,String(value));
+saveAISettings({enabled:true,notice:true,daily:true},'012345');
+assert.equal(accessToken(),'012345');assert.equal(aiEnabled('notice'),true);
+assert.doesNotMatch(JSON.stringify([...persistent]),/012345/);
+assert.throws(()=>saveAISettings({enabled:true},'12345'),/6位数字/);
+assert.equal(accessToken(),'012345','failed validation preserves saved session');
+console.log('Access settings: six-digit validation, leading zeros, legacy tokens and session-only persistence passed.');

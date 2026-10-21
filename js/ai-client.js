@@ -1,3 +1,4 @@
+import { validAccessToken } from './ai-access.js?v=20261021-2';
 export const AI_KEY = 'course-dashboard-ai-v1';
 const TOKEN_KEY = 'course-dashboard-ai-access';
 const CACHE_KEY = 'course-dashboard-ai-daily-v1';
@@ -14,7 +15,7 @@ export function readAISettings() {
 }
 export function accessToken() { try { return sessionStorage.getItem(TOKEN_KEY) || ''; } catch { return ''; } }
 export function saveAISettings(value, token) {
-  if (token && (token.length < 24 || token.length > 512 || /\s/.test(token))) throw new Error('请填写24至512位、不含空格的个人访问口令');
+  if (token && !validAccessToken(token)) throw new Error('请填写6位数字口令，或24至512位、不含空格的长口令');
   sessionStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(AI_KEY, JSON.stringify(Object.fromEntries(Object.keys(DEFAULTS).map(key => [key, !!value[key]]))));
   attempted.clear();

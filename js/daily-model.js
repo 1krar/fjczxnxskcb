@@ -1,4 +1,4 @@
-import { CATEGORIES } from './daily-store.js?v=20261021-1';
+import { CATEGORIES } from './daily-store.js?v=20261021-2';
 
 export function localDate(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;

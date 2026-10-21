@@ -1,6 +1,6 @@
-import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261021-1';
-import { getTodayStr } from './time.js?v=20261021-1';
-import { setupCaptureAI } from './capture-ai.js?v=20261021-1';
+import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261021-2';
+import { getTodayStr } from './time.js?v=20261021-2';
+import { setupCaptureAI } from './capture-ai.js?v=20261021-2';
 
 let context = null;
 let editingId = '';

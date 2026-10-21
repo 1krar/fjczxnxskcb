@@ -1,19 +1,19 @@
-import { dataManager } from './data.js?v=20261021-1';
-import { getSettings, setSelectedClass } from './storage.js?v=20261021-1';
-import { getCurrentWeek, getTodayStr } from './time.js?v=20261021-1';
-import { renderDashboard, cleanupDashboard } from './dashboard.js?v=20261021-1';
-import { renderSchedule, cleanupSchedule } from './schedule.js?v=20261021-1';
-import { renderAnalytics, cleanupAnalytics } from './analytics.js?v=20261021-1';
-import { renderCompare, cleanupCompare } from './compare.js?v=20261021-1';
-import { renderData } from './data-page.js?v=20261021-1';
-import { applySavedUpdates } from './data-update.js?v=20261021-1';
-import { renderSettings } from './settings.js?v=20261021-1';
-import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js?v=20261021-1';
-import { renderWardrobe } from './wardrobe.js?v=20261021-1';
-import { renderAgenda, selectAgendaDate } from './agenda.js?v=20261021-1';
-import { setupReminders, renderReminderSettings } from './reminders.js?v=20261021-1';
-import { renderApiSettings } from './api-settings.js?v=20261021-1';
-import { segmentMarkup } from './course-segments.js?v=20261021-1';
+import { dataManager } from './data.js?v=20261021-2';
+import { getSettings, setSelectedClass } from './storage.js?v=20261021-2';
+import { getCurrentWeek, getTodayStr } from './time.js?v=20261021-2';
+import { renderDashboard, cleanupDashboard } from './dashboard.js?v=20261021-2';
+import { renderSchedule, cleanupSchedule } from './schedule.js?v=20261021-2';
+import { renderAnalytics, cleanupAnalytics } from './analytics.js?v=20261021-2';
+import { renderCompare, cleanupCompare } from './compare.js?v=20261021-2';
+import { renderData } from './data-page.js?v=20261021-2';
+import { applySavedUpdates } from './data-update.js?v=20261021-2';
+import { renderSettings } from './settings.js?v=20261021-2';
+import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js?v=20261021-2';
+import { renderWardrobe } from './wardrobe.js?v=20261021-2';
+import { renderAgenda, selectAgendaDate } from './agenda.js?v=20261021-2';
+import { setupReminders, renderReminderSettings } from './reminders.js?v=20261021-2';
+import { renderApiSettings } from './api-settings.js?v=20261021-2';
+import { segmentMarkup } from './course-segments.js?v=20261021-2';
 
 const state = {
   currentClass: '',

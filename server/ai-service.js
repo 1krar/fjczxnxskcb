@@ -1,4 +1,5 @@
 // Personal AI gateway. Provider credentials stay in Cloudflare bindings.
+import { validAccessToken } from '../js/ai-access.js';
 export const MODEL = 'qwen3.8-flash';
 export const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
 const initializedDatabases = new WeakSet();
@@ -26,9 +27,10 @@ export class AIError extends Error {
 }
 function response(value,status=200) { return Response.json(value,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'}}); }
 function missingConfiguration(env) {
-  return [!env.DASHSCOPE_API_KEY?'百炼密钥':null,!(typeof env.AI_ACCESS_TOKEN==='string'&&env.AI_ACCESS_TOKEN.length>=24)?'个人访问口令':null,!env.AI_DB?.prepare?'用量数据库':null].filter(Boolean);
+  return [!env.DASHSCOPE_API_KEY?'百炼密钥':null,!validAccessToken(env.AI_ACCESS_TOKEN)?'个人访问口令':null,!env.AI_DB?.prepare?'用量数据库':null].filter(Boolean);
 }
 async function digest(text) { return new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(text))); }
+async function identifier(value) { return Array.from(await digest(value)).map(byte=>byte.toString(16).padStart(2,'0')).join(''); }
 async function authorized(request,secret) {
   const supplied=request.headers.get('Authorization')?.replace(/^Bearer /,'')||'';
   if(supplied.length>512||!supplied)return false;
@@ -42,11 +44,43 @@ async function readJSON(request) {
   const body=new Uint8Array(bytes);let offset=0;for(const chunk of chunks){body.set(chunk,offset);offset+=chunk.length;}
   try{return JSON.parse(new TextDecoder().decode(body));}catch{throw new AIError('请求JSON无效');}
 }
-async function consumeQuota(db,owner,now,limit) {
+async function ensureTables(db,now) {
   if(!initializedDatabases.has(db)){
     await db.prepare('CREATE TABLE IF NOT EXISTS ai_quota (owner TEXT NOT NULL, day TEXT NOT NULL, minute INTEGER NOT NULL, minute_count INTEGER NOT NULL, day_count INTEGER NOT NULL, PRIMARY KEY (owner, day))').run();
+    await db.prepare('CREATE TABLE IF NOT EXISTS ai_auth (key TEXT PRIMARY KEY, attempts INTEGER NOT NULL, expires INTEGER NOT NULL)').run();
+    await db.prepare('CREATE INDEX IF NOT EXISTS ai_auth_expiry ON ai_auth(expires)').run();
+    await db.prepare('DELETE FROM ai_auth WHERE expires <= ?').bind(+now).run();
     initializedDatabases.add(db);
   }
+}
+async function reserveAuthAttempt(db,key,limit,now) {
+  const row=await db.prepare(`INSERT INTO ai_auth(key,attempts,expires) VALUES(?,1,?)
+    ON CONFLICT(key) DO UPDATE SET
+    attempts=CASE WHEN ai_auth.expires<=? THEN 1 ELSE ai_auth.attempts+1 END,
+    expires=CASE WHEN ai_auth.expires<=? THEN excluded.expires ELSE ai_auth.expires END
+    WHERE ai_auth.expires<=? OR ai_auth.attempts<? RETURNING expires`).bind(key,+now+15*60000,+now,+now,+now,limit).first();
+  if(!row)throw new AIError('口令尝试过多，已暂停验证，请15分钟后再试',429,'auth_rate_limited');
+  return {key,expires:row.expires};
+}
+async function authenticate(request,env,now) {
+  // Include a server-only salt: the DB must not contain a brute-forceable hash of a six-digit PIN.
+  const owner=await identifier(`${env.DASHSCOPE_API_KEY}\0${env.AI_ACCESS_TOKEN}`);
+  const ip=await identifier(`${owner}\0${request.headers.get('CF-Connecting-IP')||'unknown'}`);
+  try {
+    await ensureTables(env.AI_DB,now);
+    // Reserve before comparing. Even a correct guess is blocked once attempts are exhausted.
+    const all=await reserveAuthAttempt(env.AI_DB,`${owner}:all`,30,now);
+    const client=await reserveAuthAttempt(env.AI_DB,`${owner}:${ip}`,5,now);
+    if(!await authorized(request,env.AI_ACCESS_TOKEN))throw new AIError('个人访问口令不正确或尚未填写',401,'unauthorized');
+    for(const row of [all,client])await env.AI_DB.prepare('UPDATE ai_auth SET attempts=MAX(0,attempts-1) WHERE key=? AND expires=?').bind(row.key,row.expires).run();
+    return owner;
+  } catch(error) {
+    if(error instanceof AIError)throw error;
+    throw new AIError('口令验证暂不可用，未调用模型',503,'auth_unavailable');
+  }
+}
+async function consumeQuota(db,owner,now,limit) {
+  await ensureTables(db,now);
   const day=new Date(+now+8*3600000).toISOString().slice(0,10),minute=Math.floor(+now/60000);
   const row=await db.prepare(`INSERT INTO ai_quota(owner,day,minute,minute_count,day_count) VALUES(?,?,?,1,1)
     ON CONFLICT(owner,day) DO UPDATE SET minute=excluded.minute,
@@ -103,7 +137,7 @@ export async function handleAI(request,env,{fetcher=fetch,now=new Date()}={}) {
     if(request.method==='GET')return response({provider:'阿里云百炼',region:'北京',model:MODEL,configured:missing.length===0,missing});
     if(request.method!=='POST')return response({error:'不支持的请求方式'},405);
     if(missing.length)throw new AIError(`AI尚未启用，服务端还需配置：${missing.join('、')}`,503,'not_configured');
-    if(!await authorized(request,env.AI_ACCESS_TOKEN))throw new AIError('个人访问口令不正确或尚未填写',401,'unauthorized');
+    const owner=await authenticate(request,env,now);
     const body=await readJSON(request);
     if(!body||typeof body!=='object'||Array.isArray(body))throw new AIError('请求内容无效');
     if(body.action==='check')return response({authorized:true,model:MODEL,configured:true,modelTested:false});
@@ -121,7 +155,6 @@ export async function handleAI(request,env,{fetcher=fetch,now=new Date()}={}) {
       input={};temperature=0.1;name='connection_test';schema={type:'object',additionalProperties:false,required:['ok'],properties:{ok:{type:'boolean'}}};
       messages=[{role:'user',content:'连接测试，请返回ok为true的JSON。'}];
     }else throw new AIError('不支持的AI功能');
-    const owner=Array.from(await digest(env.AI_ACCESS_TOKEN)).map(byte=>byte.toString(16).padStart(2,'0')).join('');
     const dayLimit=Math.max(1,Math.min(200,Math.floor(Number(env.AI_DAILY_LIMIT)||20)));
     let quota;try{quota=await consumeQuota(env.AI_DB,owner,now,dayLimit);}catch(error){if(error instanceof AIError)throw error;throw new AIError('用量控制暂不可用，未调用模型',503,'quota_unavailable');}
     const result=await callModel(env,messages,schema,name,temperature,fetcher);
