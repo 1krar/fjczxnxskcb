@@ -1,8 +1,8 @@
-import { aiEnabled, callAI } from './ai-client.js?v=20261021-5';
-import { resolveNoticeItems, noticeRecordFields, resolvedTimeContext } from './notice-model.js?v=20261021-5';
-import { NOTICE_VERSION } from './notice-form.js?v=20261021-5';
-import { escapeText as esc } from './tasks-store.js?v=20261021-5';
-import { saveActivity } from './agenda-store.js?v=20261021-5';
+import { aiEnabled, callAI } from './ai-client.js?v=20261021-6';
+import { resolveNoticeItems, noticeRecordFields, resolvedTimeContext } from './notice-model.js?v=20261021-6';
+import { NOTICE_VERSION } from './notice-form.js?v=20261021-6';
+import { escapeText as esc } from './tasks-store.js?v=20261021-6';
+import { saveActivity } from './agenda-store.js?v=20261021-6';
 
 const clockInput = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}T${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
 export function setupCaptureAI(dialog, dm, rerender, notify) {
@@ -67,7 +67,7 @@ export function setupCaptureAI(dialog, dm, rerender, notify) {
       } else {
         const fields = noticeRecordFields(item);
         input('kind').value = fields.kind;
-        for(const [id,key]of [['course','courseName'],['date','dueDate'],['time','dueTime'],['window-start','windowStart'],['window-end','windowEnd'],['location','location'],['next','nextStep']])if(fields[key])input(id).value=fields[key];
+        for(const [id,key]of [['summary','title'],['time-role','timeRole'],['course','courseName'],['date','dueDate'],['time','dueTime'],['window-start','windowStart'],['window-end','windowEnd'],['location','location'],['next','nextStep']])if(fields[key])input(id).value=fields[key];
         input('time').disabled = false;
         const courses=dm.getCourses(dialog.captureScope.className);
         const effectiveContext=resolvedTimeContext(item,input('date').value,courses,dm.getSectionTimes(),dm.getSemesterInfo().seasonRule);

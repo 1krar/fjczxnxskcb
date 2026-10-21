@@ -1,10 +1,10 @@
-import { getTodayStr, localDate, getDayName } from './time.js?v=20261021-5';
-import { escapeText as esc, itemsForScope, itemTimeLabel } from './tasks-store.js?v=20261021-5';
-import { readDailyData } from './daily-store.js?v=20261021-5';
-import { readAgenda, scopedActivities, saveActivity, exportAgenda, mergeAgenda, validateAgenda, validateActivity, downloadFile } from './agenda-store.js?v=20261021-5';
-import { at, addDate, clock, activityInterval, activityOnDate, checkActivity, buildReminders, marketReminders, tradingDay, exportCalendarEvents } from './agenda-model.js?v=20261021-5';
-import { showCourseDetail } from './app.js?v=20261021-5';
-import { segmentMarkup } from './course-segments.js?v=20261021-5';
+import { getTodayStr, localDate, getDayName } from './time.js?v=20261021-6';
+import { escapeText as esc, itemsForScope, itemTimeLabel } from './tasks-store.js?v=20261021-6';
+import { readDailyData } from './daily-store.js?v=20261021-6';
+import { readAgenda, scopedActivities, saveActivity, exportAgenda, mergeAgenda, validateAgenda, validateActivity, downloadFile } from './agenda-store.js?v=20261021-6';
+import { at, addDate, clock, activityInterval, activityOnDate, checkActivity, buildReminders, marketReminders, tradingDay, exportCalendarEvents } from './agenda-model.js?v=20261021-6';
+import { showCourseDetail } from './app.js?v=20261021-6';
+import { segmentMarkup } from './course-segments.js?v=20261021-6';
 
 let selectedDate = getTodayStr();
 let displayedMonth = selectedDate.slice(0,7);

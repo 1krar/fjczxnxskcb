@@ -22,6 +22,7 @@ assert.equal(result.date,'');assert.equal(result.endTime,'');assert.equal(result
 assert.equal(result.needsConfirmation,false,'absent optional information is not a fabricated ambiguity');
 assert.equal(result.fieldDetails.find(field=>field.key==='startTime').status,'interpreted');
 let fields=noticeRecordFields(result);assert.equal(fields.dueTime,'15:40','known clock applies even without a date');
+assert.equal(fields.title,'社团说明会');assert.equal(fields.timeRole,'start');
 assert.equal(fields.dueDate,'');assert.equal(fields.nextStep,'提前到场');
 assert.doesNotMatch(cleanNoticeText(text),/\u0014/);
 let normalized=normalizeNoticeExtraction({schemaVersion:2,items:[item({location:cell('整理后的地点',['不是原文的解释'])})]},text);
@@ -51,4 +52,5 @@ result=resolve([raw],text)[0];assert.equal(result.startTime,'09:40');assert.equa
 assert.match(describeTimeContext('2026-10-22','08:50',[course],sectionTimes,options.seasonRule),/课间/);
 text='明天第三四节完成练习';raw=item({date:cell('2026-10-22',['明天'],'interpreted','按参考日换算'),sectionStart:cell(3,['第三四节']),sectionEnd:cell(4,['第三四节'])},{kind:'task',title:'完成练习'});
 fields=noticeRecordFields(resolve([raw],text)[0]);assert.equal(fields.windowStart,'10:00');assert.equal(fields.windowEnd,'11:40');assert.equal(fields.dueTime,'','related period never becomes a made-up submission deadline');
+assert.equal(noticeRecordFields(rows[0]).timeRole,'deadline');
 console.log('AI填表：缺失引用、漏字段、状态矛盾、记法整理、局部保留、课程查询和无日期时刻保存通过。固定响应测试不代表真实模型准确率。');

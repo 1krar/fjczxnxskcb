@@ -1,5 +1,5 @@
-import { getSectionTime } from './time.js?v=20261021-5';
-import { NOTICE_VERSION, NOTICE_FIELDS, normalizeNoticeExtraction } from './notice-form.js?v=20261021-5';
+import { getSectionTime } from './time.js?v=20261021-6';
+import { NOTICE_VERSION, NOTICE_FIELDS, normalizeNoticeExtraction } from './notice-form.js?v=20261021-6';
 
 export function seasonForDate(date,courses,rule) {
   const actual=courses.find(course=>course.date===date&&course.season);if(actual)return actual.season;
@@ -74,7 +74,7 @@ export function noticeRecordFields(item) {
   const anchor=item.dueTime||(item.kind!=='task'?item.startTime:'')||'';
   const startTime=item.startTime||'';
   const endTime=item.endTime&&(!startTime||item.endTime>startTime)?item.endTime:'';
-  return {kind:item.kind==='activity'?'note':item.kind,courseName:item.courseName||'',dueDate:item.date||'',dueTime:anchor,
+  return {title:item.title||'',timeRole:item.dueTime?'deadline':item.startTime?'start':'',kind:item.kind==='activity'?'note':item.kind,courseName:item.courseName||'',dueDate:item.date||'',dueTime:anchor,
     windowStart:startTime,windowEnd:endTime,location:item.location||'',nextStep:item.nextStep||'',
     timeContext:item.timeContext||(!item.date&&anchor?anchor+'（日期未定）':''),needsConfirmation:!!item.needsConfirmation};
 }

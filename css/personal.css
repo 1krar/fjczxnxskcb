@@ -42,6 +42,8 @@
 .personal-tags span { overflow-wrap: anywhere; }
 .personal-tags span:first-child { color: var(--color-primary-dark); font-weight: 600; }
 .personal-text { font-size: 15px; line-height: 1.7; margin: 8px 0; color: var(--color-text); white-space: pre-wrap; overflow-wrap: anywhere; }
+.personal-title { margin: 8px 0; font-size: 16px; line-height: 1.6; font-weight: 600; overflow-wrap: anywhere; }
+.personal-source > summary { min-height: 44px; align-content: center; color: var(--color-text-secondary); font-size: 13px; cursor: pointer; }
 .personal-meta .is-overdue { color: #a14c08; }
 .personal-next { color: var(--color-text-secondary); background: var(--color-surface-subtle); border-radius: 8px; padding: 8px 10px; font-size: 13px; line-height: 1.6; margin: 10px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 .personal-item-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px -8px -6px; }

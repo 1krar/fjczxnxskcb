@@ -29,11 +29,14 @@ const edited = store.saveItem({ ...fields, dueDate: '2026-10-23', dueTime: '18:3
 assert.equal(edited.id, first.id);
 assert.equal(edited.createdAt, first.createdAt);
 assert.equal(edited.windowStart,'','old records remain readable without period metadata');
-const ranged=store.saveItem({...edited,windowStart:'15:00',windowEnd:'16:00'},edited.id);
+assert.equal(edited.title,'','old records remain readable without an extracted title');
+assert.equal(edited.timeRole,'');
+const ranged=store.saveItem({...edited,title:'演讲安排',timeRole:'start',windowStart:'15:00',windowEnd:'16:00'},edited.id);
 assert.match(store.dateLabel(ranged,'2026-10-23'),/15:00—16:00/);
 assert.equal(store.readItems()[0].windowEnd,'16:00');
 const rangedBackup=store.validateBackup({schemaVersion:1,items:[ranged]});
 assert.equal(rangedBackup.items[0].windowStart,'15:00','structured periods survive backup validation');
+assert.equal(rangedBackup.items[0].title,'演讲安排');assert.equal(rangedBackup.items[0].timeRole,'start');
 assert.throws(()=>store.saveItem({...ranged,windowEnd:'14:00'},ranged.id));
 assert.equal(store.readItems().length, 1);
 assert.equal(store.isOverdue(edited, '2026-10-24'), true);

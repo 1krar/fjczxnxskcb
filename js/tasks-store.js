@@ -28,7 +28,9 @@ export function validateItem(item) {
     ['id', 100, '事项编号'], ['semester', 100, '学期'], ['className', 200, '班级'],
     ['courseName', 300, '课程'], ['text', 5000, '正文'], ['nextStep', 1000, '下一步'],
   ]) result[key] = cleanText(item[key], max, label);
-  for (const [key,max,label] of [['location',300,'地点'],['timeContext',500,'时间区间'],['referenceAt',100,'通知参考时间']]) result[key] = cleanText(item[key] ?? '', max, label);
+  for (const [key,max,label] of [['title',300,'事项名称'],['location',300,'地点'],['timeContext',500,'时间区间'],['referenceAt',100,'通知参考时间']]) result[key] = cleanText(item[key] ?? '', max, label);
+  result.timeRole = item.timeRole ?? '';
+  if (!['','start','deadline'].includes(result.timeRole)) throw new Error('事项时间类型无效');
   if (result.referenceAt && !validTimestamp(result.referenceAt)) throw new Error('通知参考时间无效');
   if (!result.id || !result.semester || !result.className || !result.text.trim()) throw new Error('事项缺少必要内容');
   if (!Object.hasOwn(KINDS, item.kind) || !Object.hasOwn(SOURCES, item.source)) throw new Error('事项类别或来源无效');

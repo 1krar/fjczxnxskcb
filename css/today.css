@@ -35,10 +35,24 @@
 .today-page .personal-section-heading h2 { margin: 0; font-size: 16px; line-height: 1.6; }
 .today-page .personal-section-heading .btn { min-height: 44px; padding: 8px 14px; white-space: nowrap; font-size: 14px; }
 .today-page .personal-home-empty { margin: 4px 0 0; font-size: 13px; line-height: 1.8; }
-.today-page .home-personal-item { display: flex; align-items: center; gap: 8px; margin: 0; padding: 8px 0; border: 0; border-bottom: 1px solid var(--color-border-light); border-radius: 0; background: transparent; }
-.today-page .home-personal-item + .home-personal-item { margin: 0; }
-.today-page .home-personal-open { flex: 1; min-width: 0; min-height: 44px; padding: 4px 0; border: 0; border-radius: 5px; background: transparent; text-align: left; font: inherit; color: var(--color-text); cursor: pointer; }
-.today-page .home-personal-open .personal-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 0 0 3px; font-size: 15px; line-height: 1.7; }
+.today-page .personal-today .home-personal-item { display: block; margin: 8px 0 0; padding: 12px 14px 0; border: 1px solid var(--color-border); border-radius: 12px; background: var(--color-surface); }
+.today-page .personal-today .home-personal-item + .home-personal-item { margin-top: 10px; }
+.home-personal-date { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; color: var(--color-text-secondary); font-size: 12px; line-height: 1.7; }
+.home-personal-state { color: var(--color-text); }
+.today-page .home-personal-open { display: grid; grid-template-columns: 70px minmax(0,1fr); gap: 12px; width: 100%; min-width: 0; min-height: 44px; margin: 8px 0; padding: 4px 0; border: 0; border-radius: 5px; background: transparent; text-align: left; font: inherit; color: var(--color-text); cursor: pointer; }
+.home-personal-time { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; min-width: 0; padding-right: 10px; border-right: 1px solid var(--color-border-light); }
+.home-personal-time > span, .home-personal-time > small { font-size: 12px; line-height: 1.7; color: var(--color-text-secondary); }
+.home-personal-time > strong { font-size: 22px; line-height: 1.5; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.03em; white-space: nowrap; }
+.home-personal-content { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.today-page .home-personal-open .personal-text { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin: 0; font-size: 16px; line-height: 1.6; font-weight: 600; white-space: normal; }
+.home-personal-fact { display: flex; align-items: baseline; gap: 8px; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+.home-personal-fact > :first-child { flex: 0 0 2em; color: var(--color-text-secondary); font-size: 12px; }
+.home-personal-fact > :last-child { min-width: 0; font-weight: 400; }
+.home-personal-fact > span:last-child { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+.home-personal-fact > strong:last-child { font-weight: 600; }
+.home-personal-footer { display: flex; justify-content: space-between; align-items: center; gap: 12px; border-top: 1px solid var(--color-border-light); }
+.home-personal-detail { min-height: 44px; min-width: 44px; padding: 6px 0; border: 0; background: transparent; color: var(--color-text-secondary); font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.home-personal-detail:hover { color: var(--color-primary-dark); }
 .today-page .home-personal-open .personal-meta { display: block; overflow-wrap: anywhere; font-size: 12px; line-height: 1.7; }
 .today-page .home-personal-open .personal-meta.is-overdue { color: var(--color-text); font-weight: 600; }
 .today-page .home-personal-complete { flex-shrink: 0; min-width: 44px; min-height: 44px; padding: 8px; border: 0; border-radius: 8px; background: transparent; color: var(--color-primary-dark); font: inherit; font-size: 13px; cursor: pointer; }

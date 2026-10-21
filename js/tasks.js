@@ -1,6 +1,6 @@
-import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261021-5';
-import { getTodayStr } from './time.js?v=20261021-5';
-import { setupCaptureAI } from './capture-ai.js?v=20261021-5';
+import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems } from './tasks-store.js?v=20261021-6';
+import { getTodayStr } from './time.js?v=20261021-6';
+import { setupCaptureAI } from './capture-ai.js?v=20261021-6';
 
 let context = null;
 let editingId = '';
@@ -31,11 +31,13 @@ export function setupPersonalItems(state, dm, rerender, closeCourse) {
         <textarea id="capture-text" name="text" rows="4" maxlength="5000" required placeholder="例如：英语演讲稿下周交，具体日期再确认"></textarea>
         <label for="capture-course">关联课程</label><select id="capture-course" name="courseName"></select>
         <details id="capture-extra"><summary>补充日期、类别或来源 <span>可选</span></summary>
+          <label>事项名称（可选）<input id="capture-summary" name="title" maxlength="300" placeholder="AI识别后自动填写，也可以自己改"></label>
           <div class="capture-fields">
             <label>类别<select id="capture-kind" name="kind">${Object.entries(KINDS).map(([key, value]) => `<option value="${key}">${value}</option>`).join('')}</select></label>
             <label>来源<select id="capture-source" name="source">${Object.entries(SOURCES).map(([key, value]) => `<option value="${key}">${value}</option>`).join('')}</select></label>
             <label>日期（截止或要记得的日期）<input type="date" id="capture-date" name="dueDate" min="2000-01-01" max="2100-12-31"></label>
             <label>具体时间（截止 / 提醒）<input type="time" id="capture-time" name="dueTime"></label>
+            <label>这个时刻表示<select id="capture-time-role" name="timeRole"><option value="">未指定</option><option value="start">开始时间</option><option value="deadline">截止时间</option></select></label>
             <label>相关区间开始<input type="time" id="capture-window-start" name="windowStart"></label>
             <label>相关区间结束<input type="time" id="capture-window-end" name="windowEnd"></label>
             <label>地点<input id="capture-location" name="location" maxlength="300"></label>
@@ -64,7 +66,7 @@ export function setupPersonalItems(state, dm, rerender, closeCourse) {
     try {
       saveItem({
         ...dialog.captureScope,
-        text: form.get('text').trim(), courseName: form.get('courseName'),
+        text: form.get('text').trim(), title:form.get('title').trim(),timeRole:form.get('timeRole'),courseName: form.get('courseName'),
         kind: form.get('kind'), source: form.get('source'), dueDate: form.get('dueDate'), dueTime: form.get('dueTime') || '',
         needsConfirmation: form.has('needsConfirmation'), nextStep: form.get('nextStep').trim(),
         location: form.get('location').trim(), timeContext: form.get('timeContext').trim(), referenceAt: dialog.captureReferenceAt || '',
@@ -98,6 +100,8 @@ export function openCapture({ courseName = '', item = null } = {}) {
   select.value = selected;
   document.getElementById('capture-title').textContent = item ? '补充这条事项' : '记一下';
   document.getElementById('capture-text').value = item?.text || '';
+  document.getElementById('capture-summary').value = item?.title || '';
+  document.getElementById('capture-time-role').value = item?.timeRole || '';
   document.getElementById('capture-kind').value = item?.kind || 'task';
   document.getElementById('capture-source').value = item?.source || (selected ? 'oral' : 'other');
   document.getElementById('capture-date').value = item?.dueDate || '';
@@ -123,7 +127,7 @@ function itemCard(item, today, compact = false) {
   return `<article class="personal-item ${item.completedAt ? 'is-complete' : ''}" data-personal-id="${esc(item.id)}">
     <div class="personal-item-main">
       <div class="personal-tags"><span>${esc(KINDS[item.kind])}</span>${item.courseName ? `<span>${esc(item.courseName)}</span>` : ''}</div>
-      <p class="personal-text">${esc(item.text)}</p>
+      ${item.title?`<h2 class="personal-title">${esc(item.title)}</h2><details class="personal-source"><summary>原通知</summary><p class="personal-text">${esc(item.text)}</p></details>`:`<p class="personal-text">${esc(item.text)}</p>`}
       ${item.location || item.timeContext ? `<p class="daily-small">${esc([item.location, item.timeContext].filter(Boolean).join(' · '))}</p>` : ''}
       <div class="personal-meta"><span class="${overdue ? 'is-overdue' : ''}">${overdue ? '已过所设时间 · ' : ''}${esc(dateLabel(item, today))}</span>${item.needsConfirmation && item.dueDate ? '<span>通知待核对</span>' : ''}<span>${esc(SOURCES[item.source])}</span></div>
       ${item.nextStep ? `<p class="personal-next">下一步：${esc(item.nextStep)}</p>` : ''}
@@ -156,6 +160,27 @@ function attachItemActions(container, refresh) {
   });
 }
 
+function homeItemCard(item,today,tomorrow) {
+  const title=item.title||item.text;
+  const date=!item.dueDate?'日期未定':item.dueDate===today?'今天':item.dueDate===tomorrow?'明天':`${Number(item.dueDate.slice(5,7))}月${Number(item.dueDate.slice(8))}日${item.dueDate.slice(0,4)!==today.slice(0,4)?' · '+item.dueDate.slice(0,4):''}`;
+  const clock=item.dueTime||item.windowStart||'';
+  const role=item.timeRole==='deadline'?'截止':item.timeRole==='start'?'开始':'时间';
+  const end=item.windowEnd&&clock===item.windowStart?item.windowEnd:'';
+  const elapsed=isOverdue(item,today);
+  return `<article class="personal-item home-personal-item" data-personal-id="${esc(item.id)}">
+    <div class="home-personal-date"><span>${esc(date)}</span>${item.needsConfirmation?'<span class="home-personal-state">有待确认项</span>':elapsed?`<span class="home-personal-state">${item.timeRole==='deadline'?'已过截止':item.dueTime?'已到所设时间':'已过日期'}</span>`:''}</div>
+    <button type="button" class="home-personal-open" data-item-action="edit">
+      <span class="home-personal-time"><span>${role}</span><strong>${esc(clock||'未定时')}</strong>${end?`<small>— ${esc(end)}</small>`:''}</span>
+      <span class="home-personal-content"><strong class="personal-text">${esc(title)}</strong>
+        ${item.location?`<span class="home-personal-fact"><span>地点</span><strong>${esc(item.location)}</strong></span>`:''}
+        ${item.nextStep?`<span class="home-personal-fact"><span>准备</span><span>${esc(item.nextStep)}</span></span>`:''}
+        ${item.courseName?`<span class="personal-meta">${esc(item.courseName)}</span>`:''}
+      </span>
+    </button>
+    <div class="home-personal-footer"><button type="button" class="home-personal-detail" data-item-action="edit" aria-label="查看原通知与详情：${esc(title)}">原通知与详情 <span aria-hidden="true">→</span></button><button type="button" class="home-personal-complete" data-item-action="complete" aria-label="完成：${esc(title)}">完成</button></div>
+  </article>`;
+}
+
 export function mountTodayItems(container, state, dm) {
   const block = document.createElement('section');
   block.className = 'personal-today';
@@ -174,7 +199,7 @@ export function mountTodayItems(container, state, dm) {
   const rank = item => !item.needsConfirmation && item.dueDate && item.dueDate <= today ? 0 : !item.needsConfirmation && item.dueDate === tomorrowStr ? 1 : important.includes(item) ? 2 : 3;
   const shown = [...items].sort((a, b) => rank(a) - rank(b)).slice(0, 2);
   block.innerHTML = `<div class="personal-section-heading"><h2>要记得</h2><button type="button" class="btn btn-primary" data-today-capture>＋ 记一句</button></div>
-    ${shown.length ? shown.map(item => `<article class="personal-item home-personal-item" data-personal-id="${esc(item.id)}"><button type="button" class="home-personal-open" data-item-action="edit" aria-label="查看并补充：${esc(item.text)}"><span class="personal-text">${esc(item.text)}</span><span class="personal-meta${isOverdue(item, today) ? ' is-overdue' : ''}">${isOverdue(item, today) ? '已过所设时间 · ' : ''}${esc(dateLabel(item, today))}${item.needsConfirmation && item.dueDate ? ' · 通知待核对' : ''}${item.courseName ? ` · ${esc(item.courseName)}` : ''}</span></button><button type="button" class="home-personal-complete" data-item-action="complete" aria-label="完成：${esc(item.text)}">完成</button></article>`).join('') : '<p class="personal-muted personal-home-empty">还没有记录的事项，先记一句就好。</p>'}
+    ${shown.length ? shown.map(item => homeItemCard(item,today,tomorrowStr)).join('') : '<p class="personal-muted personal-home-empty">还没有记录的事项，先记一句就好。</p>'}
     ${items.length ? `<a class="personal-view-all" href="#/tasks">全部${items.length}条未完成事项 →</a>` : ''}`;
   block.querySelector('[data-today-capture]')?.addEventListener('click', () => openCapture());
   attachItemActions(block, () => context.rerender());
@@ -216,7 +241,7 @@ export function renderTasks(container, state, dm) {
   </div>`;
   function showList() {
     const filtered = sortItems(all.filter(item => (activeTab === 'trash' ? !!item.deletedAt : !item.deletedAt && (activeTab === 'done' ? !!item.completedAt : !item.completedAt)) &&
-      (!courseFilter || item.courseName === courseFilter) && (!search || `${item.text} ${item.nextStep} ${item.courseName}`.toLowerCase().includes(search.toLowerCase()))));
+      (!courseFilter || item.courseName === courseFilter) && (!search || `${item.title} ${item.text} ${item.location} ${item.nextStep} ${item.courseName}`.toLowerCase().includes(search.toLowerCase()))));
     const list = container.querySelector('#personal-list');
     list.innerHTML = filtered.length ? filtered.map(item => itemCard(item, today)).join('') : `<div class="personal-empty"><h2>${search || courseFilter ? '没有找到匹配的事项' : activeTab === 'done' ? '完成的事情会留在这里' : activeTab === 'trash' ? '回收站是空的' : '先记住一件小事'}</h2><p>${activeTab === 'open' && !search && !courseFilter ? '只写一句话就能保存，日期和课程都可以以后补。' : '可以调整筛选，或到其他状态中查看。'}</p></div>`;
   }
