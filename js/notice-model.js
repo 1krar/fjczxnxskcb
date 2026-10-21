@@ -1,5 +1,5 @@
-import { getSectionTime } from './time.js?v=20261021-4';
-import { NOTICE_VERSION, NOTICE_FIELDS, validateNoticeExtraction } from './notice-form.js?v=20261021-4';
+import { getSectionTime } from './time.js?v=20261021-5';
+import { NOTICE_VERSION, NOTICE_FIELDS, normalizeNoticeExtraction } from './notice-form.js?v=20261021-5';
 
 export function seasonForDate(date,courses,rule) {
   const actual=courses.find(course=>course.date===date&&course.season);if(actual)return actual.season;
@@ -28,8 +28,8 @@ export function resolveNoticeItems(rawItems,{text,referenceAt,courses,sectionTim
   const reference=new Date(referenceAt);if(!Number.isFinite(+reference))throw new Error('参考日期无效');
   const knownCourses=[...new Set(courses.map(course=>course.courseName))];
   if(selectedCourseName&&!knownCourses.includes(selectedCourseName))knownCourses.push(selectedCourseName);
-  validateNoticeExtraction({schemaVersion:NOTICE_VERSION,items:rawItems},text,{knownCourses,selectedCourse:selectedCourseName});
-  return rawItems.map((raw,index)=>{
+  const normalized=normalizeNoticeExtraction({schemaVersion:NOTICE_VERSION,items:rawItems},text,{knownCourses});
+  return normalized.items.map((raw,index)=>{
     const fields=raw.fields, value=key=>fields[key].value??'';
     const issues=[],basis=[],fieldDetails=[];
     for(const [key,field]of Object.entries(NOTICE_FIELDS)){

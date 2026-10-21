@@ -1,5 +1,5 @@
-import { getCourseStartEnd, getCourseSegments, getCoursePhase, localDate } from './time.js?v=20261021-4';
-import { getDayWindow } from './day-plan.js?v=20261021-4';
+import { getCourseStartEnd, getCourseSegments, getCoursePhase, localDate } from './time.js?v=20261021-5';
+import { getDayWindow } from './day-plan.js?v=20261021-5';
 
 class DataManager {
   constructor() {

@@ -36,7 +36,10 @@ response=await call({action:'notice',text:'明天晚上八点交作业'},{},{now
 assert.equal(response.status,200);assert.equal((await response.json()).result.items[0].fields.dueTime.value,'20:00');
 const sent=JSON.parse(lastBody.messages[1].content);assert.equal(sent.reference.date,'2026-10-21');assert.equal(sent.reference.timeZone,'Asia/Shanghai');assert.match(lastBody.messages[0].content,/需要填写的字段/);
 output={schemaVersion:2,items:[{...raw,fields:{...raw.fields,location:{value:'捏造的教学楼',status:'stated',evidence:['不存在的原文'],note:null}}}]};
-response=await call({action:'notice',text:'明天晚上八点交作业'},{},{now:new Date('2026-10-21T01:01:01Z')});assert.equal(response.status,502,'hallucinated evidence is rejected');
+response=await call({action:'notice',text:'明天晚上八点交作业'},{},{now:new Date('2026-10-21T01:01:01Z')});assert.equal(response.status,200,'auxiliary quote mismatch cannot discard a usable deadline');
+const tolerated=(await response.json()).result.items[0];assert.equal(tolerated.fields.dueTime.value,'20:00');
+assert.deepEqual(tolerated.fields.location.evidence,[],'unmatched explanation is never displayed as an exact quote');
+assert.equal(tolerated.fields.location.status,'interpreted');
 output={sentence:'今天下午课表留白，可以留一点时间给喜欢的小事。',basisIds:['afternoon']};
 response=await call({action:'daily',facts:[{id:'afternoon',text:'下午课表无课，其他私人安排未知。'}]},{},{now:new Date('2026-10-21T01:02:00Z')});assert.equal(response.status,200);
 output={sentence:'请核对补充你的资料再来。',basisIds:['afternoon']};
@@ -81,3 +84,15 @@ for(let i=0;i<30;i++)assert.equal((await pinCall('999999',`192.0.2.${i+10}`,new 
 assert.equal((await pinCall('012345','192.0.2.250',new Date(+baseTime+30*60000))).status,429,'global limit bounds attempts across different IPs');
 assert.equal((await pinCall('012345','192.0.2.250',new Date(+baseTime+45*60000))).status,200);
 console.log('Six-digit PIN: leading zeros, repeat success, IP/global lockouts, expiry, salted identifiers and database failure passed.');
+
+output={items:[{kind:'activity',title:'社团说明会',relation:'before_next_class',relationEvidence:[],fields:{
+  startTime:{value:'１５：４０',status:'missing'},location:'教学楼甲',endTime:{value:'25:40'},nextStep:{value:'提前到场',evidence:['请大家早一点来']},
+}}]};
+response=await call({action:'notice',text:'下午社团说明会3点40开始，地点教学楼甲，请提前到场'},{},{now:new Date('2026-10-22T01:01:00Z')});
+assert.equal(response.status,200,'missing relation evidence and malformed auxiliary fields cannot reject the notice');
+const recovered=(await response.json()).result;
+assert.equal(recovered.schemaVersion,2);assert.equal(recovered.items[0].relation,'unspecified');
+assert.equal(recovered.items[0].fields.startTime.value,'15:40');assert.equal(recovered.items[0].fields.location.value,'教学楼甲');
+assert.equal(recovered.items[0].fields.endTime.value,null);assert.equal(recovered.items[0].fields.endTime.status,'uncertain');
+assert.equal(recovered.items[0].fields.date.value,null);assert.equal(recovered.items[0].fields.nextStep.value,'提前到场');
+console.log('通知容错网关：缺失引用、漏字段、状态不一致和坏辅助时刻仍返回可用的时间地点。');

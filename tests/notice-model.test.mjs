@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { NOTICE_FIELDS,NOTICE_SCHEMA,NOTICE_PROMPT,cleanNoticeText,validateNoticeExtraction } from '../js/notice-form.js';
+import { NOTICE_FIELDS,NOTICE_SCHEMA,NOTICE_PROMPT,cleanNoticeText,normalizeNoticeExtraction } from '../js/notice-form.js';
 import { resolveNoticeItems,describeTimeContext,noticeRecordFields } from '../js/notice-model.js';
 import { getCourseSegments } from '../js/time.js';
 process.env.TZ='Asia/Shanghai';
@@ -24,10 +24,20 @@ assert.equal(result.fieldDetails.find(field=>field.key==='startTime').status,'in
 let fields=noticeRecordFields(result);assert.equal(fields.dueTime,'15:40','known clock applies even without a date');
 assert.equal(fields.dueDate,'');assert.equal(fields.nextStep,'提前到场');
 assert.doesNotMatch(cleanNoticeText(text),/\u0014/);
-assert.throws(()=>validateNoticeExtraction({schemaVersion:2,items:[item({location:cell('另一个地点',['不存在的原文'])})]},text),/依据/);
-assert.throws(()=>validateNoticeExtraction({schemaVersion:2,items:[item({startTime:cell('25:00',['3点40'])})]},text),/格式/);
-assert.throws(()=>validateNoticeExtraction({schemaVersion:2,items:[item({date:cell('2026-02-30',['下午'])})]},text),/格式/);
-assert.throws(()=>validateNoticeExtraction({schemaVersion:2,items:[item({startTime:cell('15:40',[],'missing')})]},text));
+let normalized=normalizeNoticeExtraction({schemaVersion:2,items:[item({location:cell('整理后的地点',['不是原文的解释'])})]},text);
+assert.deepEqual(normalized.items[0].fields.location.evidence,[],'paraphrases must not be displayed as source quotes');
+assert.equal(normalized.items[0].fields.location.value,'整理后的地点','AI proposals do not require verbatim values');
+assert.equal(normalized.items[0].fields.location.status,'interpreted');
+normalized=normalizeNoticeExtraction({items:[{kind:'activity',relation:'before_next_class',relationEvidence:[],fields:{startTime:{value:'１５：４０',status:'missing'},location:'教学楼甲'}}]},text);
+assert.equal(normalized.items[0].fields.startTime.value,'15:40');assert.equal(normalized.items[0].fields.location.value,'教学楼甲');
+assert.equal(normalized.items[0].relation,'unspecified','arrival preparation without a course must not invent a course relation');
+assert.deepEqual(normalizeNoticeExtraction(normalized,text),normalized,'server/client normalization is stable');
+const partial=item({startTime:cell('15:40',[]),endTime:cell('25:00',[]),date:cell('2026-02-30',[]),location:cell('教学楼甲',[])},{relation:'before_next_class',relationEvidence:[]});
+result=resolve([partial],text)[0];assert.equal(result.startTime,'15:40');assert.equal(result.location,'教学楼甲');
+assert.equal(result.endTime,'');assert.equal(result.date,'');assert.equal(result.needsConfirmation,true,'only unusable fields are flagged');
+assert.equal(resolve([{kind:'invalid'},partial],text).length,2,'partial and independent items do not discard one another');
+const withoutQuotes=item({courseName:cell('大学英语',[],'interpreted')},{kind:'task',relation:'before_next_class',relationEvidence:[]});
+assert.equal(resolve([withoutQuotes],'下次英语课前交报告')[0].dueTime,'08:00','AI course relations work without mandatory quote metadata');
 text='3点40开说明会';raw=item({startTime:cell(null,['3点40'],'uncertain','整条通知没有上午或下午依据')});result=resolve([raw],text)[0];
 assert.equal(result.startTime,'');assert.equal(result.needsConfirmation,true);assert.match(result.issues.join(''),/上午或下午/);
 text='明天上午8点交报告，下午3点40开说明会';
@@ -41,4 +51,4 @@ result=resolve([raw],text)[0];assert.equal(result.startTime,'09:40');assert.equa
 assert.match(describeTimeContext('2026-10-22','08:50',[course],sectionTimes,options.seasonRule),/课间/);
 text='明天第三四节完成练习';raw=item({date:cell('2026-10-22',['明天'],'interpreted','按参考日换算'),sectionStart:cell(3,['第三四节']),sectionEnd:cell(4,['第三四节'])},{kind:'task',title:'完成练习'});
 fields=noticeRecordFields(resolve([raw],text)[0]);assert.equal(fields.windowStart,'10:00');assert.equal(fields.windowEnd,'11:40');assert.equal(fields.dueTime,'','related period never becomes a made-up submission deadline');
-console.log('AI填表：规范值与分散原文依据、缺失和歧义区分、无日期时刻保存、课程查询、小节查表、格式拒绝通过。此测试使用固定模型响应，不代表真实模型准确率。');
+console.log('AI填表：缺失引用、漏字段、状态矛盾、记法整理、局部保留、课程查询和无日期时刻保存通过。固定响应测试不代表真实模型准确率。');

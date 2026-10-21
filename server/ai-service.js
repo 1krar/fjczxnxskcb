@@ -1,6 +1,6 @@
 // Personal AI gateway. Provider credentials stay in Cloudflare bindings.
 import { validAccessToken } from '../js/ai-access.js';
-import { NOTICE_VERSION, NOTICE_FIELDS, NOTICE_SCHEMA, NOTICE_PROMPT, cleanNoticeText, validateNoticeExtraction } from '../js/notice-form.js';
+import { NOTICE_VERSION, NOTICE_FIELDS, NOTICE_SCHEMA, NOTICE_PROMPT, cleanNoticeText, normalizeNoticeExtraction } from '../js/notice-form.js';
 export { NOTICE_SCHEMA } from '../js/notice-form.js';
 export const MODEL = 'qwen3.8-flash';
 export const BASE_URL = 'https://dashscope.aliyuncs.com/compatible-mode/v1';
@@ -97,10 +97,6 @@ function upstreamURL(env) {
   if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash||!(url.hostname==='dashscope.aliyuncs.com'||/^[a-zA-Z0-9-]+\.cn-beijing\.maas\.aliyuncs\.com$/.test(url.hostname))||url.pathname.replace(/\/$/,'')!=='/compatible-mode/v1')throw new AIError('服务端北京地域接口配置有误',503,'configuration');
   return url.href.replace(/\/$/,'')+'/chat/completions';
 }
-function noticeResult(result,input) {
-  try{return validateNoticeExtraction(result,input.text,input);}
-  catch(error){throw new AIError(`识别结果未通过校验：${error.message}，原话已保留`,502,'invalid_model_output');}
-}
 async function callModel(env,messages,schema,name,temperature,fetcher) {
   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),20000);
   try{
@@ -109,7 +105,8 @@ async function callModel(env,messages,schema,name,temperature,fetcher) {
     if(!upstream.ok){await upstream.body?.cancel();throw new AIError(upstream.status===401||upstream.status===403?'百炼密钥或模型权限未通过，请检查北京地域配置':upstream.status===429?'百炼暂时限流，稍后再试':'模型服务暂时不可用，原话已保留',502,'upstream_error');}
     const payload=await upstream.json();const choice=payload.choices?.[0];
     if(choice?.finish_reason!=='stop'||typeof choice.message?.content!=='string'||choice.message.content.length>48000)throw new AIError('识别响应不完整，未写入记录',502,'invalid_model_output');
-    try{return JSON.parse(choice.message.content);}catch{throw new AIError('模型输出无法读取，原话已保留',502,'invalid_model_output');}
+    const content=choice.message.content.trim().replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+    try{return JSON.parse(content);}catch{throw new AIError('模型输出暂时无法读取，原话已保留',502,'invalid_model_output');}
   }catch(error){if(error instanceof AIError)throw error;throw new AIError(error.name==='AbortError'?'识别等待超时，可以先保存原话':'暂时无法连接模型，可以先保存原话',502,'upstream_error');}
   finally{clearTimeout(timer);}
 }
@@ -142,8 +139,8 @@ export async function handleAI(request,env,{fetcher=fetch,now=new Date()}={}) {
     }else throw new AIError('不支持的AI功能');
     const dayLimit=Math.max(1,Math.min(200,Math.floor(Number(env.AI_DAILY_LIMIT)||20)));
     let quota;try{quota=await consumeQuota(env.AI_DB,owner,now,dayLimit);}catch(error){if(error instanceof AIError)throw error;throw new AIError('用量控制暂不可用，未调用模型',503,'quota_unavailable');}
-    const result=await callModel(env,messages,schema,name,temperature,fetcher);
-    if(body.action==='notice')noticeResult(result,input);
+    let result=await callModel(env,messages,schema,name,temperature,fetcher);
+    if(body.action==='notice')result=normalizeNoticeExtraction(result,input.text,input);
     if(body.action==='daily'){
       if(typeof result?.sentence!=='string'||result.sentence.length<5||result.sentence.length>160||!Array.isArray(result.basisIds)||!result.basisIds.length||result.basisIds.some(id=>!input.some(fact=>fact.id===id))||/补充.{0,8}(信息|资料)|核对|录入|你(肯定|一定|现在就在)|会下雨|天气预报/.test(result.sentence))throw new AIError('本句不符合已知依据，已保留本地建议',502,'invalid_model_output');
     }
