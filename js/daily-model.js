@@ -1,4 +1,22 @@
-import { CATEGORIES } from './daily-store.js?v=20261021-8';
+import { CATEGORIES } from './daily-store.js?v=20261021-9';
+import { getTodayState } from './day-plan.js?v=20261021-9';
+
+export const shortAdvice = value => typeof value === 'string' && [...value.trim()].length >= 5 && [...value.trim()].length <= 48 && !/[\r\n]/.test(value.trim());
+const shortLabel = (value, length = 10) => {
+  const chars = [...String(value || '').replace(/\s+/g, ' ').trim()];
+  return chars.slice(0, length).join('') + (chars.length > length ? '…' : '');
+};
+const itemAt = item => item.dueDate ? +new Date(`${item.dueDate}T${item.dueTime || '23:59'}:00`) : Infinity;
+
+// Select by relevance before bounding the context; manual homepage order is unrelated.
+export function adviceItems(items, now) {
+  return items.filter(item => !item.completedAt && !item.deletedAt &&
+    (!item.dueDate || itemAt(item) >= +now - 86400000 && itemAt(item) <= +now + 7 * 86400000))
+    .sort((a, b) => {
+      const rank = item => !item.dueDate ? 4 : item.needsConfirmation ? 3 : itemAt(item) < +now ? 2 : 0;
+      return rank(a) - rank(b) || itemAt(a) - itemAt(b) || String(a.id).localeCompare(String(b.id));
+    });
+}
 
 export function localDate(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -85,23 +103,24 @@ export function buildAdvice({ now, courses, tomorrowCourses, items, data, future
   const tomorrow = nextDate(today);
   const pool = [];
   const add = (id, priority, lines, basis, href) => pool.push({ id, priority, lines, basis, href });
-  const confirmed = items.filter(item => !item.completedAt && !item.deletedAt && !item.needsConfirmation && item.dueDate && ['task', 'exam', 'bring', 'change'].includes(item.kind));
+  const confirmed = adviceItems(items, now).filter(item => !item.needsConfirmation && item.dueDate);
   for (const item of confirmed) {
     const due = item.dueTime ? new Date(`${item.dueDate}T${item.dueTime}:00`) : new Date(`${nextDate(item.dueDate)}T00:00:00`);
     const hours = (due - now) / 3600000;
-    if (hours > 48 || hours < -24) continue;
+    if (hours > 48 && item.kind !== 'exam' && !item.nextStep || hours < 0) continue;
     const when = item.dueDate === today ? '今天' : item.dueDate === tomorrow ? '明天' : item.dueDate;
-    const shortText = item.text.length > 50 ? item.text.slice(0, 50) + '…' : item.text;
-    const fact = `「${shortText}」${hours < 0 ? '所设时间已过' : `记在${when}${item.dueTime || ''}`}`;
-    add(`item:${item.id}:${hours < 0 ? 'past' : 'future'}`, hours < 24 ? 100 : 85,
-      hours < 0 ? [`${fact}，可以先核对一下是否还需要处理。`, `${fact}。已经完成的话，顺手标记一下就好。`] :
-        [`${fact}。${item.nextStep ? `可以先${item.nextStep}。` : '先看看要求，挑一个容易开始的小步骤就好。'}`, `${fact}，给它留一点准备时间，之后会从容一些。`],
+    const title = shortLabel(item.title || item.text, 9);
+    const time = `${when}${item.dueTime || ''}`;
+    const role = item.timeRole === 'start' ? '开始' : item.timeRole === 'deadline' ? '截止' : '有记录';
+    const fact = `${title}，${time}${item.dueTime ? role : '记着这件事'}`;
+    add(`item:${item.id}:future`, hours < 24 ? 100 : hours <= 48 ? 85 : 65,
+      [`${fact}，提前留点时间。`, `${time}${item.dueTime ? role : ''}：${title}，从一小步开始也好。`],
       `来自你记录并确认的事项；${item.dueDate}${item.dueTime ? ' ' + item.dueTime : '，未设具体时刻'}。`, '#/tasks');
   }
   for (const [date, dayCourses, label, priority] of [[today, courses.filter(course => course.endDateTime > now), '今天接下来的', 98], [tomorrow, tomorrowCourses, '明天', 95]]) {
     const fit = outfitRecommendation(data, date, dayCourses, futureCourses);
     if (data.garments.some(item => !item.deletedAt && isShorts(item)) && fit.requireShorts && !fit.readyShorts) add(`shortage:${date}`, priority,
-      [`${label}有体育课，已录入的短裤目前都不在可穿状态。可以为洗晒留一点时间。`, `${label}体育课会用到短裤，按已录入的洗晒状态，提前准备会从容一点。`],
+      [`${label}有体育课，给短裤洗晒留点时间。`, '体育课要用的短裤，洗晒轮换可以先安排。'],
       '依据课表、你设置的短裤要求与当前衣物状态；晾晒中的衣服未自动算作可穿。', '#/wardrobe');
   }
   const upcoming = courses.filter(course => course.startDateTime > now);
@@ -113,30 +132,30 @@ export function buildAdvice({ now, courses, tomorrowCourses, items, data, future
     const previous = index > 0 ? focusCourses[index - 1] : null;
     const departure = departurePlan(focusCourse, data.profile, previous);
     if (departure) {
-      const breakfastHint = !previous && focusCourse.startDateTime.getHours() < 11 && data.profile.breakfastMode !== 'prepared' && !data.profile.breakfastBuyMinutes ? '买早餐和排队记得再留一点时间。' : '';
       add(`route:${focusCourse.date}:${focusCourse.startTime}`, tomorrowFocus ? 80 : 90,
-        [`${tomorrowFocus ? '明天' : '今天'}${focusCourse.startTime}要去${focusCourse.location}；从${data.profile.baseArea}出发的话，先按${departure.clock}左右安排出门。${breakfastHint}`, `去${focusCourse.location}记得多留一点路上的时间。从${data.profile.baseArea}出发，暂按${departure.clock}左右准备好。${breakfastHint}`],
+        [`${tomorrowFocus ? '明天' : '今天'}跨区上课，按常用路线约${departure.clock}出发。`, `去${shortLabel(focusCourse.location, 8)}，约${departure.clock}出发更从容。`],
         `${departure.text} ${departure.basis}`, '#/schedule');
     }
     else if (tomorrowFocus && focusCourse.startDateTime?.getHours() < 10) add('early:tomorrow', 65,
-      [`明天${focusCourse.startTime}有${focusCourse.courseName}，今晚先收好要带的东西，明早会从容一点。`, `明早首课是${focusCourse.courseName}，${focusCourse.startTime}开始。睡前可以顺手核对一下课程和物品。`], '来自明日首课，未推算你的起床或入睡时刻。', '#/schedule');
+      [`明早${focusCourse.startTime}有课，今晚可以先收好随身物品。`, `明早首课${focusCourse.startTime}，给早餐留点时间。`], '来自明日首课，未推算你的起床或入睡时刻。', '#/schedule');
   }
   const dirty = data.garments.filter(item => !item.deletedAt && item.state === 'dirty');
   if (dirty.length) {
     const elapsedDays = data.lastLaundryAt ? (new Date(today) - new Date(localDate(new Date(data.lastLaundryAt)))) / 86400000 : null;
     const due = data.profile.laundryEveryDays > 0 && elapsedDays !== null && elapsedDays >= data.profile.laundryEveryDays;
-    add('laundry', due ? 70 : 45, [`衣橱里有${dirty.length}件待洗。${due ? '按你设置的间隔，可以考虑安排这一批洗衣了。' : '方便的时候可以攒一批洗，运动要用的衣服先留意一下。'}`, `有${dirty.length}件衣物在待洗区，找个方便的时间一起处理吧。`], '来自你标记的衣物状态，洗衣间隔仅作提示。', '#/wardrobe');
+    add('laundry', due ? 70 : 45, [`有${dirty.length}件衣物记在待洗区，方便时一起洗吧。`, '洗衣可以攒一批，给运动衣物留点轮换时间。'], '来自你标记的衣物状态，洗衣间隔仅作提示。', '#/wardrobe');
   }
   const drying = data.garments.filter(item => !item.deletedAt && item.state === 'drying' && item.expectedDate && item.expectedDate <= today);
-  if (drying.length) add('drying', 50, [`有${drying.length}件衣服到了预计收衣日，方便时看看干了没有，再一起收好。`, '可以顺手检查一下晾着的衣服，确认干了再标记为可穿就好。'], '预计收衣日期来自你的记录，不代表实际已干。', '#/wardrobe');
+  if (drying.length) add('drying', 50, ['晾着的衣服到了预计收衣日，干了就可以收好。', '方便时看看衣服干了没有，再收进衣橱。'], '预计收衣日期来自你的记录，不代表实际已干。', '#/wardrobe');
   const hasAfternoon = courses.some(course => course.startDateTime && course.endDateTime && course.startDateTime.getHours() < 18 && (course.endDateTime.getHours() > 12 || course.endDateTime.getHours() === 12 && course.endDateTime.getMinutes() > 0));
   const confirmedActivities = activities.filter(item => item.status === 'confirmed');
   const afternoonActivity = confirmedActivities.some(item => item.date <= today && (item.endDate || item.date) >= today && (item.date < today || item.startTime < '18:00') && ((item.endDate || item.date) > today || item.endTime > '12:00'));
-  if (!hasAfternoon && !afternoonActivity && now.getHours() < 18) add('afternoon', 30, ['课表上今天下午没有课程。若没别的安排，可以约朋友走走，也可以安心休息。', '今天下午课表留了白，想出去玩一会儿或留给自己都可以。'], '当前课表下午无课，且未记录已确认的下午活动；不代表没有其他私人安排。', '#/agenda');
+  const afternoonItem = items.some(item => !item.completedAt && !item.deletedAt && item.dueDate === today && (item.timeRole === 'deadline' || item.kind === 'task' || !item.dueTime || item.dueTime >= '12:00' && item.dueTime <= '18:00'));
+  if (!hasAfternoon && !afternoonActivity && !afternoonItem && now.getHours() < 18) add('afternoon', 30, ['下午课表留白，若无别的安排，可以出去走走。', '下午课表无课，也可以留一点时间给自己。'], '当前课表下午无课，且未记录下午事项；其他私人安排未知。', '#/agenda');
   const activity = confirmedActivities.find(item => item.date === today || item.date === tomorrow);
-  if (activity) add(`activity:${activity.id}`, 40, [`${activity.date === today ? '今天' : '明天'}还安排了「${activity.title}」，课程之外也有自己的小期待。`, `给「${activity.title}」留一点从容的时间，路上也不用太赶。`], `来自已确认活动：${activity.date} ${activity.startTime}—${activity.endTime}。`, '#/agenda');
+  if (activity) add(`activity:${activity.id}`, 40, [`${activity.date === today ? '今天' : '明天'}还有${shortLabel(activity.title)}，留点准备时间。`, `给${shortLabel(activity.title)}留点余地，路上不用太赶。`], `来自已确认活动：${activity.date} ${activity.startTime}—${activity.endTime}。`, '#/agenda');
   add('gentle', 10, ['空下来的片刻，可以听首喜欢的歌，让今天慢一点。', '休息也可以成为今天安排里很舒服的一部分。', '一天不用塞得满满的，给喜欢的小事留点位置。', '想做点什么时，可以从最轻松的一小步开始。'], '一般性的轻量建议，不推断你的情绪或未记录的安排。', '#/agenda');
-  return pool.sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id));
+  return pool.map(item => ({ ...item, lines:item.lines.filter(shortAdvice) })).filter(item => item.lines.length).sort((a, b) => b.priority - a.priority || a.id.localeCompare(b.id));
 }
 
 const CHOICE_KEY = 'course-dashboard-daily-choice-v1';
@@ -173,12 +192,20 @@ export function chooseAdvice(pool, scope, now, limit, refresh = false) {
 // Only this bounded summary is sent for daily prose, never the complete stores.
 export function dailyFacts({ now, courses, tomorrowCourses, items, activities = [] }) {
   const today = localDate(now), tomorrow = nextDate(today);
-  const facts = [{ id:'date', text:`今天是${today}；明天是${tomorrow}。` }];
+  const phase = getTodayState(courses, now);
+  const period = now.getHours() < 6 ? '夜间' : now.getHours() < 12 ? '上午' : now.getHours() < 18 ? '下午' : '晚上';
+  const focus = phase.currentCourse || phase.nextCourse;
+  const segment = phase.currentSegment;
+  const facts = [{ id:'date', text:`今天是${today}；明天是${tomorrow}。` },
+    { id:'clock', text:`请求时刻${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}；仅用于理解上下文，不在评论中复述当前时刻或倒计时。` },
+    { id:'context:v2', text:`现在是${period}，课程状态${phase.state}。${focus ? `当前或下一次课：${focus.courseName}，${focus.startTime}—${focus.endTime || ''}，${focus.location || '地点未记录'}。` : ''}${segment ? segment.kind === 'break' ? `目前在课间，${segment.endTime}继续第${segment.nextSection}小节。` : `当前第${segment.section}小节${segment.startTime}—${segment.endTime}。` : ''}`.slice(0,350) }];
   for (const [id, label, rows] of [['today','今天',courses],['tomorrow','明天',tomorrowCourses]]) {
     facts.push({ id:`courses:${id}`, text:`${label}课表有${rows.length}大节课。${rows.length ? `首课${rows[0].startTime}「${rows[0].courseName}」${rows[0].location || ''}。` : '未排课程，不代表没有私人安排。'}`.slice(0,350) });
-    if (!rows.some(course => course.startTime < '18:00' && course.endTime > '12:00')) facts.push({ id:`afternoon:${id}`, text:`${label}下午课表无课；个人活动另见已确认活动，未记录的安排未知。` });
+    if (!rows.some(course => course.startTime < '18:00' && course.endTime > '12:00')) facts.push({ id:`afternoon:${id}`, text:`${label}下午课表无课；仍需考虑要记得、已确认活动和准备事项，未记录的安排未知。` });
   }
-  items.filter(item => !item.completedAt && !item.deletedAt && !item.needsConfirmation && [today,tomorrow].includes(item.dueDate)).slice(0,3).forEach((item,index) => facts.push({ id:`item:${index}`, text:`用户记录事项：${item.text.slice(0,180)}。所设日期${item.dueDate}${item.dueTime ? ' '+item.dueTime : '，未设具体时刻'}；只知道尚未标记完成。` }));
-  activities.filter(item => item.status === 'confirmed' && [today,tomorrow].includes(item.date)).slice(0,3).forEach((item,index) => facts.push({ id:`activity:${index}`, text:`已确认参加：${item.title.slice(0,150)}，${item.date} ${item.startTime}—${item.endTime}，${item.location || '未设地点'}。` }));
+  // Reserve the remaining budget for the most relevant personal records before generic context.
+  const remembered = adviceItems(items, now).slice(0,3).map((item,index) => ({ id:`item:${index}`, text:`要记得：${(item.title || item.text).slice(0,80)}。${item.timeRole === 'start' ? '开始' : item.timeRole === 'deadline' ? '截止' : '所设时间（含义未指定）'}：${item.dueDate || '日期未定'} ${item.dueTime || '时刻未定'}。${item.dueDate && itemAt(item) < +now ? '所设时间已过；' : ''}${item.location ? `地点${item.location.slice(0,40)}；` : ''}${item.nextStep ? `用户准备动作${item.nextStep.slice(0,60)}；` : ''}${item.timeContext ? `相关区间${item.timeContext.slice(0,40)}；` : ''}${item.needsConfirmation ? '此记录标为待确认，不能把时间地点当成已核实；' : ''}仅知道尚未标记完成，不知道实际进度。`.slice(0,350) }));
+  const confirmed = activities.filter(item => item.status === 'confirmed' && [today,tomorrow].includes(item.date) && new Date(`${item.endDate || item.date}T${item.endTime || '23:59'}`) > now).sort((a,b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`)).slice(0,2).map((item,index) => ({ id:`activity:${index}`, text:`已确认参加：${item.title.slice(0,100)}，${item.date} ${item.startTime}—${item.endTime}，${item.location || '未设地点'}。`.slice(0,350) }));
+  facts.splice(3,0,...remembered,...confirmed);
   return facts.slice(0,12);
 }

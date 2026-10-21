@@ -1,8 +1,8 @@
-import { aiEnabled, callAI } from './ai-client.js?v=20261021-8';
-import { resolveNoticeItems, noticeRecordFields, resolvedTimeContext } from './notice-model.js?v=20261021-8';
-import { NOTICE_VERSION } from './notice-form.js?v=20261021-8';
-import { escapeText as esc } from './tasks-store.js?v=20261021-8';
-import { saveActivity } from './agenda-store.js?v=20261021-8';
+import { aiEnabled, callAI } from './ai-client.js?v=20261021-9';
+import { resolveNoticeItems, noticeRecordFields, resolvedTimeContext } from './notice-model.js?v=20261021-9';
+import { NOTICE_VERSION } from './notice-form.js?v=20261021-9';
+import { escapeText as esc } from './tasks-store.js?v=20261021-9';
+import { saveActivity } from './agenda-store.js?v=20261021-9';
 
 const clockInput = date => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}T${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`;
 export function setupCaptureAI(dialog, dm, rerender, notify) {

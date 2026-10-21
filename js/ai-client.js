@@ -1,4 +1,4 @@
-import { validAccessToken } from './ai-access.js?v=20261021-8';
+import { validAccessToken } from './ai-access.js?v=20261021-9';
 export const AI_KEY = 'course-dashboard-ai-v1';
 const TOKEN_KEY = 'course-dashboard-ai-access';
 const CACHE_KEY = 'course-dashboard-ai-daily-v1';
@@ -53,7 +53,8 @@ export async function callAI(action, fields = {}) {
 function readCache() {
   try { const value = JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); return value && typeof value === 'object' && !Array.isArray(value) ? value : {}; } catch { return {}; }
 }
-export function dailyIdentity(scope, date, facts) { return JSON.stringify([scope, date, facts]); }
+// Exact request time is useful to the model, but must not invalidate prose every minute.
+export function dailyIdentity(scope, date, facts) { return JSON.stringify([scope, date, facts.filter(fact => fact.id !== 'clock')]); }
 export function cachedDaily(key) {
   const entry = readCache().entry;
   return entry?.key === key && typeof entry.sentence === 'string' && Array.isArray(entry.basisIds) ? entry : null;

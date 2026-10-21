@@ -1,5 +1,5 @@
-import { formatDate } from './time.js?v=20261021-8';
-import { rerenderCurrentPage, selectClass } from './app.js?v=20261021-8';
+import { formatDate } from './time.js?v=20261021-9';
+import { rerenderCurrentPage, selectClass } from './app.js?v=20261021-9';
 import {
   compareCourses,
   getSavedUpdate,
@@ -8,7 +8,7 @@ import {
   removeClassUpdate,
   saveClassUpdate,
   validateImportedData,
-} from './data-update.js?v=20261021-8';
+} from './data-update.js?v=20261021-9';
 
 let updateNotice = '';
 
