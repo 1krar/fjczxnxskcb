@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import { getRemainingPeriods, getTodayState } from '../js/day-plan.js';
+const at=time=>new Date(`2026-10-22T${time}:00`);
+const part=(kind,start,end,section)=>({kind,start:at(start),end:at(end),startTime:start,endTime:end,section,nextSection:2});
+const first={courseName:'示例课程',date:'2026-10-22',startTime:'08:00',endTime:'09:40',startDateTime:at('08:00'),endDateTime:at('09:40'),startSection:1,endSection:2,segments:[part('lesson','08:00','08:45',1),part('break','08:45','08:55'),part('lesson','08:55','09:40',2)]};
+let value=getRemainingPeriods([first],at('07:50'));assert.equal(value.lessons.length,2);assert.equal(value.rows.length,3);
+value=getRemainingPeriods([first],at('08:00'));assert.equal(value.lessons.length,1);assert.equal(value.lessons[0].section,2,'second small lesson remains visible during the first lesson');
+value=getRemainingPeriods([first],at('08:45'));assert.equal(value.rows[0].kind,'break');assert.equal(getTodayState([first],at('08:45')).state,'INTERNAL_BREAK');
+assert.equal(getRemainingPeriods([first],at('08:55')).rows.length,0,'current second lesson is already in the main card');
+assert.equal(getRemainingPeriods([first],at('09:40')).lessons.length,0);
+const second={...first,courseName:'晚课',startDateTime:at('16:00'),endDateTime:at('17:40'),segments:[part('lesson','16:00','16:45',7)]};
+value=getRemainingPeriods([first,second],at('10:00'));assert.equal(value.lessons.length,1);assert.equal(value.rows[0].kind,'break');assert.equal(value.rows[0].internal,false);
+assert.equal(getRemainingPeriods([{courseName:'时间未知',segments:[]}],at('10:00')).unknown.length,1);
+assert.equal(getRemainingPeriods([{courseName:'时间未知',startDateTime:null,endDateTime:null}],at('10:00')).unknown.length,1);
+const legacy={...first};delete legacy.segments;assert.equal(getRemainingPeriods([legacy],at('07:30')).lessons[0].unsplit,true);
+console.log('Remaining courses: small lessons, current/next boundaries, internal/intercourse breaks, finished history and missing times passed.');

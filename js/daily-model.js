@@ -1,5 +1,6 @@
-import { CATEGORIES } from './daily-store.js?v=20261021-9';
-import { getTodayState } from './day-plan.js?v=20261021-9';
+import { CATEGORIES } from './daily-store.js?v=20261022-1';
+import { getTodayState } from './day-plan.js?v=20261022-1';
+import { weatherDay, weatherFacts } from './weather-model.js?v=20261022-1';
 
 export const shortAdvice = value => typeof value === 'string' && [...value.trim()].length >= 5 && [...value.trim()].length <= 48 && !/[\r\n]/.test(value.trim());
 const shortLabel = (value, length = 10) => {
@@ -28,22 +29,31 @@ export function nextDate(date, days = 1) {
 }
 export const isPE = course => /体育|体能训练|运动与健康/.test(course.courseName);
 export const isShorts = item => ['sportshorts', 'shorts'].includes(item.category);
-export const isAvailable = item => !item.deletedAt && item.state === 'ready';
+export const isAvailable = item => !item.deletedAt && ['ready','rewear'].includes(item.state);
 export function runningSuitable(item) {
   return item.running === 'yes' || item.running === 'auto' && Boolean(CATEGORIES[item.category]?.running);
 }
 
-export function outfitRecommendation(data, date, courses = [], futureCourses = []) {
+export function outfitRecommendation(data, date, courses = [], futureCourses = [], options = {}) {
   const pe = courses.some(isPE);
   const run = data.plans.some(plan => plan.date === date && plan.run);
   const active = pe || run;
   const requireShorts = pe && data.profile.peNeedsShorts;
-  const available = data.garments.filter(isAvailable);
+  const available = data.garments.filter(item => isAvailable(item) || options.allowExpected && !item.deletedAt && item.state === 'drying' && item.expectedDate && item.expectedDate <= date);
   const tops = available.filter(item => CATEGORIES[item.category].group === 'top');
   const allBottoms = available.filter(item => CATEGORIES[item.category].group === 'bottom');
   const belts = available.filter(item => item.category === 'belt');
   const bottoms = allBottoms.filter(item => (!requireShorts || isShorts(item)) && (!active || runningSuitable(item)) && (item.needsBelt !== 'yes' || belts.length));
-  const shoes = available.filter(item => CATEGORIES[item.category].group === 'shoes' && (!active || runningSuitable(item)));
+  const weather = options.weather || null;
+  const feels = weather ? (weather.feelsMin ?? weather.min) + (data.profile.thermalPreference === 'cold' ? -3 : data.profile.thermalPreference === 'hot' ? 3 : 0) : null;
+  const desired = feels === null ? null : feels < 13 ? 2 : feels < 23 ? 1 : 0;
+  const needLayer = feels !== null && feels < 19;
+  const wet = weather?.rainProbability !== null && weather?.rainProbability >= 40;
+  const preference = item => item.preference === 'like' ? 15 : item.preference === 'avoid' ? -35 : 0;
+  const warmthScore = item => desired === null ? 0 : -Math.abs(({light:0,medium:1,warm:2}[item.warmth] ?? 1)-desired)*45;
+  const shoeScore = item => preference(item) + (wet ? item.wetWeather === 'yes' ? 25 : item.wetWeather === 'no' ? -50 : 0 : 0);
+  const shoes = available.filter(item => CATEGORIES[item.category].group === 'shoes' && (!active || runningSuitable(item))).sort((a,b)=>shoeScore(b)-shoeScore(a)||a.id.localeCompare(b.id));
+  const layers = available.filter(item => CATEGORIES[item.category].group === 'layer').sort((a,b)=>warmthScore(b)+preference(b)-warmthScore(a)-preference(a)||a.id.localeCompare(b.id));
   const futureShortDays = new Set(futureCourses.filter(course => isPE(course) && course.date > date && course.date <= nextDate(date, 2)).map(course => course.date)).size;
   const readyShorts = available.filter(item => isShorts(item) && runningSuitable(item)).length;
   const preserveShorts = data.profile.peNeedsShorts && futureShortDays > 0 && readyShorts <= futureShortDays;
@@ -56,31 +66,72 @@ export function outfitRecommendation(data, date, courses = [], futureCourses = [
   }
   const pairs = [];
   // Bound combinations to keep a large imported wardrobe inexpensive on a phone.
-  for (const top of tops.slice(0, 40)) for (const bottom of bottoms.slice(0, 40)) {
+  for (const top of tops.slice(0, 24)) for (const bottom of bottoms.slice(0, 24)) {
     const preferred = data.outfits.find(outfit => !outfit.deletedAt && outfit.garmentIds.includes(top.id) && outfit.garmentIds.includes(bottom.id) && outfit.garmentIds.every(id => available.some(item => item.id === id && (!active || !['bottom', 'shoes'].includes(CATEGORIES[item.category].group) || runningSuitable(item)))));
     let score = preferred ? 100 : 0;
     if (active && runningSuitable(top)) score += 20;
     if (preserveShorts && bottom.category === 'joggers') score += 150;
     const neutral = color => ['black', 'white', 'grey', 'navy', 'beige'].includes(color);
     if (neutral(top.color) || neutral(bottom.color)) score += 5;
-    const ids = new Set(preferred?.garmentIds || [top.id, bottom.id]);
-    if (bottom.needsBelt === 'yes' && ![...ids].some(id => available.find(item => item.id === id).category === 'belt')) ids.add(belts[0].id);
-    if (shoes[0] && ![...ids].some(id => CATEGORIES[available.find(item => item.id === id).category].group === 'shoes')) ids.add(shoes[0].id);
+    score += preference(top) + preference(bottom) + warmthScore(top) + warmthScore(bottom);
+    const savedPieces = (preferred?.garmentIds || []).map(id => available.find(item=>item.id===id));
+    const chosenLayer = needLayer ? layers[0] : weather ? null : savedPieces.find(item=>CATEGORIES[item.category].group==='layer');
+    const savedShoe = savedPieces.find(item=>CATEGORIES[item.category].group==='shoes');
+    const shoeChoices = shoes.length ? [...new Map([...(savedShoe?[savedShoe]:[]),...shoes.slice(0,3)].map(item=>[item.id,item])).values()] : [null];
+    for (const shoe of shoeChoices) {
+    const ids = new Set([top.id,bottom.id]);
+    const savedBelt = savedPieces.find(item=>item.category==='belt');
+    if (savedBelt) ids.add(savedBelt.id);
+    else if (bottom.needsBelt === 'yes') ids.add(belts[0].id);
+    if (chosenLayer) ids.add(chosenLayer.id);
+    if (shoe) ids.add(shoe.id);
     const pieces = [...ids].map(id => available.find(item => item.id === id));
-    const reasons = [preferred ? `来自常用搭配「${preferred.name}」` : '按可穿单品组合'];
+    const reasons = [preferred ? `参考常用搭配「${preferred.name}」` : '按可穿单品组合'];
     if (requireShorts) reasons.push('符合你设置的体育课短裤要求');
     else if (run) reasons.push('为校园跑优先选了适合运动的下装');
     if (preserveShorts && bottom.category === 'joggers') reasons.push('后面还有体育课，可为短裤轮换留余地');
     if (bottom.needsBelt === 'yes') reasons.push('已搭上可用腰带');
     if (active && !runningSuitable(top)) reasons.push('这件上衣的运动适配待核对，跑前可换成方便活动的上衣');
-    pairs.push({ id: `${top.id}|${bottom.id}`, pieces, reasons, score });
+    if (weather) reasons.push(`参考${weather.from}—${weather.to}预报${Math.round(weather.min)}—${Math.round(weather.max)}°C${chosenLayer?'，加入可脱穿外层':''}`);
+    if (wet && shoe?.wetWeather === 'yes') reasons.push('按你标记的雨天适配选择鞋子');
+    const conditionalIds = pieces.filter(item=>!isAvailable(item)).map(item=>item.id);
+    if (conditionalIds.length) reasons.push('包含预计收衣的单品，需确认干透后使用');
+    pairs.push({ id: JSON.stringify([...ids]), pieces, reasons, conditionalIds, score:score+(shoe?shoeScore(shoe):0)+(chosenLayer?warmthScore(chosenLayer)+preference(chosenLayer):0) });
+    }
   }
   pairs.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
   const first = pairs[0];
+  // Keep the AI pool varied: otherwise the first eight can differ only by shoes.
+  const candidates=first?[first]:[];
+  for(const group of ['top','bottom','shoes']) {
+    const seen=new Set(candidates.map(set=>set.pieces.find(item=>CATEGORIES[item.category].group===group)?.id));
+    let added=0;
+    for(const set of pairs) {
+      const id=set.pieces.find(item=>CATEGORIES[item.category].group===group)?.id;
+      if(id&&!seen.has(id)&&added<2&&candidates.length<8){candidates.push(set);seen.add(id);added++;}
+    }
+  }
+  for(const set of pairs)if(candidates.length<8&&!candidates.some(row=>row.id===set.id))candidates.push(set);
   const alternate = first ? pairs.find(pair => pair.id !== first.id && pair.pieces.find(item => CATEGORIES[item.category].group === 'bottom')?.id !== first.pieces.find(item => CATEGORIES[item.category].group === 'bottom')?.id) || pairs.find(pair => pair.id !== first.id) : null;
-  const notes = ['当前搭配未使用天气预报，出门前请结合温度与降雨调整外层。'];
+  const notes = weather ? [weather.status==='stale'?'使用旧预报，仅作参考。':'按区域逐小时预报提供搭配参考，实际冷暖以你的感受为准。'] : ['天气未更新，当前仅按活动、偏好与可穿状态搭配。'];
+  if (needLayer && !layers.length) notes.push('日间参考偏凉，已录衣橱中没有确认可用的外套。');
+  if (wet) notes.push('部分时段有降雨可能，可考虑带伞；衣物未标注雨天适配时不假定防水。');
   if (active && !shoes.length) notes.push('尚无确认可用的运动鞋记录，运动前记得核对鞋子。');
-  return { date, pe, run, requireShorts, readyShorts, futureShortDays, sets: [first, alternate].filter(Boolean), missing, notes };
+  return { date, pe, run, requireShorts, readyShorts, futureShortDays, sets: [first, alternate].filter(Boolean), candidates, missing, notes };
+}
+
+export function planOutfits(data,date,courses=[],futureCourses=[],forecast=null,now=new Date()) {
+  const weather = weatherDay(forecast,date,{now,from:'07:00',to:'22:00'});
+  const sportNeeded = courses.some(isPE) || data.plans.some(plan=>plan.date===date&&plan.run);
+  const separate = sportNeeded && data.profile.changeMode !== 'allDay';
+  const dailyData = separate ? {...data,plans:data.plans.filter(plan=>plan.date!==date)} : data;
+  const daily = outfitRecommendation(dailyData,date,separate?[]:courses,futureCourses,{weather});
+  const sport = separate ? outfitRecommendation(data,date,courses,futureCourses,{weather}) : null;
+  const expectedDaily = outfitRecommendation(dailyData,date,separate?[]:courses,futureCourses,{weather,allowExpected:true});
+  const expectedSport = separate ? outfitRecommendation(data,date,courses,futureCourses,{weather,allowExpected:true}) : null;
+  const conditional = [...new Map([...expectedDaily.sets.map(set=>({...set,purpose:'日常'})),...(expectedSport?.sets||[]).map(set=>({...set,purpose:'运动'}))].filter(set=>set.conditionalIds.length).map(set=>[set.purpose+set.id,set])).values()].slice(0,2);
+  return { daily, sport, conditional, weather, separate, sportNeeded,
+    changeNote:separate ? data.profile.changeMode==='change'?'日常与运动分开准备。':'换装条件未设置，分别给出日常和运动候选；可在偏好里改为全天兼顾。' : '' };
 }
 
 export function departurePlan(course, profile, previous = null) {
@@ -98,11 +149,14 @@ export function departurePlan(course, profile, previous = null) {
     basis: '出发时刻来自你的时间预算，未核验实时位置和路况；未设置的排队时间需另留。' };
 }
 
-export function buildAdvice({ now, courses, tomorrowCourses, items, data, futureCourses = [], activities = [] }) {
+export function buildAdvice({ now, courses, tomorrowCourses, items, data, futureCourses = [], activities = [], weather = null }) {
   const today = localDate(now);
   const tomorrow = nextDate(today);
   const pool = [];
   const add = (id, priority, lines, basis, href) => pool.push({ id, priority, lines, basis, href });
+  const weatherDate=now.getHours()>=18?tomorrow:today;
+  const forecast=weatherDay(weather,weatherDate,{now,from:now.getHours()>=18?'07:00':`${String(now.getHours()).padStart(2,'0')}:00`,to:'23:00'});
+  if(forecast?.status==='fresh'&&forecast.rainProbability>=40)add('weather:rain',60,[`${weatherDate===today?'接下来':'明天'}部分时段有降雨可能，带把伞更从容。`],`${forecast.location}区域预报，${forecast.from}—${forecast.to}降雨概率最高${forecast.rainProbability}%；不代表必然下雨。`,'#/wardrobe');
   const confirmed = adviceItems(items, now).filter(item => !item.needsConfirmation && item.dueDate);
   for (const item of confirmed) {
     const due = item.dueTime ? new Date(`${item.dueDate}T${item.dueTime}:00`) : new Date(`${nextDate(item.dueDate)}T00:00:00`);
@@ -190,7 +244,7 @@ export function chooseAdvice(pool, scope, now, limit, refresh = false) {
 }
 
 // Only this bounded summary is sent for daily prose, never the complete stores.
-export function dailyFacts({ now, courses, tomorrowCourses, items, activities = [] }) {
+export function dailyFacts({ now, courses, tomorrowCourses, items, activities = [], weather = null }) {
   const today = localDate(now), tomorrow = nextDate(today);
   const phase = getTodayState(courses, now);
   const period = now.getHours() < 6 ? '夜间' : now.getHours() < 12 ? '上午' : now.getHours() < 18 ? '下午' : '晚上';
@@ -206,6 +260,6 @@ export function dailyFacts({ now, courses, tomorrowCourses, items, activities = 
   // Reserve the remaining budget for the most relevant personal records before generic context.
   const remembered = adviceItems(items, now).slice(0,3).map((item,index) => ({ id:`item:${index}`, text:`要记得：${(item.title || item.text).slice(0,80)}。${item.timeRole === 'start' ? '开始' : item.timeRole === 'deadline' ? '截止' : '所设时间（含义未指定）'}：${item.dueDate || '日期未定'} ${item.dueTime || '时刻未定'}。${item.dueDate && itemAt(item) < +now ? '所设时间已过；' : ''}${item.location ? `地点${item.location.slice(0,40)}；` : ''}${item.nextStep ? `用户准备动作${item.nextStep.slice(0,60)}；` : ''}${item.timeContext ? `相关区间${item.timeContext.slice(0,40)}；` : ''}${item.needsConfirmation ? '此记录标为待确认，不能把时间地点当成已核实；' : ''}仅知道尚未标记完成，不知道实际进度。`.slice(0,350) }));
   const confirmed = activities.filter(item => item.status === 'confirmed' && [today,tomorrow].includes(item.date) && new Date(`${item.endDate || item.date}T${item.endTime || '23:59'}`) > now).sort((a,b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`)).slice(0,2).map((item,index) => ({ id:`activity:${index}`, text:`已确认参加：${item.title.slice(0,100)}，${item.date} ${item.startTime}—${item.endTime}，${item.location || '未设地点'}。`.slice(0,350) }));
-  facts.splice(3,0,...remembered,...confirmed);
+  facts.splice(3,0,...remembered,...confirmed,...weatherFacts(weather,now));
   return facts.slice(0,12);
 }

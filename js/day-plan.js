@@ -1,4 +1,4 @@
-import { getCoursePhase } from './time.js?v=20261021-9';
+import { getCoursePhase } from './time.js?v=20261022-1';
 // Shared course counts and time calculations. All intervals are [start, end).
 const MINUTE = 60000;
 
@@ -112,4 +112,24 @@ export function formatMinutes(value) {
   const hours = Math.floor(minutes / 60);
   const remainder = minutes % 60;
   return hours ? `${hours}小时${remainder ? `${remainder}分` : ''}` : `${minutes}分钟`;
+}
+
+// Keep unfinished small periods, including the second half of the current course.
+export function getRemainingPeriods(courses, now) {
+  const lessons = [], breaks = [], unknown = [];
+  for (const course of courses) {
+    const segments = course.segments;
+    if (segments?.length) {
+      for (const part of segments) {
+        if (part.end <= now) continue;
+        if (part.kind === 'lesson' && part.start > now) lessons.push({ ...part, course });
+        else if (part.kind === 'break') breaks.push({ ...part, course, internal:true });
+      }
+    } else if (segments || !(course.startDateTime instanceof Date) || !(course.endDateTime instanceof Date) || !Number.isFinite(+course.startDateTime) || !Number.isFinite(+course.endDateTime) || course.endDateTime <= course.startDateTime) unknown.push(course);
+    else if (course.startDateTime > now) lessons.push({ kind:'lesson', course, start:course.startDateTime, end:course.endDateTime,
+      startTime:course.startTime, endTime:course.endTime, section:course.startSection, unsplit:true });
+  }
+  for (const gap of getCourseGaps(courses)) if (gap.end > now) breaks.push({ ...gap, kind:'break', internal:false });
+  return { lessons:lessons.sort((a,b)=>a.start-b.start), unknown,
+    rows:[...lessons,...breaks].sort((a,b)=>a.start-b.start || a.end-b.end) };
 }

@@ -199,3 +199,23 @@ body:has(#view-today.active .today-page) #quick-capture { display: none; }
   .today-page .today-date-sub { font-size: 17px; }
   .today-page .today-status { padding: 14px; }
 }
+.remaining-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px 12px; min-height: 52px; padding: 10px 0; }
+.today-page .remaining-lesson { display: grid; grid-template-columns: 58px minmax(0,1fr); gap: 12px; width: 100%; min-height: 64px; padding: 12px 0; text-align: left; border: 0; border-top: 1px solid var(--color-border-light); background: transparent; color: var(--color-text); font: inherit; cursor: pointer; }
+.remaining-clock { font-size: 14px; line-height: 1.7; color: var(--color-text-secondary); }
+.remaining-clock small { display: block; font-size: 11px; }
+.remaining-info { min-width: 0; align-self: center; }
+.remaining-info strong { display: block; font-size: 14px; font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
+.remaining-info > span { display: block; margin-top: 3px; font-size: 12px; color: var(--color-text-secondary); line-height: 1.7; overflow-wrap: anywhere; }
+.remaining-break { padding: 6px 0 6px 70px; border-top: 1px dashed var(--color-border-light); font-size: 12px; line-height: 1.7; color: var(--color-text-secondary); }
+.remaining-break.is-current { color: var(--color-primary-dark); }
+.remaining-done { font-size: 13px; line-height: 1.8; color: var(--color-text-secondary); }
+.weather-strip { margin: -4px 0 14px; color: var(--color-text-secondary); font-size: 13px; line-height: 1.7; border-bottom: 1px solid var(--color-border-light); }
+.weather-strip > summary { min-height: 44px; padding: 9px 0; cursor: pointer; overflow-wrap: anywhere; }
+.weather-body { padding: 0 0 12px; }
+.weather-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
+.weather-hours { max-height: 260px; overflow: auto; margin: 10px 0; border: 1px solid var(--color-border); border-radius: 8px; }
+.weather-hours table { width: 100%; border-collapse: collapse; color: var(--color-text); font-variant-numeric: tabular-nums; }
+.weather-hours caption { padding: 8px; text-align: left; color: var(--color-text-secondary); font-size: 12px; }
+.weather-hours th, .weather-hours td { padding: 8px 6px; text-align: left; font-size: 12px; border-bottom: 1px solid var(--color-border-light); }
+.weather-strip :is(button,a,summary):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
+.today-page .today-preparation .preparation-fit-line { flex: 1 0 100%; font-size: 12px; font-weight: 400; color: var(--color-text-secondary); line-height: 1.8; overflow-wrap: anywhere; }

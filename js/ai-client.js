@@ -1,8 +1,8 @@
-import { validAccessToken } from './ai-access.js?v=20261021-9';
+import { validAccessToken } from './ai-access.js?v=20261022-1';
 export const AI_KEY = 'course-dashboard-ai-v1';
 const TOKEN_KEY = 'course-dashboard-ai-access';
 const CACHE_KEY = 'course-dashboard-ai-daily-v1';
-const DEFAULTS = { enabled: false, notice: true, daily: true };
+const DEFAULTS = { enabled: false, notice: true, daily: true, outfit: true };
 const dailyRequests = new Map();
 const attempted = new Set();
 let calls = [];
@@ -35,7 +35,7 @@ export async function callAI(action, fields = {}) {
   if (!token) throw new Error('请先在 API 设置填写个人访问口令');
   if (action !== 'check') {
     const now = Date.now(); calls = calls.filter(time => time > now - 60000);
-    if (calls.length >= 2) throw new Error('通知识别与每日一句合计每分钟最多2次，请稍后再试');
+    if (calls.length >= 2) throw new Error('AI功能合计每分钟最多2次，请稍后再试');
     calls.push(now);
   }
   const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 25000);
@@ -59,7 +59,7 @@ export function cachedDaily(key) {
   const entry = readCache().entry;
   return entry?.key === key && typeof entry.sentence === 'string' && Array.isArray(entry.basisIds) ? entry : null;
 }
-export function requestDaily(key, facts, manual = false) {
+export function requestDaily(key, facts, manual = false, weather = null) {
   if (dailyRequests.has(key)) return dailyRequests.get(key);
   if (!manual && attempted.has(key)) return Promise.resolve(cachedDaily(key));
   attempted.add(key);
@@ -72,7 +72,7 @@ export function requestDaily(key, facts, manual = false) {
       try { localStorage.setItem(CACHE_KEY, JSON.stringify({ ...cache, automaticKey })); } catch { /* Session-level attempted keys still prevent repeated ticks. */ }
     }
     const recent = Array.isArray(cache.recent) ? cache.recent.filter(line => typeof line === 'string').slice(-5) : [];
-    const result = await callAI('daily', { facts, recent });
+    const result = await callAI('daily', { facts, recent, weather });
     if (typeof result.sentence !== 'string' || !Array.isArray(result.basisIds) || !result.basisIds.length || result.basisIds.some(id => !facts.some(fact => fact.id === id))) throw new Error('每日一句的依据无效，继续显示本地内容');
     const entry = { key, sentence: result.sentence, basisIds: result.basisIds, at: new Date().toISOString() };
     try { localStorage.setItem(CACHE_KEY, JSON.stringify({ entry, automaticKey, recent: [...recent, entry.sentence].slice(-7) })); } catch { /* A sentence remains usable if caching is unavailable. */ }

@@ -1,10 +1,12 @@
-import { readDailyData, saveDailyProfile, DAILY_KEY } from './daily-store.js?v=20261021-9';
-import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261021-9';
-import { buildAdvice, chooseAdvice, outfitRecommendation, departurePlan, localDate, nextDate, dailyFacts, shortAdvice } from './daily-model.js?v=20261021-9';
-import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261021-9';
-import { aiEnabled, AI_KEY, cachedDaily, dailyIdentity, requestDaily } from './ai-client.js?v=20261021-9';
-import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261021-9';
-import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261021-9';
+import { readDailyData, saveDailyProfile, DAILY_KEY } from './daily-store.js?v=20261022-1';
+import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261022-1';
+import { buildAdvice, chooseAdvice, planOutfits, departurePlan, localDate, nextDate, dailyFacts, shortAdvice } from './daily-model.js?v=20261022-1';
+import { cachedWeather } from './weather-client.js?v=20261022-1';
+import { weatherSummary } from './weather-model.js?v=20261022-1';
+import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261022-1';
+import { aiEnabled, AI_KEY, cachedDaily, dailyIdentity, requestDaily } from './ai-client.js?v=20261022-1';
+import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261022-1';
+import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261022-1';
 
 function getContext(state, dm, now) {
   const today = localDate(now);
@@ -49,6 +51,7 @@ export function mountDailyAssistant(container, state, dm) {
       return;
     }
     preparation.hidden = false;
+    const weather=cachedWeather(data.profile.city);
     let items = [];
     let note = '';
     try { items = itemsForScope(context.scope); } catch { note = '个人事项暂时无法读取，本句未使用截止信息。'; }
@@ -59,9 +62,9 @@ export function mountDailyAssistant(container, state, dm) {
     advice.hidden = !data.profile.enabled || visibility.hidden;
     restore.hidden = !advice.hidden;
     if (!advice.hidden) {
-      const pool = buildAdvice({ ...context, data, items, activities });
+      const pool = buildAdvice({ ...context, data, items, activities, weather });
       const useAI = aiEnabled('daily');
-      const facts = dailyFacts({ ...context, items, activities });
+      const facts = dailyFacts({ ...context, items, activities, weather });
       const key = dailyIdentity(context.scope, context.today, facts);
       if (key !== currentKey) { currentKey = key; aiNote = ''; }
       const cached = useAI ? (memoryEntry?.key === key ? memoryEntry : cachedDaily(key)) : null;
@@ -78,7 +81,7 @@ export function mountDailyAssistant(container, state, dm) {
       update(advice, content);
       if (retainFocus) advice.querySelector('[data-refresh-advice]')?.focus({ preventScroll: true });
       if (shouldRequest) {
-        requestDaily(key, facts, refresh).then(value => {
+        requestDaily(key, facts, refresh, weather).then(value => {
           if (disposed || currentKey !== key) return;
           if (value) { memoryEntry = value; aiNote = ''; }
         }).catch(error => { if (!disposed && currentKey === key) aiNote = `显示本地内容：${error.message}`; }).finally(() => {
@@ -92,18 +95,21 @@ export function mountDailyAssistant(container, state, dm) {
     const date = preparingToday ? context.today : context.tomorrow;
     const courses = preparingToday ? context.courses : context.tomorrowCourses;
     const future = dm.getCourses(state.currentClass).filter(course => course.date > date && course.date <= nextDate(date, 2));
-    const fit = outfitRecommendation(data, date, courses, future);
+    const plan = planOutfits(data,date,courses,future,weather,now);
+    const fit = plan.daily;
     const first = fit.sets[0];
     const hasGarments = data.garments.some(item => !item.deletedAt);
     const due = items.filter(item => !item.completedAt && !item.deletedAt && !item.needsConfirmation && item.dueDate === date);
     const departure = departurePlan(courses[0], data.profile);
-    update(preparation, `<summary><span class="preparation-title">${preparingToday ? '今日出门准备' : '明日准备'}</span><span class="preparation-summary">${date.slice(5)} · 物品与穿衣<span class="course-list-chevron" aria-hidden="true"></span></span></summary>
+    update(preparation, `<summary><span class="preparation-title">${preparingToday ? '今日出门准备' : '明日准备'}</span><span class="preparation-summary">${plan.weather?esc(weatherSummary(plan.weather)):date.slice(5)+' · 物品与穿衣'}<span class="course-list-chevron" aria-hidden="true"></span></span>${first?`<span class="preparation-fit-line">${first.pieces.map(item=>esc(item.name)).join(' ＋ ')}${plan.sportNeeded?' · 另看运动准备':''}</span>`:''}</summary>
       <div class="preparation-body">${!courses.length ? '<p class="daily-muted">这天课表上无课，个人安排可以在待办里查看。</p>' : ''}
       ${departure ? `<p class="daily-muted">${esc(departure.text)}</p><p class="daily-small">${esc(departure.basis)}</p>` : ''}
       ${due.length ? `<div class="preparation-items"><h2>已记下的事项</h2>${due.slice(0, 3).map(item => `<a href="#/tasks"><span>${esc(item.text)}</span><span class="daily-small">${esc(dateLabel(item, context.today))}</span></a>`).join('')}${due.length > 3 ? `<a class="daily-link" href="#/tasks">查看全部${due.length}条 →</a>` : ''}</div>` : ''}
-      <div class="preparation-outfit"><h2>${preparingToday ? '今天' : '明日'}穿衣${fit.pe ? ' · 有体育课' : ''}${fit.run ? ' · 已安排校园跑' : ''}</h2>
+      <div class="preparation-outfit"><h2>${preparingToday ? '今天' : '明日'}穿衣${plan.sportNeeded ? ' · 有运动安排' : ''}</h2>
       ${hasGarments ? first ? `<p class="daily-fit-preview">${first.pieces.map(item => esc(item.name)).join(' ＋ ')}</p><p class="daily-muted">${esc(first.reasons[0])}</p>` : `<p class="daily-muted">${esc(fit.missing[0] || '先检查一下可穿单品。')}</p>` : '<p class="daily-muted">录几件常穿衣服，就能结合活动和洗晒状态选搭配。</p>'}
-      ${hasGarments ? '<p class="daily-small">当前未使用天气预报，出门前请结合实际温度调整。</p>' : ''}<a class="daily-link" href="#/wardrobe">${hasGarments ? '查看搭配与洗晒 →' : '录几件常穿衣服 →'}</a></div></div>`);
+      ${plan.sport?`<p class="daily-muted">运动准备：${esc(plan.sport.sets[0]?.pieces.map(item=>item.name).join(' ＋ ')||plan.sport.missing[0]||'查看衣橱')}。</p><p class="daily-small">${esc(plan.changeNote)}</p>`:''}
+      ${plan.conditional.length?'<p class="daily-small">另有待收衣备选，干透后再确认使用。</p>':''}
+      <p class="daily-small">${plan.weather?esc(`${plan.weather.location} ${plan.weather.from}—${plan.weather.to}预报参考；${fit.notes[0]}`):'天气尚未更新，出门前结合实际冷暖调整。'}</p><a class="daily-link" href="#/wardrobe">${hasGarments ? '查看搭配与洗晒 →' : '录几件常穿衣服 →'}</a></div></div>`);
   }
   function visibilityAction(action) {
     try {
@@ -136,6 +142,7 @@ export function mountDailyAssistant(container, state, dm) {
   window.addEventListener('personal-items:changed', changed);
   window.addEventListener('agenda:changed', changed);
   window.addEventListener('ai:changed', changed);
+  window.addEventListener('weather:changed', changed);
   window.addEventListener('storage', storage);
   render();
   return () => {
@@ -147,6 +154,7 @@ export function mountDailyAssistant(container, state, dm) {
     window.removeEventListener('personal-items:changed', changed);
     window.removeEventListener('agenda:changed', changed);
     window.removeEventListener('ai:changed', changed);
+    window.removeEventListener('weather:changed', changed);
     window.removeEventListener('storage', storage);
   };
 }

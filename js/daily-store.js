@@ -1,4 +1,4 @@
-import { validDate } from './tasks-store.js?v=20261021-9';
+import { validDate } from './tasks-store.js?v=20261022-1';
 
 export const DAILY_KEY = 'course-dashboard-daily-v1';
 export const CATEGORIES = {
@@ -15,11 +15,12 @@ export const CATEGORIES = {
   belt: { label: '腰带', group: 'accessory', running: false },
 };
 export const COLORS = { unknown: '颜色未指定', black: '黑色', white: '白色', grey: '灰色', navy: '藏蓝', blue: '蓝色', beige: '米色 / 卡其', green: '绿色', red: '红色', other: '其他颜色' };
-export const CLOTHING_STATES = { ready: '可穿', dirty: '待洗', washing: '洗涤中', drying: '晾晒中' };
+export const CLOTHING_STATES = { ready: '可穿', rewear: '穿过仍可穿', dirty: '待洗', washing: '洗涤中', drying: '晾晒中' };
 export const DEFAULT_PROFILE = Object.freeze({
   enabled: true, refreshPerMinute: 2, city: '', baseArea: '', destinationKeyword: '', destinationArea: '',
   travelMinutes: 0, breakfastMode: 'unknown', breakfastBuyMinutes: 0, breakfastEatMinutes: 0,
   laundryEveryDays: 0, dryAfterDays: 1, peNeedsShorts: false, updatedAt: '1970-01-01T00:00:00.000Z',
+  thermalPreference: 'unknown', changeMode: 'unknown',
 });
 
 function text(value, max, label) {
@@ -56,6 +57,8 @@ export function validateProfile(value) {
   result.laundryEveryDays = integer(value.laundryEveryDays, 0, 30, '洗衣间隔');
   result.dryAfterDays = integer(value.dryAfterDays, 0, 14, '预计收衣间隔');
   result.breakfastMode = member(value.breakfastMode, ['unknown', 'onway', 'sit', 'prepared'], '早餐安排');
+  result.thermalPreference = member(value.thermalPreference ?? 'unknown', ['unknown','cold','neutral','hot'], '冷暖偏好');
+  result.changeMode = member(value.changeMode ?? 'unknown', ['unknown','change','allDay'], '运动换装偏好');
   result.updatedAt = timestamp(value.updatedAt);
   return result;
 }
@@ -66,6 +69,7 @@ function validateGarment(value) {
     state: member(value.state, Object.keys(CLOTHING_STATES), '洗晒状态'), running: member(value.running, ['auto', 'yes', 'no'], '运动适配'),
     needsBelt: member(value.needsBelt, ['unknown', 'yes', 'optional', 'no'], '腰带要求'),
     warmth: member(value.warmth, ['light', 'medium', 'warm'], '厚薄'), stateAt: timestamp(value.stateAt),
+    wetWeather: member(value.wetWeather ?? 'unknown', ['unknown','yes','no'], '雨天适配'), preference: member(value.preference ?? 'neutral', ['neutral','like','avoid'], '衣物偏好'),
     expectedDate: text(value.expectedDate, 10, '预计收衣日期') };
   if (!result.name.trim() || (result.expectedDate && !validDate(result.expectedDate))) throw new Error('衣物名称或预计收衣日期无效');
   return result;
@@ -124,7 +128,7 @@ export function addGarments(groups) {
       const category = CATEGORIES[group.category];
       const number = data.garments.filter(item => item.category === group.category).length + 1;
       data.garments.push({ id: crypto.randomUUID(), name: group.name?.trim() ? `${group.name.trim()}${quantity > 1 ? ` ${index + 1}` : ''}` : `${COLORS[group.color] === '颜色未指定' ? '' : COLORS[group.color] + ' '}${category.label} ${number}`,
-        category: group.category, color: group.color, needsBelt: group.needsBelt || 'unknown', running: 'auto', warmth: 'medium',
+        category: group.category, color: group.color, needsBelt: group.needsBelt || 'unknown', running: 'auto', warmth: group.warmth || 'medium',
         state: group.state || 'ready', stateAt: now, expectedDate: '', createdAt: now, updatedAt: now, deletedAt: '' });
       added++;
     }
@@ -136,7 +140,7 @@ export function editGarment(id, fields) {
   const data = readDailyData();
   const item = data.garments.find(item => item.id === id);
   if (!item) throw new Error('衣物已不存在，请刷新列表');
-  const allowed = ['name', 'color', 'needsBelt', 'running', 'warmth'];
+  const allowed = ['name', 'color', 'needsBelt', 'running', 'warmth', 'wetWeather', 'preference'];
   const partial = Object.fromEntries(allowed.filter(key => Object.hasOwn(fields, key)).map(key => [key, fields[key]]));
   Object.assign(item, partial, { updatedAt: new Date().toISOString() });
   return write(data);
