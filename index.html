@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html lang="zh-CN"><head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
   <meta name="theme-color" content="#FFFFFF">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <title>课程控制台</title>
-  <link rel="stylesheet" href="css/global.css?v=20261024-1">
+  <script src="js/display.js?v=20261024-2"></script>
+  <link rel="stylesheet" href="css/global.css?v=20261024-2">
   <link rel="stylesheet" href="css/dashboard.css">
-  <link rel="stylesheet" href="css/schedule.css?v=20261024-1">
-  <link rel="stylesheet" href="css/analytics.css?v=20261024-1">
-  <link rel="stylesheet" href="css/responsive.css?v=20261024-1">
-  <link rel="stylesheet" href="css/personal.css?v=20261024-1">
-  <link rel="stylesheet" href="css/today.css?v=20261024-1">
-  <link rel="stylesheet" href="css/daily.css?v=20261024-1">
-  <link rel="stylesheet" href="css/agenda.css?v=20261024-1">
+  <link rel="stylesheet" href="css/schedule.css?v=20261024-2">
+  <link rel="stylesheet" href="css/analytics.css?v=20261024-2">
+  <link rel="stylesheet" href="css/responsive.css?v=20261024-2">
+  <link rel="stylesheet" href="css/personal.css?v=20261024-2">
+  <link rel="stylesheet" href="css/today.css?v=20261024-2">
+  <link rel="stylesheet" href="css/daily.css?v=20261024-2">
+  <link rel="stylesheet" href="css/agenda.css?v=20261024-2">
+  <link rel="stylesheet" href="css/accessibility.css?v=20261024-2">
 </head>
 <body>
   <div id="loading-screen" class="loading-screen">
@@ -127,9 +129,9 @@
   </div>
 
   <!-- Course details are rendered only when opened. -->
-  <div class="detail-overlay" id="detail-overlay" aria-hidden="true" inert>
-    <div class="detail-panel" id="detail-panel" role="dialog" aria-modal="true" aria-labelledby="course-detail-title"></div>
-  </div>
+  <dialog class="detail-overlay" id="detail-overlay" aria-labelledby="course-detail-title">
+    <div class="detail-panel" id="detail-panel"></div>
+  </dialog>
 
   <script>
     if (location.protocol === 'file:') {
@@ -138,7 +140,7 @@
         '请双击项目文件夹中的“本地预览.cmd”打开课程表。';
     }
   </script>
-  <script type="module" src="js/main.js?v=20261024-1"></script>
+  <script type="module" src="js/main.js?v=20261024-2"></script>
 
 
 </body></html>

@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+const values=new Map();
+globalThis.localStorage={getItem:key=>values.get(key)??null,setItem:(key,value)=>values.set(key,value)};
+globalThis.window={dispatchEvent:()=>{}}; globalThis.CustomEvent=class{};
+const {saveItem,readItems,updateItemState,undoItemState}=await import('../js/tasks-store.js');
+const item=saveItem({semester:'2026-2027-1',className:'验收班',text:'示例事项',courseName:'',nextStep:'',kind:'task',source:'other',needsConfirmation:false,dueDate:'',dueTime:''});
+const change=updateItemState(item.id,'complete');
+assert.ok(readItems()[0].completedAt);
+undoItemState(change);
+assert.equal(readItems()[0].completedAt,'');
+const hidden=updateItemState(item.id,'trash');
+undoItemState(hidden);
+assert.equal(readItems()[0].deletedAt,'');
+const concurrent=updateItemState(item.id,'complete');
+saveItem({text:'后来补充的通知'},item.id);
+assert.throws(()=>undoItemState(concurrent),/新的修改/);
+assert.equal(readItems()[0].text,'后来补充的通知','undo never overwrites another edit, even in the same millisecond');
+console.log('Task undo and concurrent edit protection passed.');

@@ -163,7 +163,7 @@
   align-items: center;
   margin-left: 4px;
   padding: 1px 6px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--color-primary);
   background: var(--color-primary-tint);
@@ -195,7 +195,7 @@
   min-width: 0;
 }
 
-.free-time-day-header { font-size: 14px; font-weight: 600; color: var(--color-text); }
+.free-time-day-header { font-size: 0.875rem; font-weight: 600; color: var(--color-text); }
 
 .free-time-slots {
   display: flex;
@@ -209,7 +209,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   transition: all var(--transition-fast);
   cursor: default;
@@ -306,14 +306,14 @@
 .compare-header-cell {
   background: var(--color-bg);
   font-weight: 600;
-  font-size: 13px;
+  font-size: 0.8125rem;
   justify-content: center;
 }
 
-.compare-cell-label { background: var(--color-bg); font-weight: 600; font-size: 12px; color: var(--color-text-secondary); }
+.compare-cell-label { background: var(--color-bg); font-weight: 600; font-size: 0.75rem; color: var(--color-text-secondary); }
 
 .compare-course {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--color-text);
   padding: 3px 6px;
   background: var(--color-primary-tint);
@@ -337,13 +337,13 @@
   gap: 4px;
 }
 
-.compare-selector label { font-size: 12px; color: var(--color-text-secondary); }
+.compare-selector label { font-size: 0.75rem; color: var(--color-text-secondary); }
 
 .compare-selector select {
   padding: 8px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--color-text);
   background: var(--color-surface);
   cursor: pointer;
@@ -429,7 +429,7 @@
 .data-update-help {
   margin: 8px 0 16px;
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.6;
 }
 
@@ -442,7 +442,7 @@
   border-radius: var(--radius-sm);
   background: var(--color-border-light);
   color: var(--color-text-secondary);
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .data-update-current strong { color: var(--color-text); }
@@ -465,7 +465,7 @@
 .data-update-message {
   min-height: 22px;
   color: var(--color-success);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.5;
 }
 
@@ -557,7 +557,7 @@
   padding: 6px 12px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--color-text);
   background: var(--color-surface);
   cursor: pointer;

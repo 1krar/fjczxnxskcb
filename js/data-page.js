@@ -1,5 +1,5 @@
-import { formatDate } from './time.js?v=20261024-1';
-import { rerenderCurrentPage, selectClass } from './app.js?v=20261024-1';
+import { formatDate } from './time.js?v=20261024-2';
+import { rerenderCurrentPage, selectClass } from './app.js?v=20261024-2';
 import {
   compareCourses,
   getSavedUpdate,
@@ -8,7 +8,7 @@ import {
   removeClassUpdate,
   saveClassUpdate,
   validateImportedData,
-} from './data-update.js?v=20261024-1';
+} from './data-update.js?v=20261024-2';
 
 let updateNotice = '';
 
@@ -76,9 +76,9 @@ export function renderData(container, state, dm) {
       <div class="analytics-card analytics-full">
         <div class="analytics-card-title">文件检查</div>
         ${errors.length === 0
-          ? `<div class="badge badge-success" style="font-size:14px;padding:8px 12px;">✓ 文件结构检查通过</div><p class="data-update-help">检查课程数据的结构与时间字段，不代表已核实学校的临时调课。</p>`
+          ? `<div class="badge badge-success" style="font-size:0.875rem;padding:8px 12px;">✓ 文件结构检查通过</div><p class="data-update-help">检查课程数据的结构与时间字段，不代表已核实学校的临时调课。</p>`
           : `<div class="error-banner">检测到 ${errors.length} 个数据异常：</div>
-             <ul style="margin-top:8px;padding-left:20px;font-size:13px;color:var(--color-text-secondary);">
+             <ul style="margin-top:8px;padding-left:20px;font-size:0.8125rem;color:var(--color-text-secondary);">
                ${errors.map(e => `<li>${e}</li>`).join('')}
              </ul>`}
       </div>
@@ -96,10 +96,11 @@ export function renderData(container, state, dm) {
         <input type="file" id="data-update-file" accept=".json,application/json" hidden>
       </div>
       <div class="data-update-message" id="data-update-message" role="status" aria-live="polite"></div>
-      <div class="data-update-preview" id="data-update-preview" hidden>
+      <div class="data-update-preview" id="data-update-preview" data-refresh-block hidden>
         <strong id="data-update-preview-title"></strong>
         <p id="data-update-preview-detail"></p>
         <button type="button" class="btn btn-primary" id="data-update-apply">确认使用新课表</button>
+        <button type="button" class="btn" id="data-update-cancel">取消导入</button>
       </div>
       <details class="data-update-help-details"><summary>获取文件与其他操作</summary>
         <p class="data-update-help">在电脑运行“抓取课表.cmd”，自行完成学校登录，使用生成的 JSON 文件。导入内容仅保存在本浏览器。</p>
@@ -140,6 +141,7 @@ export function renderData(container, state, dm) {
   }
 
   const fileInput = container.querySelector('#data-update-file');
+  container.querySelector('#data-update-cancel').onclick=()=>{pending=null;container.querySelector('#data-update-preview').hidden=true;message.textContent='已取消导入，当前课表未改动。';container.querySelector('#data-update-choose').focus({preventScroll:true});};
   container.querySelector('#data-update-choose').addEventListener('click', () => fileInput.click());
   fileInput.addEventListener('change', async () => {
     try {

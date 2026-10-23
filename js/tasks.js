@@ -1,10 +1,11 @@
-import { NOTE_SCENES, isPersistent, normalizeNoteRule, noteRuleLabel, notesForCourse } from './persistent-model.js?v=20261024-1';
-import { renderContextNotes, mountNoteActions } from './context-notes.js?v=20261024-1';
-import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems, sortHomeItems, saveHomeOrder } from './tasks-store.js?v=20261024-1';
-import { setupHoldSort } from './hold-sort.js?v=20261024-1';
-import { getTodayStr } from './time.js?v=20261024-1';
-import { setupCaptureAI } from './capture-ai.js?v=20261024-1';
-import { homeModuleHeading, readHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261024-1';
+import { NOTE_SCENES, isPersistent, normalizeNoteRule, noteRuleLabel, notesForCourse } from './persistent-model.js?v=20261024-2';
+import { renderContextNotes, mountNoteActions } from './context-notes.js?v=20261024-2';
+import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, undoItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems, sortHomeItems, saveHomeOrder } from './tasks-store.js?v=20261024-2';
+import { reconcileRows } from './ui-list.js?v=20261024-2';
+import { setupHoldSort } from './hold-sort.js?v=20261024-2';
+import { getTodayStr } from './time.js?v=20261024-2';
+import { setupCaptureAI } from './capture-ai.js?v=20261024-2';
+import { homeModuleHeading, readHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261024-2';
 
 let context = null;
 let editingId = '';
@@ -14,15 +15,25 @@ let courseFilter = '';
 let notice = '';
 
 function scope(state, dm) { return { semester: dm.getSemesterInfo().semester, className: state.currentClass }; }
-function notify(message) {
+function notify(message, undo=null) {
   const target = document.getElementById('personal-feedback');
-  target.textContent = message;
+  target.replaceChildren(document.createTextNode(message));
+  if (undo) {
+    const action=document.createElement('button'); action.type='button'; action.textContent='撤销';
+    action.addEventListener('click',()=>{try{undo();notify('已撤销，记录已恢复。');}catch(error){notify(error.message);}});
+    target.append(action);
+  }
+  const close=document.createElement('button'); close.type='button';close.textContent='×';close.setAttribute('aria-label','关闭提示');
+  close.addEventListener('click',()=>{target.hidden=true;clearTimeout(notify.timer);}); target.append(close);
   target.hidden = false;
   clearTimeout(notify.timer);
-  notify.timer = setTimeout(() => { target.hidden = true; }, 4500);
+  const dismiss=()=>{clearTimeout(notify.timer);notify.timer=setTimeout(()=>{target.hidden=true;},undo?12000:4500);};
+  target.onmouseenter=target.onfocusin=()=>clearTimeout(notify.timer);
+  target.onmouseleave=target.onfocusout=dismiss;
+  dismiss();
 }
 
-export function setupPersonalItems(state, dm, rerender, closeCourse) {
+export function setupPersonalItems(state, dm, rerender, closeCourse, routineRefresh = rerender) {
   context = { state, dm, rerender, closeCourse };
   const root = document.createElement('div');
   root.innerHTML = `
@@ -68,6 +79,7 @@ export function setupPersonalItems(state, dm, rerender, closeCourse) {
       </form>
     </dialog>`;
   document.body.append(root);
+  window.addEventListener('hashchange',()=>{clearTimeout(notify.timer);document.getElementById('personal-feedback').hidden=true;});
   const dialog = document.getElementById('capture-dialog');
   dialog.querySelector('#capture-persistent').addEventListener('change', refreshNoteForm);
   dialog.querySelector('#capture-note-scene').addEventListener('change', refreshNoteForm);
@@ -80,7 +92,7 @@ export function setupPersonalItems(state, dm, rerender, closeCourse) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
     try {
-      saveItem({
+      const savedItem=saveItem({
         ...dialog.captureScope,
         reminderMode:form.has('persistent')?'persistent':'task',
         noteRule:form.has('persistent')?{scene:form.get('noteScene'),place:(form.get('notePlace')||'').trim(),startTime:form.get('noteStart')||'',endTime:form.get('noteEnd')||'',leadMinutes:Number(form.get('noteLead')??20),weekdays:form.getAll('noteDay').map(Number)}:normalizeNoteRule(),
@@ -92,12 +104,14 @@ export function setupPersonalItems(state, dm, rerender, closeCourse) {
       }, editingId);
       dialog.close();
       rerender();
+      const row=[...document.querySelectorAll('.page-view.active [data-personal-id]')].find(node=>node.dataset.personalId===savedItem.id);
+      (row?.querySelector('[data-item-action=edit]')||document.querySelector('.page-view.active #personal-add, .page-view.active [data-today-capture]')||document.getElementById('quick-capture'))?.focus({preventScroll:true});
       notify(editingId ? '已保存修改' : '已记下，查课表时也能看到');
     } catch (error) { document.getElementById('capture-error').textContent = error.message; }
   });
   setupCaptureAI(dialog, dm, rerender, notify);
   window.addEventListener('storage', event => {
-    if (event.key === 'course-dashboard-personal-items-v1' || event.key === null) rerender();
+    if (event.key === 'course-dashboard-personal-items-v1' || event.key === null) routineRefresh('data');
   });
 }
 
@@ -189,9 +203,14 @@ function attachItemActions(container, refresh) {
         if (!item) throw new Error('这条事项已不存在，请刷新后重试');
         openCapture({ item });
       } else {
-        updateItemState(id, button.dataset.itemAction);
+        const change=updateItemState(id, button.dataset.itemAction);
         refresh();
-        notify({ complete: '已归入已完成，可在事项页恢复', reopen: '已恢复为未完成', trash: '已移入回收站，可以恢复', restore: '已恢复事项', pause:'已暂停，内容保留在长期记着中', resume:'已启用', hideToday:'今天已收起，明天恢复', showToday:'今天已恢复', stopPersistent:'已改为普通事项' }[button.dataset.itemAction]);
+        const focus=()=>{
+          const row=[...container.querySelectorAll('[data-personal-id]')].find(node=>node.dataset.personalId===id)||container.querySelector('[data-personal-id]');
+          (row?.querySelector('[data-item-action="edit"]')||row?.querySelector('button')||container.querySelector('[data-today-capture]')||document.getElementById('personal-add'))?.focus({preventScroll:true});
+        };
+        focus();
+        notify({ complete: '已完成', reopen: '已恢复为未完成', trash: '已移入回收站', restore: '已恢复事项', pause:'已暂停', resume:'已启用', hideToday:'今天已收起，明天恢复', showToday:'今天已恢复', stopPersistent:'已改为普通事项' }[button.dataset.itemAction],()=>{undoItemState(change);refresh();focus();});
       }
     } catch (error) { notify(error.message); }
   });
@@ -242,7 +261,7 @@ export function mountTodayItems(container, state, dm) {
       block.querySelector('#dash-items-count').textContent=`${items.length}条${manual&&nearest&&!shown.some(item=>item.id===nearest.id)?' · 另有临近事项':''}`;
       const today=getTodayStr(),tomorrow=new Date(`${today}T12:00`);tomorrow.setDate(tomorrow.getDate()+1);
       const tomorrowStr=`${tomorrow.getFullYear()}-${String(tomorrow.getMonth()+1).padStart(2,'0')}-${String(tomorrow.getDate()).padStart(2,'0')}`;
-      list.innerHTML=shown.length?shown.map((item,index)=>homeItemCard(item,today,tomorrowStr,sorting,index,shown.length)).join(''):'<p class="personal-muted personal-home-empty">还没有记录的事项，先记一句就好。</p>';
+      reconcileRows(list,shown.length?shown.map((item,index)=>homeItemCard(item,today,tomorrowStr,sorting,index,shown.length)).join(''):'<p class="personal-muted personal-home-empty">还没有记录的事项，先记一句就好。</p>','data-personal-id');
       block.querySelector('#home-order-help').textContent=manual?'手动顺序 · 长按卡片可调整':'临近时间优先 · 长按卡片拖动';
       block.querySelector('[data-order-reset]').hidden=!manual||!sorting;
       block.querySelector('[data-order-edit]').hidden=items.length<2&&!sorting;
@@ -271,7 +290,7 @@ export function mountTodayItems(container, state, dm) {
     }catch(error){announce(error.message);}
   });
   block.querySelector('[data-today-capture]')?.addEventListener('click', () => openCapture());
-  attachItemActions(block, () => context.rerender());
+  attachItemActions(block, () => renderList());
   renderList();
   const layoutChanged=()=>{sorting=false;renderList();};
   const storage=event=>{if(event.key===HOME_LAYOUT_KEY||event.key===null)layoutChanged();};
@@ -316,16 +335,21 @@ export function renderTasks(container, state, dm) {
     <div class="personal-tabs"${!all.length ? ' hidden' : ''} role="group" aria-label="事项状态">${[['open', '未完成'], ['notes','长期记着'], ['done', '已完成'], ['trash', '回收站']].map(([key, label]) => `<button type="button" data-personal-tab="${key}" aria-pressed="${activeTab === key}" class="${activeTab === key ? 'active' : ''}">${label} <span>${counts[key]}</span></button>`).join('')}</div>
     <div class="personal-filters"${!all.length ? ' hidden' : ''}><label>搜索<input type="search" id="personal-search" placeholder="搜索通知原话或下一步" value="${esc(search)}"></label><label>课程<select id="personal-course-filter"><option value="">全部课程与未关联事项</option>${courses.map(name => `<option value="${esc(name)}" ${courseFilter === name ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label></div>
     <div id="personal-list"></div>
-    <details class="personal-backup card"><summary>保存与备份</summary><p>个人事项保存在当前浏览器，刷新后仍在。本地预览与在线网站各自保存；云同步尚未启用。换设备前可以导出备份。</p><p>备份包含所有班级、学期的个人事项，也包含长期记着、已完成和回收站中的记录。</p><div class="personal-backup-actions"><button type="button" class="btn" id="personal-export">导出备份</button><button type="button" class="btn" id="personal-import">恢复备份</button><input type="file" id="personal-import-file" accept=".json,application/json" hidden></div><div id="personal-import-preview" hidden></div><p id="personal-backup-message" role="status">${esc(notice)}</p></details>
+    <details class="personal-backup card"><summary>保存与备份</summary><p>个人事项保存在当前浏览器，刷新后仍在。本地预览与在线网站各自保存；云同步尚未启用。换设备前可以导出备份。</p><p>备份包含所有班级、学期的个人事项，也包含长期记着、已完成和回收站中的记录。</p><div class="personal-backup-actions"><button type="button" class="btn" id="personal-export">导出备份</button><button type="button" class="btn" id="personal-import">恢复备份</button><input type="file" id="personal-import-file" accept=".json,application/json" hidden></div><div id="personal-import-preview" data-refresh-block hidden></div><p id="personal-backup-message" role="status">${esc(notice)}</p></details>
   </div>`;
   function showList() {
     const filtered = sortItems(all.filter(item => (activeTab === 'trash' ? !!item.deletedAt : !item.deletedAt && (activeTab === 'done' ? !!item.completedAt : !item.completedAt && (activeTab==='notes'?isPersistent(item):!isPersistent(item)))) &&
       (!courseFilter || item.courseName === courseFilter) && (!search || `${item.title} ${item.text} ${item.location} ${item.nextStep} ${item.courseName}`.toLowerCase().includes(search.toLowerCase()))));
     const list = container.querySelector('#personal-list');
-    list.innerHTML = filtered.length ? filtered.map(item => itemCard(item, today)).join('') : `<div class="personal-empty"><h2>${search || courseFilter ? '没有找到匹配的事项' : activeTab === 'done' ? '完成的事情会留在这里' : activeTab === 'trash' ? '回收站是空的' : activeTab==='notes'?'长期要记住的小事放在这里':'先记住一件小事'}</h2><p>${activeTab === 'open' && !search && !courseFilter ? '只写一句话就能保存，日期和课程都可以以后补。' : '可以调整筛选，或到其他状态中查看。'}</p></div>`;
+    reconcileRows(list,filtered.length ? filtered.map(item => itemCard(item, today)).join('') : `<div class="personal-empty"><h2>${search || courseFilter ? '没有找到匹配的事项' : activeTab === 'done' ? '完成的事情会留在这里' : activeTab === 'trash' ? '回收站是空的' : activeTab==='notes'?'长期要记住的小事放在这里':'先记住一件小事'}</h2><p>${activeTab === 'open' && !search && !courseFilter ? '只写一句话就能保存，日期和课程都可以以后补。' : '可以调整筛选，或到其他状态中查看。'}</p></div>`,'data-personal-id');
   }
   showList();
-  attachItemActions(container.querySelector('#personal-list'), () => renderTasks(container, state, dm));
+  attachItemActions(container.querySelector('#personal-list'), () => {
+    all=itemsForScope(currentScope);
+    const counts={open:all.filter(item=>!isPersistent(item)&&!item.completedAt&&!item.deletedAt).length,notes:all.filter(item=>isPersistent(item)&&!item.completedAt&&!item.deletedAt).length,done:all.filter(item=>item.completedAt&&!item.deletedAt).length,trash:all.filter(item=>item.deletedAt).length};
+    container.querySelectorAll('[data-personal-tab]').forEach(button=>button.querySelector('span').textContent=counts[button.dataset.personalTab]);
+    showList();
+  });
   container.querySelector('#personal-add').addEventListener('click', () => openCapture());
   container.querySelectorAll('[data-personal-tab]').forEach(button => button.addEventListener('click', () => { activeTab = button.dataset.personalTab; renderTasks(container, state, dm); }));
   container.querySelector('#personal-search').addEventListener('input', event => { search = event.target.value; showList(); });
@@ -343,8 +367,9 @@ export function renderTasks(container, state, dm) {
       if (!selected) return;
       if (selected.size > 8 * 1024 * 1024) throw new Error('备份过大，请选择8MB以内的个人事项文件');
       const incoming = validateBackup(JSON.parse(await selected.text()));
-      preview.innerHTML = `<p>读到 ${incoming.items.length} 条事项。将按编号合并；已有的较新修改会保留。</p><button type="button" class="btn btn-primary">确认合并恢复</button>`;
+      preview.innerHTML = `<p>读到 ${incoming.items.length} 条事项。将按编号合并；已有的较新修改会保留。</p><button type="button" class="btn btn-primary">确认合并恢复</button><button type="button" class="btn" data-cancel-import>取消</button>`;
       preview.hidden = false;
+      preview.querySelector('[data-cancel-import]').onclick=()=>{preview.hidden=true;backupMessage.textContent='已取消恢复，事项未改动。';};
       preview.querySelector('button').addEventListener('click', () => {
         try { const result = mergeBackup(incoming); notice = `恢复完成：新增 ${result.added} 条，更新 ${result.updated} 条。`; renderTasks(container, state, dm); notify(notice); }
         catch (error) { backupMessage.textContent = error.message; }

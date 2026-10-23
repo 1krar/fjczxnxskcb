@@ -1,5 +1,5 @@
-import { getCurrentWeek, formatDuration, getWeekDates } from './time.js?v=20261024-1';
-import { showCourseDetail } from './app.js?v=20261024-1';
+import { getCurrentWeek, formatDuration, getWeekDates } from './time.js?v=20261024-2';
+import { showCourseDetail } from './app.js?v=20261024-2';
 
 let tickHandler = null;
 let activeTab = 'overview';
@@ -112,12 +112,12 @@ function renderOverview(dm, className, week, info) {
           </div>
         </div>
         <div style="margin-top:16px;">
-          <div style="font-size:13px;color:var(--color-text-secondary);margin-bottom:8px;">每日课程分布</div>
+          <div style="font-size:0.8125rem;color:var(--color-text-secondary);margin-bottom:8px;">每日课程分布</div>
           ${Object.entries(weekStats.byDay).filter(([d]) => d <= 5).map(([day, stats]) => `
             <div class="stat-bar-row" style="margin-bottom:6px;">
-              <span style="font-size:12px;width:32px;color:var(--color-text-secondary);">${dayNames[parseInt(day)-1]}</span>
+              <span style="font-size:0.75rem;width:32px;color:var(--color-text-secondary);">${dayNames[parseInt(day)-1]}</span>
               <div class="stat-bar"><div class="stat-bar-fill" style="width:${(stats.courses / maxDayCourses) * 100}%"></div></div>
-              <span class="mono" style="font-size:12px;min-width:70px;text-align:right;color:var(--color-text-secondary);">${stats.courses}次课 ${stats.sections}节</span>
+              <span class="mono" style="font-size:0.75rem;min-width:70px;text-align:right;color:var(--color-text-secondary);">${stats.courses}次课 ${stats.sections}节</span>
             </div>`).join('')}
         </div>
       </div>
@@ -241,7 +241,7 @@ function renderFreeTime(dm, className, week) {
         <div class="free-time-grid" style="margin-top:20px;">
           ${analysis.map(day => `
             <div class="free-time-day">
-              <div class="free-time-day-header">${dayNames[day.weekday - 1]} <span style="font-weight:400;color:var(--color-text-secondary);font-size:12px;">无课 ${Math.round(day.totalFreeMin / 60 * 10) / 10}小时</span></div>
+              <div class="free-time-day-header">${dayNames[day.weekday - 1]} <span style="font-weight:400;color:var(--color-text-secondary);font-size:0.75rem;">无课 ${Math.round(day.totalFreeMin / 60 * 10) / 10}小时</span></div>
               <div class="free-time-slots">
                 ${day.slots.map(slot => {
                   const flex = slot.type === 'busy' ? '2' : '1';
@@ -250,7 +250,7 @@ function renderFreeTime(dm, className, week) {
               </div>
             </div>`).join('')}
         </div>
-        <div style="margin-top:16px;display:flex;gap:16px;font-size:12px;color:var(--color-text-secondary);">
+        <div style="margin-top:16px;display:flex;gap:16px;font-size:0.75rem;color:var(--color-text-secondary);">
           <span><span style="display:inline-block;width:12px;height:12px;background:var(--color-primary);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>有课</span>
           <span><span style="display:inline-block;width:12px;height:12px;background:var(--color-border-light);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>无课</span>
           <span><span style="display:inline-block;width:12px;height:12px;background:var(--color-warning-light);border-radius:2px;vertical-align:middle;margin-right:4px;"></span>含午间的无课时段</span>
@@ -291,7 +291,7 @@ function attachTeacherRowEvents(el, dm, className) {
 
       detailContainer.innerHTML = `
         <div class="card" style="margin-top:12px;padding:0;overflow:hidden;">
-          <div style="font-size:16px;font-weight:700;padding:16px 16px 12px;">${teacher} · ${teacherStat.count}次</div>
+          <div style="font-size:1rem;font-weight:700;padding:16px 16px 12px;">${teacher} · ${teacherStat.count}次</div>
           <div class="table-scroll">
             <table class="stat-table sticky-table">
               <thead><tr><th>课程</th><th>日期</th><th>节次</th><th>时间</th><th>地点</th></tr></thead>
@@ -323,7 +323,7 @@ function attachRoomRowEvents(el, dm, className) {
 
       detailContainer.innerHTML = `
         <div class="card" style="margin-top:12px;padding:0;overflow:hidden;">
-          <div style="font-size:16px;font-weight:700;padding:16px 16px 12px;">${room} · 使用${roomStat.count}次</div>
+          <div style="font-size:1rem;font-weight:700;padding:16px 16px 12px;">${room} · 使用${roomStat.count}次</div>
           <div class="table-scroll">
             <table class="stat-table sticky-table">
               <thead><tr><th>课程</th><th>日期</th><th>节次</th><th>教师</th></tr></thead>

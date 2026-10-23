@@ -1,4 +1,4 @@
-import { animateReorder } from './hold-sort.js?v=20261024-1';
+import { animateReorder } from './hold-sort.js?v=20261024-2';
 
 export const HOME_LAYOUT_KEY = 'course-dashboard-home-layout-v1';
 const modules = ['items','courses'];

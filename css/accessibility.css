@@ -1,0 +1,65 @@
+/* Optional display preferences share the same styles as the default interface. */
+html[data-text-size="normal"] { font-size:100%; }
+html[data-text-size="large"] { font-size:125%; }
+html[data-text-size="larger"] { font-size:150%; }
+html[data-text-size="maximum"] { font-size:200%; }
+:root { --bottom-nav-height:calc(36px + 1.5rem); --color-text-tertiary:#5b6b80; }
+:root[data-theme="dark"] {
+  --color-primary-50:#13243b;
+  --color-primary-100:#19314e;
+  --color-primary-200:#2e4a6d;
+  --color-success-50:#102b25;
+  --color-warning-50:#302619;
+  --color-danger-50:#341d26;
+  --color-danger:#f87171;
+  --color-warning:#fbbf24;
+  --color-warning-600:#fbbf24;
+  --color-text-tertiary:#94a3b8;
+  --color-success-600:#4ade80;
+}
+:root[data-theme="dark"] .btn-primary { color:var(--color-slate-950); }
+:root[data-theme="dark"] .btn-primary:hover { background:var(--color-primary); }
+:root[data-theme="dark"] .badge-success, :root[data-theme="dark"] .garment-state.state-ready { color:#86efac; }
+:root[data-theme="dark"] .badge-warning, :root[data-theme="dark"] .garment-state.state-drying { color:#fde68a; }
+:root[data-theme="dark"] :is(.personal-error,.daily-error,.error-banner,.is-overdue) { color:var(--color-danger); }
+:root[data-theme="dark"] :is(.sch-course,.sch-course.in-progress,.m-agenda-item.in-progress) { background:color-mix(in srgb,var(--color-primary) 8%,var(--color-surface)); }
+:root[data-theme="dark"] .sch-course.finished { background:var(--color-surface-subtle); }
+:root[data-theme="dark"] :is(.sch-course.in-progress .sch-course-name,.m-agenda-item.in-progress .m-ag-name) { color:var(--color-text); }
+:root[data-theme="dark"] .m-day-chip.today .m-day-chip-date { color:var(--color-primary); }
+:root[data-theme="dark"] .m-day-chip.active :is(.m-day-chip-name,.m-day-chip-date) { color:var(--color-slate-950); }
+.refresh-notice { margin:0 0 12px; padding:10px 12px; border-radius:8px; background:var(--color-primary-tint); color:var(--color-text-secondary); font-size:.8125rem; line-height:1.65; }
+.refresh-notice[hidden] { display:none; }
+.personal-page-heading { flex-wrap:wrap; }
+.settings-row { flex-wrap:wrap; gap:8px 16px; }
+.settings-control { max-width:100%; min-width:0; }
+.settings-select { max-width:100%; min-width:0; }
+.m-day-chip { min-width:max(44px,2.75rem); }
+.sch-grid { grid-template-columns:max(60px,4.5rem) repeat(var(--schedule-days,5),minmax(0,1fr)); }
+.sch-grid[style] { grid-template-rows:2.5rem repeat(10,minmax(3.25rem,1fr))!important; }
+.detail-row { gap:12px; flex-wrap:wrap; }
+.detail-row .detail-value { min-width:0; max-width:100%; white-space:normal; overflow-wrap:anywhere; }
+html { scroll-padding-top:calc(var(--mobile-header-height) + 12px); scroll-padding-bottom:calc(var(--bottom-nav-height) + 24px); }
+.capture-dialog { max-height:calc(100dvh - 32px); }
+.detail-panel { max-height:calc(100dvh - 24px); }
+.capture-fields, .wardrobe-fields { grid-template-columns:repeat(auto-fit,minmax(min(100%,9rem),1fr)); }
+.m-ag-time { width:max(48px,3.25rem); flex:0 0 max(48px,3.25rem); }
+.agenda-item { grid-template-columns:3.25rem minmax(0,1fr); }
+.data-info-value { white-space:normal; overflow-wrap:anywhere; }
+body:has(dialog[open]) { overflow:hidden; }
+dialog.detail-overlay { width:100%; height:100%; max-width:none; max-height:none; margin:0; border:0; color:var(--color-text); }
+dialog.detail-overlay:not([open]) { display:none; }
+dialog.detail-overlay::backdrop { background:transparent; }
+.personal-feedback { display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; }
+.personal-feedback[hidden] { display:none; }
+.personal-feedback button { min-width:44px; min-height:44px; font-size:.875rem; color:var(--color-primary); font-weight:600; }
+.personal-feedback button[aria-label] { margin-left:auto; }
+.reminder-tray { padding:8px 14px; }
+.reminder-disclosure > summary { min-height:44px; cursor:pointer; font-size:.8125rem; line-height:1.6; }
+.reminder-disclosure > summary > .agenda-tag { margin:0 8px 2px 0; }
+.reminder-disclosure > summary > strong { font-size:.875rem; font-weight:600; overflow-wrap:anywhere; }
+.reminder-disclosure:not([open]) > summary > strong { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
+:root[data-motion="reduce"] *, :root[data-motion="reduce"] *::before, :root[data-motion="reduce"] *::after {
+  animation-duration:.01ms!important; animation-iteration-count:1!important;
+  transition-duration:.01ms!important; scroll-behavior:auto!important;
+}
+:root[data-motion="reduce"] .page-view.active { animation:none!important; }

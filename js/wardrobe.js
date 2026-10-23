@@ -1,14 +1,17 @@
-import { mountWearLog } from './wear-log.js?v=20261024-1';
-import { visibleWearCandidates, wearUsageIndex } from './wear-model.js?v=20261024-1';
-import { saveWearSelection, selectedWear } from './wear-store.js?v=20261024-1';
+import { reconcileRows } from './ui-list.js?v=20261024-2';
+import { markFormSaved } from './refresh-guard.js?v=20261024-2';
+import { reducedMotion } from './motion.js?v=20261024-2';
+import { mountWearLog } from './wear-log.js?v=20261024-2';
+import { visibleWearCandidates, wearUsageIndex } from './wear-model.js?v=20261024-2';
+import { saveWearSelection, selectedWear } from './wear-store.js?v=20261024-2';
 import { CATEGORIES, COLORS, CLOTHING_STATES, DEFAULT_PROFILE, DAILY_KEY, readDailyData, rawDailyData, emptyDailyData,
-  validateDailyData, addGarments, editGarment, changeGarmentState, setArchived, saveOutfit, saveRunPlan, saveDailyProfile, mergeDailyBackup } from './daily-store.js?v=20261024-1';
-import { localDate, nextDate, planOutfits, isAvailable, runningSuitable } from './daily-model.js?v=20261024-1';
-import { cachedWeather, refreshWeather } from './weather-client.js?v=20261024-1';
-import { weatherSummary } from './weather-model.js?v=20261024-1';
-import { aiEnabled, callAI } from './ai-client.js?v=20261024-1';
-import { outfitAIInput, applyOutfitChoice } from './outfit-ai.js?v=20261024-1';
-import { escapeText as esc, validDate } from './tasks-store.js?v=20261024-1';
+  validateDailyData, addGarments, editGarment, changeGarmentState, setArchived, saveOutfit, saveRunPlan, saveDailyProfile, mergeDailyBackup } from './daily-store.js?v=20261024-2';
+import { localDate, nextDate, planOutfits, isAvailable, runningSuitable } from './daily-model.js?v=20261024-2';
+import { cachedWeather, refreshWeather } from './weather-client.js?v=20261024-2';
+import { weatherSummary } from './weather-model.js?v=20261024-2';
+import { aiEnabled, callAI } from './ai-client.js?v=20261024-2';
+import { outfitAIInput, applyOutfitChoice } from './outfit-ai.js?v=20261024-2';
+import { escapeText as esc, validDate } from './tasks-store.js?v=20261024-2';
 
 const optionHTML = (values, selected) => Object.entries(values).map(([value, label]) => `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(label)}</option>`).join('');
 const numberField = (label, name, value, max = 180) => `<label>${label}<input name="${name}" type="number" min="0" max="${max}" value="${value}"></label>`;
@@ -35,23 +38,26 @@ function profileForm(profile) {
     <button type="submit" class="btn btn-primary">保存生活偏好</button></form>`;
 }
 
+const wardrobeView={date:'',followTomorrow:true};
+
 export function renderWardrobe(container, state, dm) {
   let data;
   let corrupt = false;
   let initialError = '';
   try { data = readDailyData(); } catch (error) { data = emptyDailyData(); corrupt = true; initialError = error.message; }
-  let selectedDate = nextDate(localDate(new Date()));
+  let selectedDate = wardrobeView.followTomorrow ? nextDate(localDate(new Date())) : wardrobeView.date;
   let incoming = null;
   let importNumber = 0;
   let rawDownloaded = false;
   const shownCandidates=new Map();
+  let preferenceDirty=false;
   let disposed = false, latestPlan = null, aiBusy = '', aiChoices = {}, weatherSerial = 0;
 
   container.innerHTML = `<div class="wardrobe-page"><header class="wardrobe-header"><div><h1>小衣橱</h1><p id="wardrobe-intro">选明天穿搭，也记下实际穿过的衣服。</p></div><a href="#/today" class="daily-link">回到今日 →</a></header>
-    <p id="wardrobe-feedback" class="daily-feedback" role="status">${esc(initialError)}</p>
+    <p id="wardrobe-feedback" data-save-feedback class="daily-feedback" role="status">${esc(initialError)}</p>
     <div class="wardrobe-layout"><div class="wardrobe-main-column">
       <section class="wardrobe-card" id="wardrobe-plan"><div class="daily-heading"><h2>穿搭准备</h2><span class="daily-tag">天气 · 活动 · 洗晒</span></div>
-        <form id="run-plan-form"><div class="wardrobe-plan-controls"><label>查看日期<input id="outfit-date" type="date" value="${selectedDate}" min="2000-01-01" max="2100-12-31" required></label><label class="daily-check-row"><input id="plan-run" type="checkbox"> 当天校园跑</label></div></form>
+        <form id="run-plan-form"><div class="wardrobe-plan-controls"><label>查看日期<input id="outfit-date" data-refresh-safe type="date" value="${selectedDate}" min="2000-01-01" max="2100-12-31" required></label><label class="daily-check-row"><input id="plan-run" type="checkbox"> 当天校园跑</label></div></form>
         <div id="wardrobe-recommendation"></div></section>
       <section class="wardrobe-card" id="wardrobe-wear"></section>
       <section class="wardrobe-card" id="wardrobe-inventory"><div class="daily-heading"><h2>我的衣物</h2><button type="button" class="daily-text-button" data-open-add>＋ 录衣物</button><select id="garment-filter" aria-label="筛选衣物状态">${optionHTML({ all: '全部状态', ...CLOTHING_STATES }, 'all')}</select></div>
@@ -67,7 +73,7 @@ export function renderWardrobe(container, state, dm) {
       <details class="wardrobe-card" id="daily-preferences"><summary>生活偏好与换句设置</summary>${profileForm(data.profile)}</details>
       <details class="wardrobe-card" id="daily-backup"><summary>保存与备份</summary><p class="daily-muted">资料仅保存在当前浏览器，换设备前请下载备份。</p><p class="daily-muted">备份包含本机衣物、常用搭配、跑步安排、穿搭计划与实穿评分、单品洗晒历史和生活偏好。个人事项仍使用待办页的独立备份。</p>
         <div class="wardrobe-bulk-actions"><button class="btn" id="download-daily-backup" type="button">下载备份</button><button class="btn" id="download-daily-raw" type="button">下载原始文件</button></div>
-        <label>选择日常助手备份<input type="file" id="import-daily-file" accept=".json,application/json"></label><div id="daily-import-preview" hidden></div></details>
+        <label>选择日常助手备份<input type="file" id="import-daily-file" accept=".json,application/json"></label><div id="daily-import-preview" data-refresh-block hidden></div></details>
     </aside></div>
     <dialog id="garment-edit-dialog" class="capture-dialog" aria-labelledby="garment-edit-title"><form id="garment-edit-form"><div class="capture-heading"><h2 id="garment-edit-title">调整这件衣服</h2><button type="button" class="capture-close" aria-label="关闭衣物编辑">×</button></div>
       <label>衣物名称<input name="name" required maxlength="120"></label><label>颜色<select name="color">${optionHTML(COLORS, 'unknown')}</select></label>
@@ -123,7 +129,7 @@ export function renderWardrobe(container, state, dm) {
       ${!data.garments.some(item => !item.deletedAt) ? '<a href="#/wardrobe" class="daily-link" data-open-add>先录几件常穿衣服 →</a>' : ''}
       ${fit.futureShortDays && data.profile.peNeedsShorts ? `<p class="daily-small">随后两天有${fit.futureShortDays}天体育课，目前确认可穿且适合运动的短裤${fit.readyShorts}条，记得结合洗晒安排轮换。</p>` : ''}
       <details class="outfit-method"${methodOpen?' open':''}><summary>搭配提示与 AI 偏好</summary>${[...new Set([...plan.daily.notes,...(plan.sport?.notes||[])])].map(note=>`<p class="daily-small">${esc(note)}</p>`).join('')}<p class="daily-small">${esc(plan.weather?`${plan.weather.location} · ${selectedDate.slice(5)} ${plan.weather.from}—${plan.weather.to}`:'所选日期暂无可用预报')}</p>
-      <label>这次想怎么穿（可选）<input id="outfit-ai-preference" maxlength="300" value="${esc(preference)}" placeholder="例如想穿牛仔裤，配色清爽一些"></label>
+      <label>这次想怎么穿（可选）<input id="outfit-ai-preference"${preferenceDirty?' data-preserve-draft':''} maxlength="300" value="${esc(preference)}" placeholder="例如想穿牛仔裤，配色清爽一些"></label>
       <p class="daily-small">AI 只在点击时调用，从已确认可穿的候选中选择；<a href="#/api">配置 AI</a>。${esc(plan.changeNote)}</p>
       <p class="daily-small">区域预报来自 <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a>（<a href="https://open-meteo.com/en/licence" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>）；冷暖与厚薄为参考，可在生活偏好调整。</p></details>`;
     wearLog.render();
@@ -145,15 +151,16 @@ export function renderWardrobe(container, state, dm) {
     const filter = $('#garment-filter').value;
     const usage=wearUsageIndex(data);
     const garments = data.garments.filter(item => !item.deletedAt && (filter === 'all' || item.state === filter));
-    $('#garment-list').innerHTML = garments.length ? garments.map(item => {
+    const garmentMarkup = garments.length ? garments.map(item => {
       const worn=usage.get(item.id);
-      return `<article class="garment-row"><div class="garment-row-heading"><label class="garment-choice"><input type="checkbox" data-garment-select value="${esc(item.id)}"${kept.has(item.id) ? ' checked' : ''}><span><strong>${esc(item.name)}</strong><span class="daily-small">${CATEGORIES[item.category].label} · ${COLORS[item.color]}${worn.lastWorn?` · 近7天 ${worn.times7}次`:''}</span></span></label><span class="garment-state state-${item.state}">${CLOTHING_STATES[item.state]}</span></div>
+      return `<article class="garment-row" data-garment-id="${esc(item.id)}"><div class="garment-row-heading"><label class="garment-choice"><input type="checkbox" data-garment-select value="${esc(item.id)}"${kept.has(item.id) ? ' checked' : ''}><span><strong>${esc(item.name)}</strong><span class="daily-small">${CATEGORIES[item.category].label} · ${COLORS[item.color]}${worn.lastWorn?` · 近7天 ${worn.times7}次`:''}</span></span></label><span class="garment-state state-${item.state}">${CLOTHING_STATES[item.state]}</span></div>
       ${item.state==='drying'?`<p class="daily-small garment-dry-hint">${item.expectedDate?`预计 ${item.expectedDate.slice(5)} 收衣，待确认干透`:'待确认干透'}</p>`:''}
       <details class="garment-detail" data-garment-detail="${esc(item.id)}"${openGarments.has(item.id)?' open':''}><summary>详情与洗晒</summary>
         <p class="daily-small">${worn.lastWorn?`近7天 ${worn.days7}天 / ${worn.times7}次 · 30天 ${worn.days30}天 / ${worn.times30}次 · 上次 ${worn.lastWorn.slice(5)}`:'暂无确认穿过的记录'}${item.needsBelt==='yes'?' · 需腰带':''}${CATEGORIES[item.category].group==='bottom'?runningSuitable(item)?' · 可作运动候选':' · 跑步时优先换装':''}</p>
         ${worn.afterWash!==null?`<p class="daily-small">本次开始洗涤后已记 ${worn.afterWash} 次${worn.sameDayUnknown?`；另有同日 ${worn.sameDayUnknown} 次未记时间，不判定先后`:''}</p>`:''}
         <div class="garment-actions"><label>状态<select data-item-state="${esc(item.id)}">${optionHTML(CLOTHING_STATES, item.state)}</select></label><button type="button" class="daily-text-button" data-edit-garment="${esc(item.id)}">调整衣物</button><button type="button" class="daily-text-button" data-archive-garment="${esc(item.id)}">收起</button></div></details></article>`;
     }).join('') : '<p class="daily-muted">这个状态下没有衣物，可以换个筛选查看。</p>';
+    reconcileRows($('#garment-list'),garmentMarkup,'data-garment-id');
     selectedCount();
     const picked = new Set([...container.querySelectorAll('[name=outfitGarment]:checked')].map(input => input.value));
     const active = data.garments.filter(item => !item.deletedAt);
@@ -189,14 +196,15 @@ export function renderWardrobe(container, state, dm) {
         if (target.checked && !panel) $('#add-garment-panels').insertAdjacentHTML('beforeend', addPanel(target.value));
         else if (!target.checked) panel?.remove();
       } else if (target.id === 'plan-run') {
-        guard(); saveRunPlan(selectedDate,target.checked); reload('这天的校园跑安排已保存');
+        guard(); wardrobeView.date=selectedDate;wardrobeView.followTomorrow=false;saveRunPlan(selectedDate,target.checked); markFormSaved($('#run-plan-form')); reload('这天的校园跑安排已保存');
       } else if (target.id === 'garment-filter') refreshLists();
       else if (target.id === 'select-all-garments') {
         container.querySelectorAll('[data-garment-select]').forEach(input => input.checked = target.checked); selectedCount();
       } else if (target.matches('[data-garment-select]')) selectedCount();
       else if (target.name === 'outfitGarment' && target.checked) container.querySelectorAll(`[name=outfitGarment][data-group="${target.dataset.group}"]`).forEach(input => { if (input !== target) input.checked = false; });
       else if (target.id === 'outfit-date') {
-        if (!validDate(target.value)) throw new Error('请选择有效日期'); selectedDate = target.value; refreshRecommendation();
+        if (!validDate(target.value)) throw new Error('请选择有效日期'); selectedDate = target.value;
+        wardrobeView.date=selectedDate; wardrobeView.followTomorrow=selectedDate===nextDate(localDate(new Date())); refreshRecommendation();
       } else if (target.matches('[data-item-state]')) {
         guard(); changeGarmentState([target.dataset.itemState], target.value, $('#dry-expected-date').value); reload('衣物状态已更新');
       }
@@ -214,25 +222,26 @@ export function renderWardrobe(container, state, dm) {
     const button = event.target.closest('button, [data-open-add]');
     if (!button || !container.contains(button)) return;
     try {
-      if(button.matches('[data-outfit-weather]')) { button.disabled=true;await updateWeather(true);if(button.isConnected)button.disabled=false; }
+      if(button.id==='cancel-daily-import'){incoming=null;$('#daily-import-preview').hidden=true;feedback('已取消恢复，衣橱未改动');}
+      else if(button.matches('[data-outfit-weather]')) { button.disabled=true;await updateWeather(true);if(button.isConnected)button.disabled=false; }
       else if(button.dataset.selectOutfit) {
-        guard();const purpose=button.dataset.selectOutfit,sets=shownCandidates.get(purpose)||[],set=sets[Number(button.dataset.candidateIndex)];
+        guard();wardrobeView.date=selectedDate;wardrobeView.followTomorrow=false;const purpose=button.dataset.selectOutfit,sets=shownCandidates.get(purpose)||[],set=sets[Number(button.dataset.candidateIndex)];
         saveWearSelection(selectedDate,purpose,set,sets,{weatherText:latestPlan.weather?weatherSummary(latestPlan.weather):'',preference:$('#outfit-ai-preference').value.trim(),courses:dm.getCoursesByDate(state.currentClass,selectedDate).map(course=>course.courseName).slice(0,20)});
-        reload('已选作计划，实际穿过后再确认；选中不会增加穿着次数');
+        preferenceDirty=false;reload('已选作计划，实际穿过后再确认；选中不会增加穿着次数');
         [...container.querySelectorAll('[data-select-outfit]')].find(node=>node.dataset.selectOutfit===purpose&&node.dataset.candidateIndex===button.dataset.candidateIndex)?.focus({preventScroll:true});
       }
       else if(button.dataset.aiOutfit) {
         if(!aiEnabled('outfit'))throw Error('请到 API 设置启用 AI 穿搭并填写个人访问口令。');
         const purpose=button.dataset.aiOutfit, input=outfitAIInput(latestPlan,purpose,$('#outfit-ai-preference').value,data.profile), signature=JSON.stringify(outfitAIInput(latestPlan,purpose,'',data.profile));
-        aiBusy=purpose;refreshRecommendation();feedback('AI 正在结合你的想法挑选…');
+        wardrobeView.date=selectedDate;wardrobeView.followTomorrow=false;aiBusy=purpose;$('#wardrobe-plan').setAttribute('aria-busy','true');refreshRecommendation();feedback('AI 正在结合你的想法挑选…');
         try {
           const result=await callAI('outfit',input);
           if(disposed)return;
           if(purpose==='sport'&&!latestPlan.sport||signature!==JSON.stringify(outfitAIInput(latestPlan,purpose,'',data.profile))||input.preference!==$('#outfit-ai-preference').value.trim()) {feedback('日期、衣物、天气或想法已变化，请按当前候选重新挑选。');return;}
           aiChoices[purpose]={...applyOutfitChoice(input,purpose==='sport'?latestPlan.sport:latestPlan.daily,result),signature};feedback('AI 已选好；不会改变衣物的洗晒状态。');
-        } finally {aiBusy='';if(!disposed)refreshRecommendation();}
+        } finally {aiBusy='';if(!disposed){$('#wardrobe-plan').removeAttribute('aria-busy');markFormSaved($('#wardrobe-plan'));refreshRecommendation();}}
       }
-      else if (button.matches('[data-open-add]')) { event.preventDefault(); $('#add-garments').open = true; $('#add-garments').scrollIntoView({ behavior: 'smooth' }); }
+      else if (button.matches('[data-open-add]')) { event.preventDefault(); $('#add-garments').open = true; $('#add-garments').scrollIntoView({ behavior: reducedMotion()?'auto':'smooth' }); }
       else if (button.dataset.bulkState) { guard(); changeGarmentState(selectedIds(), button.dataset.bulkState, $('#dry-expected-date').value); reload('所选衣物状态已更新'); }
       else if (button.dataset.editGarment) {
         guard(); const item = data.garments.find(item => item.id === button.dataset.editGarment);
@@ -271,14 +280,14 @@ export function renderWardrobe(container, state, dm) {
       } else if (form.id === 'outfit-form') {
         saveOutfit(form.elements.outfitName.value, new FormData(form).getAll('outfitGarment')); form.reset(); reload('常用搭配已连接好');
       } else if (form.id === 'run-plan-form') {
-        saveRunPlan(selectedDate, $('#plan-run').checked); reload('这天的跑步安排已保存');
+        saveRunPlan(selectedDate, $('#plan-run').checked); markFormSaved(form); reload('这天的跑步安排已保存');
       } else if (form.id === 'daily-profile-form') {
         const fields = new FormData(form); const values = {};
         for (const key of Object.keys(DEFAULT_PROFILE)) {
           if (key === 'updatedAt') continue;
           values[key] = typeof DEFAULT_PROFILE[key] === 'boolean' ? fields.has(key) : typeof DEFAULT_PROFILE[key] === 'number' ? Number(fields.get(key)) : fields.get(key);
         }
-        saveDailyProfile(values); reload('生活偏好已保存在本浏览器'); updateWeather();
+        saveDailyProfile(values); markFormSaved(form); reload('生活偏好已保存在本浏览器'); updateWeather();
         $('#dry-expected-date').value = nextDate(localDate(new Date()), data.profile.dryAfterDays);
       } else if (form.id === 'garment-edit-form') {
         editGarment(form.dataset.id, Object.fromEntries(new FormData(form))); $('#garment-edit-dialog').close(); reload('这件衣物已更新');
@@ -297,7 +306,7 @@ export function renderWardrobe(container, state, dm) {
       const parsed = validateDailyData(JSON.parse(await file.text()));
       if (token !== importNumber) return;
       incoming = parsed;
-      $('#daily-import-preview').innerHTML = `<p>已检查：${parsed.garments.length}件衣物、${parsed.outfits.length}套搭配、${parsed.plans.length}条跑步安排、${parsed.wearLogs.length}条穿搭记录和${parsed.garmentEvents.length}条洗晒历史。${corrupt ? '本机资料损坏，确认后将用此备份替换。' : '确认后合并，旧备份不会覆盖较新的修改。'}</p>${corrupt ? '<label class="daily-check-row"><input id="replace-unreadable-check" type="checkbox"> 我已下载并保留原始资料，确认替换无法读取的内容</label>' : ''}<button class="btn btn-primary" id="confirm-daily-import" type="button">确认恢复</button>`;
+      $('#daily-import-preview').innerHTML = `<p>已检查：${parsed.garments.length}件衣物、${parsed.outfits.length}套搭配、${parsed.plans.length}条跑步安排、${parsed.wearLogs.length}条穿搭记录和${parsed.garmentEvents.length}条洗晒历史。${corrupt ? '本机资料损坏，确认后将用此备份替换。' : '确认后合并，旧备份不会覆盖较新的修改。'}</p>${corrupt ? '<label class="daily-check-row"><input id="replace-unreadable-check" type="checkbox"> 我已下载并保留原始资料，确认替换无法读取的内容</label>' : ''}<button class="btn btn-primary" id="confirm-daily-import" type="button">确认恢复</button><button class="btn" id="cancel-daily-import" type="button">取消</button>`;
       $('#daily-import-preview').hidden = false;
     } catch (error) { if (token === importNumber) feedback(`备份未导入：${error.message}`,true); }
   };
@@ -305,8 +314,12 @@ export function renderWardrobe(container, state, dm) {
   container.addEventListener('change', onChange); container.addEventListener('click', onClick); container.addEventListener('submit', onSubmit);
   $('#import-daily-file').addEventListener('change', importFile); window.addEventListener('storage', storageChanged);
   const wearLog=mountWearLog($('#wardrobe-wear'),{getData:()=>data,getDate:()=>selectedDate,onSaved:reload,guard});
+  const onInput=event=>{if(event.target.id==='outfit-ai-preference'){preferenceDirty=true;event.target.setAttribute('data-preserve-draft','');}};
+  container.addEventListener('input',onInput);
+  const routineRefresh=()=>{if(wardrobeView.followTomorrow){selectedDate=nextDate(localDate(new Date()));$('#outfit-date').value=selectedDate;}refreshLists();};
+  document.addEventListener('app:refresh-wardrobe',routineRefresh);
   const weatherChanged=()=>refreshRecommendation();
   window.addEventListener('weather:changed',weatherChanged);
   refreshLists(); updateWeather();
-  return () => { disposed=true;clearTimeout(feedbackTimer);wearLog.cleanup();weatherSerial++;window.removeEventListener('weather:changed',weatherChanged);importNumber++; $('#garment-edit-dialog')?.close(); container.removeEventListener('change', onChange); container.removeEventListener('click', onClick); container.removeEventListener('submit', onSubmit); $('#import-daily-file')?.removeEventListener('change', importFile); window.removeEventListener('storage', storageChanged); };
+  return () => { disposed=true;document.removeEventListener('app:refresh-wardrobe',routineRefresh);container.removeEventListener('input',onInput);clearTimeout(feedbackTimer);wearLog.cleanup();weatherSerial++;window.removeEventListener('weather:changed',weatherChanged);importNumber++; $('#garment-edit-dialog')?.close(); container.removeEventListener('change', onChange); container.removeEventListener('click', onClick); container.removeEventListener('submit', onSubmit); $('#import-daily-file')?.removeEventListener('change', importFile); window.removeEventListener('storage', storageChanged); };
 }

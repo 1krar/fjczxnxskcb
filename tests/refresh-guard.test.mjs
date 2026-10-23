@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import { createRefreshGate } from '../js/refresh-guard.js';
+
+let editing=true, refreshes=[], statuses=[], queue=[];
+const gate=createRefreshGate({canRefresh:()=>!editing,refresh:reasons=>refreshes.push(reasons),pending:value=>statuses.push(value),enqueue:task=>queue.push(task)});
+const drain=()=>{while(queue.length)queue.shift()();};
+gate.request('date'); gate.request('resize'); drain();
+assert.equal(gate.waiting,true);
+assert.equal(refreshes.length,0,'midnight and layout changes must not replace an open editor');
+editing=false; gate.flush(); gate.flush(); drain();
+assert.deepEqual(refreshes,[['date','resize']],'one safe refresh covers all deferred changes');
+assert.equal(gate.waiting,false);
+assert.deepEqual(statuses.at(-1),[]);
+gate.request('date'); editing=true; drain();
+assert.equal(refreshes.length,1,'recheck the editor after scheduling, including a dialog opened in the same click');
+gate.clear(); editing=false; gate.flush(); drain();
+assert.equal(refreshes.length,1,'an explicit route change cancels stale work');
+gate.request('resize'); drain();
+assert.deepEqual(refreshes.at(-1),['resize']);
+console.log('Deferred refresh editor, coalescing and navigation checks passed.');

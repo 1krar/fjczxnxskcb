@@ -1,9 +1,10 @@
-import { getSettings, saveSettings } from './storage.js?v=20261024-1';
-import { rerenderCurrentPage, selectClass } from './app.js?v=20261024-1';
+import { getSettings, saveSettings } from './storage.js?v=20261024-2';
+import { selectClass } from './app.js?v=20261024-2';
 
 export function renderSettings(container, state, dm) {
   const settings = getSettings();
   const classes = dm.getClasses();
+  const display=window.CourseDisplay.read();
 
   container.innerHTML = `
     <header class="personal-page-heading"><div><h1>更多</h1><p>日常准备、课表工具与设置</p></div></header>
@@ -27,6 +28,10 @@ export function renderSettings(container, state, dm) {
         <div class="analytics-card-title">显示设置</div>
 
         <div class="settings-group">
+          <div class="settings-row"><label class="settings-label" for="setting-theme">外观</label><div class="settings-control"><select class="settings-select" id="setting-theme">${[['system','跟随系统'],['light','浅色'],['dark','深色']].map(([value,label])=>`<option value="${value}"${display.theme===value?' selected':''}>${label}</option>`).join('')}</select></div></div>
+          <div class="settings-row"><label class="settings-label" for="setting-textSize">文字大小</label><div class="settings-control"><select class="settings-select" id="setting-textSize">${[['normal','标准 · 100%'],['large','较大 · 125%'],['larger','特大 · 150%'],['maximum','最大 · 200%']].map(([value,label])=>`<option value="${value}"${display.textSize===value?' selected':''}>${label}</option>`).join('')}</select></div></div>
+          <div class="settings-row"><label class="settings-label" for="setting-motion">动态效果</label><div class="settings-control"><select class="settings-select" id="setting-motion">${[['system','跟随系统'],['reduce','减少动态效果']].map(([value,label])=>`<option value="${value}"${display.motion===value?' selected':''}>${label}</option>`).join('')}</select></div></div>
+          <p class="daily-small" id="display-settings-status" role="status">选择后立即生效，仅保存在当前浏览器。</p>
           <div class="settings-row">
             <label class="settings-label" for="setting-timeFormat">时间格式</label>
             <div class="settings-control">
@@ -65,10 +70,14 @@ export function renderSettings(container, state, dm) {
     </div>
   `;
 
+  for (const name of ['theme','textSize','motion']) container.querySelector('#setting-'+name).addEventListener('change',event=>{
+    try { window.CourseDisplay.save({[name]:event.target.value}); container.querySelector('#display-settings-status').textContent='显示设置已保存。'; }
+    catch(error) { event.target.value=window.CourseDisplay.read()[name]; container.querySelector('#display-settings-status').textContent=error.message; }
+  });
+
   container.querySelector('#setting-timeFormat').addEventListener('change', (e) => {
     saveSettings({ timeFormat: e.target.value });
     state.settings = getSettings();
-    rerenderCurrentPage();
   });
 
   container.querySelector('#setting-showTeacher').addEventListener('click', (e) => {
@@ -76,7 +85,6 @@ export function renderSettings(container, state, dm) {
     e.currentTarget.setAttribute('aria-checked', String(isOn));
     saveSettings({ showTeacher: isOn });
     state.settings = getSettings();
-    rerenderCurrentPage();
   });
 
   container.querySelector('#setting-showFullLocation').addEventListener('click', (e) => {
@@ -84,7 +92,6 @@ export function renderSettings(container, state, dm) {
     e.currentTarget.setAttribute('aria-checked', String(isOn));
     saveSettings({ showFullLocation: isOn });
     state.settings = getSettings();
-    rerenderCurrentPage();
   });
 
   container.querySelector('#setting-defaultClass').addEventListener('change', (e) => {

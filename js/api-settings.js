@@ -1,5 +1,6 @@
-import { readAISettings, saveAISettings, serverStatus, callAI } from './ai-client.js?v=20261024-1';
-import { aiSessionStatus, restoreAISession, unlockAISession, logoutAISession, startAISession } from './ai-session-client.js?v=20261024-1';
+import { readAISettings, saveAISettings, serverStatus, callAI } from './ai-client.js?v=20261024-2';
+import { aiSessionStatus, restoreAISession, unlockAISession, logoutAISession, startAISession } from './ai-session-client.js?v=20261024-2';
+import { markFormSaved } from './refresh-guard.js?v=20261024-2';
 export function renderApiSettings(container) {
   const saved = readAISettings(); let disposed = false, busy = false;
   container.innerHTML = `<section class="agenda-page"><header class="agenda-heading"><div><h1>AI 与服务连接</h1><p>通知识别与每日一句</p></div></header>
@@ -16,7 +17,7 @@ export function renderApiSettings(container) {
   <p class="agenda-muted">百炼 API Key 保存在 Cloudflare 服务端。开启 AI 后，会把对应功能所需的通知、日程摘要或穿搭候选发送给百炼；个人记录仍保存在当前浏览器。</p>
   <details class="api-use-help"><summary>调用次数与授权说明</summary><p class="agenda-muted">各 AI 功能合计：每分钟最多2次、每天默认20次。每日一句在每天首次打开或回到主页时自动生成；失败后有限重试。关闭网页期间不会后台生成。穿搭仅手动调用；天气不占 AI 次数。</p>
   <p class="agenda-muted">支持6位数字口令。同一网络15分钟内输错5次会暂停验证；全站异常尝试另有限制。原有长口令仍可使用。清除网站 Cookie 或到期后需重新解锁。</p></details>
-  <div class="settings-save-bar"><p id="api-error" class="personal-error" role="alert"></p><p id="api-saved" role="status"></p><button type="submit" class="btn btn-primary">保存设置并解锁</button></div>
+  <div class="settings-save-bar"><p id="api-error" class="personal-error" role="alert"></p><p id="api-saved" data-save-feedback role="status"></p><button type="submit" id="api-save" class="btn btn-primary">保存设置并解锁</button></div>
   <details class="api-device-tools"><summary>授权检查与退出</summary><div class="personal-backup-actions"><button type="button" class="btn" id="ai-check">检查授权</button><button type="button" class="btn" id="ai-probe">测试模型连接</button></div><p class="agenda-muted">检查授权不调用模型；测试模型连接会调用一次。</p><div class="personal-backup-actions"><button type="button" class="btn" id="ai-logout">退出当前设备</button><button type="button" class="btn" id="ai-logout-all">退出全部设备</button></div></details></form>
   <details><summary>配置与用量说明</summary><p>服务端需配置 DASHSCOPE_API_KEY、AI_ACCESS_TOKEN，并绑定 AI_DB。数据库保存用量、授权凭据摘要及有效期，不保存通知原文。修改服务端口令会让旧设备授权失效。</p><p>检查授权、记住设备及退出不调用模型；测试模型连接调用一次。</p></details></section>
   <section class="agenda-panel"><h2>其他服务</h2><div class="agenda-record"><div><strong>天气 · Open-Meteo</strong><p>区域逐小时预报，无需填写 Key。默认福州仓山附近，约30分钟缓存；获取失败时标明状态。</p></div><a href="#/wardrobe">地区与穿衣偏好 →</a></div><div class="agenda-record"><div><strong>交易日历</strong><p>使用已核对的2026年休市安排。</p></div><a href="#/reminders">提醒设置 →</a></div></section></section>`;
@@ -36,6 +37,7 @@ export function renderApiSettings(container) {
   async function run(action) {
     if (busy) return;
     busy = true; form.querySelectorAll('button').forEach(button => button.disabled = true);
+    form.setAttribute('aria-busy','true');
     error.textContent = ''; message.textContent = '正在处理…';
     try {
       if (action === 'logout' || action === 'logoutAll') {
@@ -54,6 +56,8 @@ export function renderApiSettings(container) {
     } catch (reason) { if (!disposed) { error.textContent = reason.message; message.textContent = ''; } }
     finally {
       busy = false;
+      form.removeAttribute('aria-busy');
+      if (!disposed && !error.textContent && !['logout','logoutAll'].includes(action)) markFormSaved(form);
       if (!disposed) { form.querySelectorAll('button').forEach(button => button.disabled = false); deviceStatus(); }
     }
   }

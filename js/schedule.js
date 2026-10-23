@@ -1,9 +1,9 @@
-import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse, localDate } from './time.js?v=20261024-1';
-import { segmentMarkup } from './course-segments.js?v=20261024-1';
-import { showCourseDetail } from './app.js?v=20261024-1';
-import { formatLocation } from './location.js?v=20261024-1';
-import { getCourseGaps, getDayWindow } from './day-plan.js?v=20261024-1';
-import { escapeText as esc } from './tasks-store.js?v=20261024-1';
+import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse, localDate } from './time.js?v=20261024-2';
+import { segmentMarkup } from './course-segments.js?v=20261024-2';
+import { showCourseDetail } from './app.js?v=20261024-2';
+import { formatLocation } from './location.js?v=20261024-2';
+import { getCourseGaps, getDayWindow } from './day-plan.js?v=20261024-2';
+import { escapeText as esc } from './tasks-store.js?v=20261024-2';
 
 let tickHandler = null;
 let scheduleState = { week: 1, selectedDay: 1, searchOpen: false };
@@ -146,14 +146,14 @@ function getCurrentTimePosition(sectionTimes, season, now) {
 export function renderSchedule(container, state, dm) {
   const info = dm.getSemesterInfo();
   const sectionTimes = dm.getSectionTimes();
-  scheduleState.week = state.scheduleWeek || Math.max(info.firstWeek, Math.min(info.lastWeek, getCurrentWeek(info.semesterStart)));
+  scheduleState.week = state.scheduleFollowToday !== false ? Math.max(info.firstWeek, Math.min(info.lastWeek, getCurrentWeek(info.semesterStart))) : state.scheduleWeek || Math.max(info.firstWeek, Math.min(info.lastWeek, getCurrentWeek(info.semesterStart)));
 
   const currentWeek = Math.max(1, getCurrentWeek(info.semesterStart));
   const now = new Date();
   const todayStr = localDate(now);
   const todayWeekday = now.getDay() === 0 ? 7 : now.getDay();
 
-  if (scheduleState.week === currentWeek) {
+  if (state.scheduleFollowToday !== false && scheduleState.week === currentWeek) {
     scheduleState.selectedDay = todayWeekday;
   } else {
     scheduleState.selectedDay = scheduleState.selectedDay || 1;
@@ -681,7 +681,7 @@ export function renderSchedule(container, state, dm) {
 
     if (prevBtn) prevBtn.addEventListener('click', () => {
       if (scheduleState.week > info.firstWeek) {
-        scheduleState.week--;
+        scheduleState.week--; state.scheduleFollowToday=false;
         state.scheduleWeek = scheduleState.week;
         rerender();
       }
@@ -689,7 +689,7 @@ export function renderSchedule(container, state, dm) {
 
     if (nextBtn) nextBtn.addEventListener('click', () => {
       if (scheduleState.week < info.lastWeek) {
-        scheduleState.week++;
+        scheduleState.week++; state.scheduleFollowToday=false;
         state.scheduleWeek = scheduleState.week;
         rerender();
       }
@@ -700,12 +700,12 @@ export function renderSchedule(container, state, dm) {
       state.scheduleWeek = scheduleState.week;
       const now = new Date();
       const wd = now.getDay() === 0 ? 7 : now.getDay();
-      scheduleState.selectedDay = wd;
+      scheduleState.selectedDay = wd; state.scheduleFollowToday=true;
       rerender();
     });
 
     container.querySelector('#schedule-empty-next')?.addEventListener('click', () => {
-      scheduleState.week++; scheduleState.selectedDay = 1;
+      scheduleState.week++; state.scheduleFollowToday=false; scheduleState.selectedDay = 1;
       state.scheduleWeek = scheduleState.week; rerender();
     });
 
@@ -737,7 +737,7 @@ export function renderSchedule(container, state, dm) {
     if (dayPicker) {
       dayPicker.querySelectorAll('.m-day-chip').forEach(chip => {
         chip.addEventListener('click', () => {
-          scheduleState.selectedDay = parseInt(chip.dataset.day);
+          scheduleState.selectedDay = parseInt(chip.dataset.day); state.scheduleFollowToday=getWeekDates(scheduleState.week,info.semesterStart)[scheduleState.selectedDay-1]===localDate(new Date());
           rerender();
         });
       });
@@ -794,7 +794,7 @@ export function renderSchedule(container, state, dm) {
               const r = results[idx];
               scheduleState.week = r.week;
               state.scheduleWeek = scheduleState.week;
-              scheduleState.selectedDay = r.weekday || 1;
+              scheduleState.selectedDay = r.weekday || 1; state.scheduleFollowToday=r.date===localDate(new Date());
               scheduleState.searchOpen = false;
               rerender();
             });

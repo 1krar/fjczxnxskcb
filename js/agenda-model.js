@@ -1,4 +1,4 @@
-import { localDate, getCoursePhase } from './time.js?v=20261024-1';
+import { localDate, getCoursePhase } from './time.js?v=20261024-2';
 
 export const MARKET_CALENDAR = { from: '2026-01-01', through: '2026-12-31', checkedAt: '2026-10-20',
   source: 'https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml' };
@@ -104,7 +104,7 @@ export function buildReminders({ date, courses, activities, tasks, prefs, profil
     if(!item.dueTime&&!prefs.dateOnlyReminder)continue;
     const target=at(item.dueDate,item.dueTime||'00:00'),remindAt=item.dueTime?new Date(+target-prefs.taskLeadHours*3600000):at(addDate(item.dueDate,-1),prefs.dateOnlyTime);
     if(localDate(remindAt)>date||item.dueDate<date)continue;
-    reminders.push({ key:`task:${item.id}`,type:'task',title:`提前准备：${item.text}`,start:target,remindAt,expires:item.dueTime?target:at(addDate(item.dueDate),'00:00'),detail:`${item.dueDate}${item.dueTime?` ${item.dueTime} 截止`:' 的日期事项 · 具体截止时间未设'}${item.nextStep?` · 下一步：${item.nextStep}`:''}` });
+    reminders.push({ key:`task:${item.id}`,type:'task',title:`${item.title||item.text.slice(0,120)+(item.text.length>120?'…':'')}`,start:target,remindAt,expires:item.dueTime?target:at(addDate(item.dueDate),'00:00'),detail:`${item.dueDate}${item.dueTime?` ${item.dueTime} ${item.timeRole==='start'?'开始':item.timeRole==='deadline'?'截止':'所设时刻'}`:' 的日期事项 · 具体时刻未设'}${item.nextStep?` · 下一步：${item.nextStep}`:''}` });
   }
   for(const item of activities.filter(item=>item.status!=='cancelled'&&item.registrationDate&&item.registrationTime)) {
     const target=at(item.registrationDate,item.registrationTime),remindAt=new Date(+target-prefs.taskLeadHours*3600000);

@@ -496,7 +496,7 @@
 }
 
 .today-semester .section-label {
-  font-size: 10px;
+  font-size: 0.625rem;
   letter-spacing: 0.06em;
   margin-bottom: 0;
   display: none;
@@ -512,7 +512,7 @@
 
 .semester-week::before {
   content: '学期进度';
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 700;
   color: var(--color-text-tertiary);
   text-transform: uppercase;
@@ -543,7 +543,7 @@
 }
 
 .semester-percent {
-  font-size: 10px;
+  font-size: 0.625rem;
   color: var(--color-text-tertiary);
   font-weight: var(--font-weight-medium);
   background: transparent;
@@ -1003,7 +1003,7 @@
 .badge-muted {
   background: var(--color-slate-100);
   color: var(--color-slate-500);
-  font-size: 10px;
+  font-size: 0.625rem;
   padding: 3px 8px;
   font-weight: var(--font-weight-semibold);
 }

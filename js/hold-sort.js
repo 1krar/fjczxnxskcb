@@ -1,10 +1,12 @@
+import { reducedMotion } from './motion.js?v=20261024-2';
+
 const moveAnimations = new WeakMap();
 // Animate existing nodes only. The DOM order changes immediately for keyboard and reading order.
 export function animateReorder(list, change, excluded = null) {
   const nodes = [...list.children];
   const positions = new Map(nodes.map(node => [node, node.getBoundingClientRect().top]));
   change();
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (reducedMotion()) return;
   for (const node of nodes) {
     if (node === excluded || !node.isConnected || !node.animate) continue;
     moveAnimations.get(node)?.cancel();

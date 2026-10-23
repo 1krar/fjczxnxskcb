@@ -1,7 +1,8 @@
-import { CATEGORIES } from './daily-store.js?v=20261024-1';
-import { WEAR_SLOTS, WEAR_FEEDBACK, wearDate } from './wear-model.js?v=20261024-1';
-import { saveActualWear, changeWearRecord, samePieces } from './wear-store.js?v=20261024-1';
-import { escapeText as esc } from './tasks-store.js?v=20261024-1';
+import { reconcileRows } from './ui-list.js?v=20261024-2';
+import { CATEGORIES } from './daily-store.js?v=20261024-2';
+import { WEAR_SLOTS, WEAR_FEEDBACK, wearDate } from './wear-model.js?v=20261024-2';
+import { saveActualWear, changeWearRecord, samePieces } from './wear-store.js?v=20261024-2';
+import { escapeText as esc } from './tasks-store.js?v=20261024-2';
 
 const names=pieces=>pieces.map(piece=>piece.name).join(' ＋ ');
 export function mountWearLog(root,{getData,getDate,onSaved,guard}) {
@@ -26,10 +27,10 @@ export function mountWearLog(root,{getData,getDate,onSaved,guard}) {
     const focused=document.activeElement, focusId=focused?.closest('[data-wear-id]')?.dataset.wearId;
     const focusAction=focused?.dataset.wearAction, focusEdit=focused?.hasAttribute('data-wear-edit'), focusSummary=focused?.matches('.wear-record-more > summary');
     const data=getData(),date=getDate(),current=(data.wearLogs||[]).filter(row=>row.date===date&&!row.deletedAt&&(row.selectedPieces.length||row.actualPieces.length));
-    $('[data-wear-current]').innerHTML=current.length?current.map(record).join(''):'<p class="daily-muted">这天还没记录。选好一套后留作计划，穿过再确认。</p>';
+    reconcileRows($('[data-wear-current]'),current.length?current.map(record).join(''):'<p class="daily-muted">这天还没记录。选好一套后留作计划，穿过再确认。</p>','data-wear-id');
     const history=[...(data.wearLogs||[])].filter(row=>row.date!==date||row.deletedAt).sort((a,b)=>b.date.localeCompare(a.date)||b.updatedAt.localeCompare(a.updatedAt));
     $('.wear-history > summary').textContent=`最近记录与已收起内容 · ${history.length}条`;
-    $('[data-wear-history]').innerHTML=history.slice(0,limit).map(record).join('')||'<p class="daily-small">还没有其他记录。</p>';
+    reconcileRows($('[data-wear-history]'),history.slice(0,limit).map(record).join('')||'<p class="daily-small">还没有其他记录。</p>','data-wear-id');
     $('[data-wear-more]').hidden=history.length<=limit;
     if (focusId) {
       const row=[...root.querySelectorAll('[data-wear-id]')].find(node=>node.dataset.wearId===focusId);
@@ -76,7 +77,7 @@ export function mountWearLog(root,{getData,getDate,onSaved,guard}) {
   };
   const submit=event=>{
     if(event.target!==form)return;event.preventDefault();
-    try{guard();const fields=new FormData(form);saveActualWear({date:fields.get('wearDate'),slot:fields.get('wearSlot'),garmentIds:fields.getAll('actualGarment'),actualTime:fields.get('actualTime')||'',rating:fields.get('rating')?Number(fields.get('rating')):null,feedback:fields.getAll('wearFeedback'),comment:fields.get('comment').trim(),expectedUpdatedAt:expected});dialog.close();onSaved('已记下实际穿搭，同一日期和时段不会重复计数');render();focusRecord(id);}catch(error){$('[data-wear-error]').textContent=error.message;}
+    try{guard();const fields=new FormData(form);saveActualWear({date:fields.get('wearDate'),slot:fields.get('wearSlot'),garmentIds:fields.getAll('actualGarment'),actualTime:fields.get('actualTime')||'',rating:fields.get('rating')?Number(fields.get('rating')):null,feedback:fields.getAll('wearFeedback'),comment:fields.get('comment').trim(),expectedUpdatedAt:expected});dialog.close();onSaved('已记下实际穿搭，同一日期和时段不会重复计数');render();focusRecord(getData().wearLogs.find(row=>row.date===fields.get('wearDate')&&row.slot===fields.get('wearSlot'))?.id);}catch(error){$('[data-wear-error]').textContent=error.message;}
   };
   root.addEventListener('click',click);form.addEventListener('change',change);form.addEventListener('submit',submit);render();
   return {render,open,cleanup:()=>{dialog.close();root.removeEventListener('click',click);form.removeEventListener('change',change);form.removeEventListener('submit',submit);}};

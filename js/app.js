@@ -1,21 +1,24 @@
-import { dataManager } from './data.js?v=20261024-1';
-import { getSettings, setSelectedClass } from './storage.js?v=20261024-1';
-import { getCurrentWeek, getTodayStr } from './time.js?v=20261024-1';
-import { renderDashboard, cleanupDashboard } from './dashboard.js?v=20261024-1';
-import { renderSchedule, cleanupSchedule } from './schedule.js?v=20261024-1';
-import { renderAnalytics, cleanupAnalytics } from './analytics.js?v=20261024-1';
-import { renderCompare, cleanupCompare } from './compare.js?v=20261024-1';
-import { renderData } from './data-page.js?v=20261024-1';
-import { applySavedUpdates } from './data-update.js?v=20261024-1';
-import { renderSettings } from './settings.js?v=20261024-1';
-import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js?v=20261024-1';
-import { renderWardrobe } from './wardrobe.js?v=20261024-1';
-import { renderAgenda, selectAgendaDate } from './agenda.js?v=20261024-1';
-import { setupReminders, renderReminderSettings } from './reminders.js?v=20261024-1';
-import { renderApiSettings } from './api-settings.js?v=20261024-1';
-import { segmentMarkup } from './course-segments.js?v=20261024-1';
-import { readAISettings } from './ai-client.js?v=20261024-1';
-import { startAISession } from './ai-session-client.js?v=20261024-1';
+import { dataManager } from './data.js?v=20261024-2';
+import { getSettings, setSelectedClass } from './storage.js?v=20261024-2';
+import { getCurrentWeek, getTodayStr } from './time.js?v=20261024-2';
+import { renderDashboard, cleanupDashboard } from './dashboard.js?v=20261024-2';
+import { renderSchedule, cleanupSchedule } from './schedule.js?v=20261024-2';
+import { renderAnalytics, cleanupAnalytics } from './analytics.js?v=20261024-2';
+import { renderCompare, cleanupCompare } from './compare.js?v=20261024-2';
+import { renderData } from './data-page.js?v=20261024-2';
+import { applySavedUpdates } from './data-update.js?v=20261024-2';
+import { renderSettings } from './settings.js?v=20261024-2';
+import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js?v=20261024-2';
+import { renderWardrobe } from './wardrobe.js?v=20261024-2';
+import { renderAgenda, selectAgendaDate } from './agenda.js?v=20261024-2';
+import { setupReminders, renderReminderSettings } from './reminders.js?v=20261024-2';
+import { renderApiSettings } from './api-settings.js?v=20261024-2';
+import { segmentMarkup } from './course-segments.js?v=20261024-2';
+import { readAISettings } from './ai-client.js?v=20261024-2';
+import { startAISession } from './ai-session-client.js?v=20261024-2';
+import { createRefreshGate, trackEditors } from './refresh-guard.js?v=20261024-2';
+import { reducedMotion } from './motion.js?v=20261024-2';
+import { focusSelector } from './focus.js?v=20261024-2';
 
 const state = {
   currentClass: '',
@@ -26,7 +29,11 @@ const state = {
   now: new Date(),
   pageCleanup: null,
   isMobile: window.innerWidth <= 768,
+  scheduleFollowToday: true,
 };
+
+let refreshGate;
+let sheetCleanup;
 
 const routes = {
   today: { render: renderDashboard, cleanup: cleanupDashboard },
@@ -52,8 +59,8 @@ async function init() {
   if (!result.success) {
     $('loading-screen').innerHTML = `
       <div style="text-align:center;max-width:420px;padding:24px;">
-        <div style="font-size:18px;font-weight:600;color:#0F172A;margin-bottom:8px;">课程数据加载失败</div>
-        <div style="font-size:14px;color:#64748B;margin-bottom:20px;">请检查数据文件是否存在，然后刷新页面。</div>
+        <div style="font-size:1.125rem;font-weight:600;color:var(--color-text);margin-bottom:8px;">课程数据加载失败</div>
+        <div style="font-size:0.875rem;color:var(--color-text-secondary);margin-bottom:20px;">请检查数据文件是否存在，然后刷新页面。</div>
         <button class="btn btn-primary" onclick="location.reload()">刷新页面</button>
       </div>`;
     return;
@@ -79,7 +86,8 @@ async function init() {
   setupClassSelector();
   setupNavigation();
   setupDetailOverlay();
-  setupPersonalItems(state, dataManager, rerenderCurrentPage, closeDetailPanel);
+  setupRoutineRefresh();
+  setupPersonalItems(state, dataManager, rerenderCurrentPage, closeDetailPanel, requestPageRefresh);
   setupReminders(state, dataManager);
   startClock();
   setupResizeHandler();
@@ -99,7 +107,7 @@ function setupResizeHandler() {
       if (wasMobile !== state.isMobile) {
         updateNavActiveState();
         // Wardrobe layout already adapts in CSS; preserve open editors and dates.
-        if (state.route !== 'wardrobe') rerenderCurrentPage();
+        if (state.route !== 'wardrobe') requestPageRefresh('resize');
       }
     }, 150);
   });
@@ -209,6 +217,7 @@ function updateAllClassDisplays() {
 export function selectClass(className) {
   if (!dataManager.getClasses().some(c => c.className === className)) return;
   state.currentClass = className;
+  state.scheduleFollowToday=true;
   setSelectedClass(className);
   state.settings = getSettings();
   updateAllClassDisplays();
@@ -262,6 +271,7 @@ function setupDetailOverlay() {
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) closeDetailPanel();
   });
+  overlay.addEventListener('cancel',event=>{event.preventDefault();closeDetailPanel();});
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && overlay.classList.contains('open')) closeDetailPanel();
   });
@@ -279,8 +289,8 @@ export function showCourseDetail(course) {
   panel.innerHTML = `
     <div class="detail-header">
       <div>
-        <div id="course-detail-title" style="font-size:18px;font-weight:700;color:var(--color-text);line-height:1.4;">${course.courseName}</div>
-        <div style="font-size:13px;color:var(--color-text-secondary);margin-top:4px;">第${course.startSection}-${course.endSection}节 · ${course.startTime}—${course.endTime}</div>
+        <div id="course-detail-title" style="font-size:1.125rem;font-weight:700;color:var(--color-text);line-height:1.4;">${course.courseName}</div>
+        <div style="font-size:0.8125rem;color:var(--color-text-secondary);margin-top:4px;">第${course.startSection}-${course.endSection}节 · ${course.startTime}—${course.endTime}</div>
       </div>
       <button class="detail-close" id="detail-close-btn" aria-label="关闭课程详情">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
@@ -300,19 +310,20 @@ export function showCourseDetail(course) {
 
   mountCourseItems(panel, course);
   $('detail-close-btn').addEventListener('click', closeDetailPanel);
-  $('detail-overlay').inert = false;
-  $('detail-overlay').setAttribute('aria-hidden', 'false');
   $('detail-overlay').classList.add('open');
+  if (!$('detail-overlay').open) $('detail-overlay').showModal();
+  $('detail-close-btn').focus({preventScroll:true});
   document.body.style.overflow = 'hidden';
 
-  setupSheetDragGesture(panel);
+  sheetCleanup?.(); sheetCleanup=setupSheetDragGesture(panel);
 }
 
 function closeDetailPanel() {
+  sheetCleanup?.(); sheetCleanup=null;
   $('detail-overlay').classList.remove('open');
-  $('detail-overlay').inert = true;
-  $('detail-overlay').setAttribute('aria-hidden', 'true');
+  if ($('detail-overlay').open) $('detail-overlay').close();
   document.body.style.overflow = '';
+  document.dispatchEvent(new Event('app:editor-closed'));
 }
 
 function setupSheetDragGesture(panel) {
@@ -321,27 +332,28 @@ function setupSheetDragGesture(panel) {
   const overlay = $('detail-overlay');
   const CLOSE_THRESHOLD = 0.25;
   const VELOCITY_THRESHOLD = 500;
+  const timers=new Set();
+  const later=callback=>{const id=setTimeout(()=>{timers.delete(id);callback();},reducedMotion()?0:180);timers.add(id);};
   let startY = 0;
   let currentY = 0;
   let isDragging = false;
   let dragMode = null;
   let startTime = 0;
-  let lastDelta = 0;
-  let lastTime = 0;
 
   function onTouchStart(e) {
-    if (e.target.closest('.detail-close') || e.target.closest('button') || e.target.closest('a')) return;
+    if (e.touches.length!==1) { onTouchCancel(); return; }
+    if (e.target.closest('button,a,input,select,textarea,summary,label')) return;
     startY = e.touches[0].clientY;
     isDragging = true;
     dragMode = null;
     startTime = Date.now();
-    lastDelta = 0;
-    lastTime = Date.now();
+    currentY = 0;
     panel.style.transition = 'none';
   }
 
   function onTouchMove(e) {
     if (!isDragging) return;
+    if (e.touches.length!==1) { onTouchCancel(); return; }
     const delta = e.touches[0].clientY - startY;
 
     if (dragMode === null) {
@@ -368,12 +380,6 @@ function setupSheetDragGesture(panel) {
       const progress = currentY / panel.clientHeight;
       overlay.style.background = `rgba(15, 23, 42, ${0.35 * (1 - progress * 0.5)})`;
 
-      const now = Date.now();
-      const dt = now - lastTime;
-      if (dt > 0) {
-        lastDelta = delta;
-        lastTime = now;
-      }
     }
   }
 
@@ -390,35 +396,51 @@ function setupSheetDragGesture(panel) {
     const velocity = elapsed > 0 ? (currentY / elapsed) * 1000 : 0;
     const progress = currentY / panel.clientHeight;
 
-    panel.style.transition = 'transform var(--duration-slow) var(--ease-out)';
-    overlay.style.transition = 'background var(--duration-slow) var(--ease-out)';
+    panel.style.transition = 'transform 180ms var(--ease-out)';
+    overlay.style.transition = 'background 180ms var(--ease-out)';
 
     if (progress > CLOSE_THRESHOLD || velocity > VELOCITY_THRESHOLD) {
       panel.style.transform = 'translateY(100%)';
       overlay.style.background = 'rgba(15, 23, 42, 0)';
-      setTimeout(() => {
+      later(() => {
         closeDetailPanel();
         panel.style.transform = '';
         panel.style.transition = '';
         overlay.style.transition = '';
         overlay.style.background = '';
-      }, 300);
+      });
     } else {
       panel.style.transform = 'translateY(0)';
       overlay.style.background = '';
-      setTimeout(() => {
+      later(() => {
         panel.style.transition = '';
         overlay.style.transition = '';
-      }, 300);
+      });
     }
 
     dragMode = null;
   }
 
+  function onTouchCancel() {
+    isDragging = false;
+    dragMode = null;
+    currentY = 0;
+    panel.style.transform = '';
+    panel.style.transition = '';
+    overlay.style.background = '';
+    overlay.style.transition = '';
+  }
+
   panel.addEventListener('touchstart', onTouchStart, { passive: true });
   panel.addEventListener('touchmove', onTouchMove, { passive: false });
   panel.addEventListener('touchend', onTouchEnd, { passive: true });
-  panel.addEventListener('touchcancel', onTouchEnd, { passive: true });
+  panel.addEventListener('touchcancel', onTouchCancel, { passive: true });
+  return ()=>{
+    for(const id of timers)clearTimeout(id);
+    panel.removeEventListener('touchstart',onTouchStart);panel.removeEventListener('touchmove',onTouchMove);
+    panel.removeEventListener('touchend',onTouchEnd);panel.removeEventListener('touchcancel',onTouchCancel);
+    panel.style.transform='';panel.style.transition='';overlay.style.transition='';overlay.style.background='';
+  };
 }
 
 function handleRoute() {
@@ -426,6 +448,7 @@ function handleRoute() {
   const route = routes[hash] ? hash : 'today';
   if (route === 'agenda' && state.route === 'today') selectAgendaDate(getTodayStr());
   state.route = route;
+  refreshGate?.clear();
 
   updateNavActiveState();
 
@@ -477,12 +500,43 @@ function startClock() {
     if (today !== lastDate) {
       lastDate = today;
       state.currentWeek = getCurrentWeek(dataManager.getSemesterInfo().semesterStart);
-      rerenderCurrentPage();
+      requestPageRefresh('date');
     }
     document.dispatchEvent(new CustomEvent('app:tick', { detail: { now: state.now } }));
   }
   tick();
   setInterval(tick, 1000);
+}
+
+function setupRoutineRefresh() {
+  const notice=document.createElement('p');
+  notice.className='refresh-notice'; notice.id='page-refresh-notice'; notice.hidden=true;
+  notice.setAttribute('role','status');
+  document.querySelector('.page-container').prepend(notice);
+  const editors=trackEditors(document,()=>refreshGate?.flush());
+  refreshGate=createRefreshGate({
+    canRefresh:()=>!editors.busy(),
+    pending:reasons=>{
+      notice.hidden=!reasons.includes('date');
+      notice.textContent=notice.hidden?'':'日期已变化。当前编辑已保留，保存或关闭后更新显示。';
+    },
+    refresh:()=>{
+      const selector=focusSelector(document.activeElement), y=window.scrollY, oldTop=document.activeElement?.getBoundingClientRect().top;
+      const messages=[...document.querySelectorAll('.page-view.active [data-save-feedback][id]')].map(node=>[node.id,node.textContent]);
+      if (state.route==='wardrobe') document.dispatchEvent(new Event('app:refresh-wardrobe'));
+      else rerenderCurrentPage();
+      for(const [key,value]of messages) { const node=document.getElementById(key);if(node&&value&&!node.textContent)node.textContent=value; }
+      const active=document.querySelector('.page-view.active');
+      const target=selector&&(active?.querySelector(selector)||(selector.startsWith('#')?document.querySelector(selector):null)||active?.querySelector('[data-today-capture],#personal-add,#agenda-add'));
+      target?.focus({preventScroll:true});
+      const offset=target&&oldTop>=0&&oldTop<innerHeight?target.getBoundingClientRect().top-oldTop:0;
+      window.scrollTo({top:y+offset,behavior:'auto'});
+    },
+  });
+}
+
+export function requestPageRefresh(reason='data') {
+  if (refreshGate) refreshGate.request(reason); else rerenderCurrentPage();
 }
 
 export function getAppState() { return state; }

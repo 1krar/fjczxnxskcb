@@ -1,6 +1,6 @@
-import { CATEGORIES } from './daily-store.js?v=20261024-1';
-import { getTodayState } from './day-plan.js?v=20261024-1';
-import { weatherDay, weatherFacts } from './weather-model.js?v=20261024-1';
+import { CATEGORIES } from './daily-store.js?v=20261024-2';
+import { getTodayState } from './day-plan.js?v=20261024-2';
+import { weatherDay, weatherFacts } from './weather-model.js?v=20261024-2';
 
 export const shortAdvice = value => typeof value === 'string' && [...value.trim()].length >= 5 && [...value.trim()].length <= 48 && !/[\r\n]/.test(value.trim());
 const shortLabel = (value, length = 10) => {

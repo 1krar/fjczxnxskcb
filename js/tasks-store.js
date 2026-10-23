@@ -1,4 +1,4 @@
-import { normalizeNoteRule, isPersistent, noteDate } from './persistent-model.js?v=20261024-1';
+import { normalizeNoteRule, isPersistent, noteDate } from './persistent-model.js?v=20261024-2';
 const KEY = 'course-dashboard-personal-items-v1';
 export const KINDS = { task: '作业 / 待办', exam: '考试', bring: '带物品', change: '课程变更', note: '随手记' };
 export const SOURCES = { oral: '课堂口头', qq: 'QQ 群', other: '其他' };
@@ -108,7 +108,8 @@ export function saveItem(fields, id = '') {
 export function updateItemState(id, action) {
   if (!['complete', 'reopen', 'trash', 'restore', 'pause', 'resume', 'hideToday', 'showToday', 'stopPersistent'].includes(action)) throw new Error('不支持的操作');
   const items = readItems();
-  if (!items.some(item => item.id === id)) throw new Error('这条事项已不存在，请刷新后重试');
+  const previous=items.find(item => item.id === id);
+  if (!previous) throw new Error('这条事项已不存在，请刷新后重试');
   const now = new Date().toISOString();
   writeItems(items.map(item => item.id !== id ? item : {
     ...item, updatedAt: now,
@@ -118,6 +119,14 @@ export function updateItemState(id, action) {
     completedAt: action === 'complete' ? now : action === 'reopen' ? '' : item.completedAt,
     deletedAt: action === 'trash' ? now : action === 'restore' ? '' : item.deletedAt,
   }));
+  return { id, previous:Object.fromEntries(['completedAt','deletedAt','notePaused','noteHiddenOn','reminderMode'].map(key=>[key,previous[key]])), expected:JSON.stringify(readItems().find(item=>item.id===id)) };
+}
+
+export function undoItemState(change) {
+  const items=readItems(), current=items.find(item=>item.id===change.id);
+  if (!current || JSON.stringify(current)!==change.expected) throw new Error('这条事项已有新的修改，未覆盖。请到事项页查看。');
+  const previous=Object.fromEntries(['completedAt','deletedAt','notePaused','noteHiddenOn','reminderMode'].map(key=>[key,change.previous[key]]));
+  writeItems(items.map(item=>item.id===change.id?validateItem({...item,...previous,updatedAt:new Date().toISOString()}):item));
 }
 
 export function mergeBackup(value) {

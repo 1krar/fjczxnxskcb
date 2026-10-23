@@ -5,7 +5,7 @@
 
 /* ===== Base mobile adjustments (≤430px) ===== */
 @media (max-width: 430px) {
-  html { font-size: 15px; }
+  html { font-size: 0.9375rem; }
 
   .page-container {
     padding: 12px;
@@ -14,12 +14,12 @@
 
   .card-pad { padding: 16px; }
 
-  .section-title { font-size: 12px; margin-bottom: 12px; }
+  .section-title { font-size: 0.75rem; margin-bottom: 12px; }
 }
 
 /* ===== Small phones (≤375px) ===== */
 @media (max-width: 375px) {
-  html { font-size: 14px; }
+  html { font-size: 0.875rem; }
 
   .page-container { padding: 10px; }
   .card-pad { padding: 14px; }
@@ -42,7 +42,7 @@
 
 /* ===== Extra small phones (≤320px) ===== */
 @media (max-width: 320px) {
-  html { font-size: 13.5px; }
+  html { font-size: 0.84375rem; }
 
   .page-container { padding: 8px; }
 }
@@ -115,7 +115,7 @@
   }
 
   .status-tag {
-    font-size: 9px;
+    font-size: 0.5625rem;
     margin-bottom: 1px;
     letter-spacing: 0.06em;
   }
@@ -132,7 +132,7 @@
   }
 
   .status-section {
-    font-size: 10px;
+    font-size: 0.625rem;
     margin-top: 0;
   }
 
@@ -142,7 +142,7 @@
   }
 
   .countdown-text {
-    font-size: 10px;
+    font-size: 0.625rem;
   }
 
   .countdown-value {
@@ -150,7 +150,7 @@
   }
 
   .countdown-sec {
-    font-size: 10px;
+    font-size: 0.625rem;
   }
 
   .status-progress-mini {
@@ -176,13 +176,13 @@
   .status-next {
     margin-top: 8px;
     padding-top: 8px;
-    font-size: 11px;
+    font-size: 0.6875rem;
     gap: 6px;
   }
 
   .status-next-free {
     margin-top: 4px;
-    font-size: 10px;
+    font-size: 0.625rem;
   }
 
   .status-sub {
@@ -201,7 +201,7 @@
   }
 
   .stat-inline-label {
-    font-size: 10px;
+    font-size: 0.625rem;
     letter-spacing: 0.04em;
   }
 
@@ -219,7 +219,7 @@
   }
 
   .semester-percent {
-    font-size: 9px;
+    font-size: 0.5625rem;
   }
 
   .semester-bar {
@@ -227,7 +227,7 @@
   }
 
   .semester-date {
-    font-size: 9px;
+    font-size: 0.5625rem;
   }
 
   /* Free time */
@@ -303,11 +303,11 @@
   }
 
   .tl-start {
-    font-size: 12px;
+    font-size: 0.75rem;
   }
 
   .tl-end {
-    font-size: 11px;
+    font-size: 0.6875rem;
   }
 
   .tl-marker {
@@ -321,7 +321,7 @@
   }
 
   .tl-meta {
-    font-size: 11px;
+    font-size: 0.6875rem;
     gap: 3px 6px;
     margin-top: 1px;
   }
@@ -343,7 +343,7 @@
   }
 
   .tl-gap-text {
-    font-size: 11px;
+    font-size: 0.6875rem;
     gap: 4px;
   }
 
@@ -360,11 +360,11 @@
   }
 
   .tl-end-text {
-    font-size: 12px;
+    font-size: 0.75rem;
   }
 
   .tl-end-time {
-    font-size: 11px;
+    font-size: 0.6875rem;
   }
 
   /* ========== Schedule ========== */
@@ -384,15 +384,15 @@
     flex: 1;
   }
 
-  .week-info-main { font-size: 15px; }
-  .week-info-sub { font-size: 12px; }
+  .week-info-main { font-size: 0.9375rem; }
+  .week-info-sub { font-size: 0.75rem; }
 
   .search-box {
     max-width: 100%;
   }
 
   .search-input {
-    font-size: 16px; /* prevents iOS zoom */
+    font-size: 1rem; /* prevents iOS zoom */
     padding: 10px 12px 10px 38px;
   }
 
@@ -419,21 +419,21 @@
   }
 
   .m-week-main {
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 600;
     color: var(--color-text);
     white-space: nowrap;
   }
 
   .m-week-sub {
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--color-text-secondary);
     font-family: var(--font-mono);
     white-space: nowrap;
   }
 
   .m-today-btn {
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 500;
     color: var(--color-primary);
     padding: 4px 10px;
@@ -478,7 +478,7 @@
     padding: 8px 12px;
     border: 1px solid var(--color-border);
     border-radius: var(--radius-sm);
-    font-size: 16px;
+    font-size: 1rem;
     color: var(--color-text);
     background: var(--color-surface);
   }
@@ -486,7 +486,7 @@
   .m-search-input:focus { outline: none; border-color: var(--color-primary); }
 
   .m-search-close {
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--color-primary);
     padding: 4px 8px;
     flex-shrink: 0;
@@ -536,12 +536,12 @@
   }
 
   .m-day-chip-name {
-    font-size: 12px;
+    font-size: 0.75rem;
     font-weight: 500;
   }
 
   .m-day-chip-date {
-    font-size: 13px;
+    font-size: 0.8125rem;
     font-weight: 700;
     font-family: var(--font-mono);
   }
@@ -604,7 +604,7 @@
   }
 
   .m-agenda-start {
-    font-size: 13px;
+    font-size: 0.8125rem;
     font-weight: 600;
     font-family: var(--font-mono);
     color: var(--color-text);
@@ -613,7 +613,7 @@
   }
 
   .m-agenda-end {
-    font-size: 10px;
+    font-size: 0.625rem;
     font-family: var(--font-mono);
     color: var(--color-text-tertiary);
     font-variant-numeric: tabular-nums;
@@ -642,7 +642,7 @@
   }
 
   .m-agenda-name {
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 600;
     color: var(--color-text);
     line-height: 1.3;
@@ -662,7 +662,7 @@
     flex-wrap: wrap;
     gap: 4px 8px;
     margin-top: 3px;
-    font-size: 11px;
+    font-size: 0.6875rem;
     color: var(--color-text-secondary);
   }
 
@@ -689,7 +689,7 @@
     align-items: center;
     gap: 6px;
     padding: 2px 0 2px 52px;
-    font-size: 11px;
+    font-size: 0.6875rem;
     font-weight: 600;
     color: var(--color-primary);
   }
@@ -737,7 +737,7 @@
   }
 
   .analytics-card-title {
-    font-size: 12px;
+    font-size: 0.75rem;
     margin-bottom: 10px;
   }
 
@@ -752,11 +752,11 @@
   }
 
   .load-stat-value {
-    font-size: 22px;
+    font-size: 1.375rem;
   }
 
   .load-stat-label {
-    font-size: 11px;
+    font-size: 0.6875rem;
   }
 
   .tab-bar {
@@ -776,7 +776,7 @@
 
   .tab-bar-item {
     flex-shrink: 0;
-    font-size: 13px;
+    font-size: 0.8125rem;
     padding: 8px 14px;
     min-height: 44px;
     display: flex;
@@ -787,11 +787,11 @@
   .stat-table th,
   .stat-table td {
     padding: 8px 10px;
-    font-size: 12px;
+    font-size: 0.75rem;
   }
 
   .stat-table th {
-    font-size: 11px;
+    font-size: 0.6875rem;
     white-space: nowrap;
   }
 
@@ -825,7 +825,7 @@
   .compare-selector select {
     width: 100%;
     min-width: 0;
-    font-size: 14px;
+    font-size: 0.875rem;
     padding: 10px 12px;
     min-height: 44px;
   }
@@ -863,7 +863,7 @@
   }
 
   .settings-label {
-    font-size: 14px;
+    font-size: 0.875rem;
   }
 
   .toggle-switch {
@@ -884,7 +884,7 @@
 
   .settings-select {
     padding: 8px 12px;
-    font-size: 14px;
+    font-size: 0.875rem;
     min-height: 40px;
   }
 
@@ -901,17 +901,17 @@
   }
 
   .search-result-name {
-    font-size: 14px;
+    font-size: 0.875rem;
   }
 
   .search-result-meta {
-    font-size: 12px;
+    font-size: 0.75rem;
     line-height: 1.4;
   }
 
   /* ========== Course cards grid ========== */
   .course-card-name {
-    font-size: 12px;
+    font-size: 0.75rem;
     line-height: 1.3;
     white-space: normal;
     display: -webkit-box;
@@ -921,7 +921,7 @@
   }
 
   .course-card-meta {
-    font-size: 10px;
+    font-size: 0.625rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -929,7 +929,7 @@
 
   /* ========== Buttons ========== */
   .btn {
-    font-size: 14px;
+    font-size: 0.875rem;
     padding: 10px 16px;
     min-height: 44px;
     min-width: 44px;
@@ -954,7 +954,7 @@
   }
 
   .free-slot {
-    font-size: 9px;
+    font-size: 0.5625rem;
   }
 
   .free-time-chip {
@@ -963,12 +963,12 @@
   }
 
   .free-time-chip-value {
-    font-size: 16px;
+    font-size: 1rem;
   }
 
   /* ========== Badges ========== */
   .badge {
-    font-size: 11px;
+    font-size: 0.6875rem;
     padding: 3px 8px;
   }
 }
@@ -995,7 +995,7 @@
 
   .nav-item {
     padding: 8px 12px;
-    font-size: 12px;
+    font-size: 0.75rem;
   }
 
   .schedule-grid {
