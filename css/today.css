@@ -3,15 +3,11 @@
 .today-page .today-header-row { align-items: center; flex-wrap: wrap; gap: 8px 16px; margin: 0 0 18px; }
 .today-page .today-date-sub { margin: 0; font-size: 20px; line-height: 1.6; font-weight: 700; color: var(--color-text); }
 .today-page .today-week-badge { font-size: 12px; line-height: 1.6; color: var(--color-text-secondary); padding: 0; border: 0; box-shadow: none; background: transparent; }
-.today-body-grid { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(280px, 1fr); grid-template-areas: 'now priority' 'support priority'; gap: 16px 28px; align-items: start; }
+.today-body-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(250px, .8fr); grid-template-areas: 'now support'; gap: 16px 28px; align-items: start; }
 .today-now-column { grid-area: now; }
-.today-priority { grid-area: priority; }
 .today-support-column { grid-area: support; }
-.today-no-items { max-width: 760px; }
-.today-no-items .today-body-grid { grid-template-columns: minmax(0,1fr); grid-template-areas: 'now' 'priority' 'support'; }
 .today-now-column, .today-support-column { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 #dash-planner-slot:empty { display: none; }
-.today-priority { min-width: 0; }
 .today-page .today-status { padding: 18px; margin: 0; border: 1px solid var(--color-border); border-left: 3px solid var(--color-primary); border-radius: 12px; background: var(--color-surface); box-shadow: none; container-type: inline-size; }
 .today-page .today-status::before { content: none; }
 .today-page .today-status.accent-muted { border-left-color: var(--color-slate-400); }
@@ -45,7 +41,7 @@
 .today-page .next-day-info { margin: 0; font-size: 13px; line-height: 1.7; color: var(--color-text-secondary); }
 .today-page .status-schedule-link { display: inline-flex; align-items: center; min-height: 44px; font-size: 14px; color: var(--color-primary-dark); }
 
-/* A small inbox, with one persistent capture action and at most two previews. */
+/* A small inbox, with one persistent capture action and one default preview. */
 .today-page .personal-today { margin: 0; padding: 0; border: 0; background: transparent; box-shadow: none; }
 .today-page .personal-section-heading { align-items: center; gap: 12px; margin: 0 0 4px; }
 .today-page .personal-section-heading h2 { margin: 0; font-size: 16px; line-height: 1.6; }
@@ -155,32 +151,6 @@
 .today-page .daily-inline-actions .daily-link { font-size: 12px; }
 .today-page .daily-advice-inline .daily-feedback { margin: 4px 0 0; font-size: 12px; }
 
-/* Course history remains readable when expanded. */
-.today-page .tl-item { display: grid; grid-template-columns: 44px 8px minmax(0, 1fr); column-gap: 10px; width: 100%; margin: 0; padding: 14px 0; min-height: 76px; border: 0; border-radius: 8px; font: inherit; text-align: left; background: transparent; color: var(--color-text); }
-.today-page .tl-item::after { left: 57px; top: 26px; bottom: 0; }
-.today-page .tl-item.tl-in-progress { background: var(--color-primary-50); }
-.today-page .tl-time { width: auto; gap: 6px; padding-top: 3px; }
-.today-page .tl-start { font-size: 13px; color: var(--color-text); line-height: 1.5; }
-.today-page .tl-end { font-size: 12px; line-height: 1.5; color: var(--color-text-secondary); }
-.today-page .tl-marker { width: 8px; height: 8px; margin-top: 7px; }
-.today-page .tl-content { display: flex; flex-direction: column; gap: 5px; min-width: 0; padding: 0; }
-.today-page .tl-name { display: block; overflow: visible; -webkit-line-clamp: unset; color: var(--color-text); font-size: 15px; line-height: 1.65; overflow-wrap: anywhere; }
-.today-page .tl-meta { margin: 0; gap: 6px 10px; font-size: 12px; line-height: 1.6; }
-.today-page .tl-state { color: var(--color-primary-dark); font-weight: 600; }
-.today-page .tl-loc { max-width: none; white-space: normal; overflow-wrap: anywhere; font-size: 13px; line-height: 1.7; color: var(--color-text-secondary); }
-.today-page .tl-teacher { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; }
-.today-page .tl-finished .tl-name, .today-page .tl-finished .tl-state { color: var(--color-text-secondary); }
-.today-page .tl-gap { padding: 10px 0 10px 54px; gap: 8px; }
-.today-page .tl-gap-text { font-size: 12px; white-space: normal; flex-wrap: wrap; gap: 4px 8px; line-height: 1.7; color: var(--color-text-secondary); }
-.today-page .tl-gap-line { flex: 1 0 10px; }
-.today-page .tl-history { margin-bottom: 6px; border-bottom: 1px solid var(--color-border-light); }
-.today-page .tl-history summary { min-height: 44px; padding: 10px 0; font-size: 13px; line-height: 1.7; color: var(--color-text-secondary); cursor: pointer; }
-.today-page .tl-history summary span { margin-left: 12px; font-size: 12px; }
-.today-page .tl-history[open] summary span { display: none; }
-.today-page .tl-end-block { grid-template-columns: 44px 8px minmax(0, 1fr); column-gap: 10px; padding-top: 14px; }
-.today-page .tl-end-marker { width: 8px; height: 8px; grid-column: 2; }
-.today-page .tl-end-text { grid-column: 3; flex-wrap: wrap; font-size: 13px; line-height: 1.7; color: var(--color-text-secondary); }
-.today-page .tl-end-time { color: var(--color-text-secondary); font-size: 12px; }
 .today-page button:focus-visible, .today-page summary:focus-visible, .today-page a:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
 body:has(#view-today.active .today-page) #quick-capture { display: none; }
 .sch-window-note { margin: 14px 0; font-size: 12px; line-height: 1.8; color: var(--color-text-secondary); }
@@ -189,7 +159,7 @@ body:has(#view-today.active .today-page) #quick-capture { display: none; }
   .today-page .today-date-sub { font-size: 18px; }
   .today-page .today-status { padding: 16px; }
   .today-page .status-title { font-size: 20px; }
-  .today-body-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'now' 'priority' 'support'; gap: 16px; }
+  .today-body-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'now' 'support'; gap: 20px; }
   .today-now-column, .today-support-column { gap: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -199,19 +169,6 @@ body:has(#view-today.active .today-page) #quick-capture { display: none; }
   .today-page .today-date-sub { font-size: 17px; }
   .today-page .today-status { padding: 14px; }
 }
-.remaining-heading { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px 12px; min-height: 52px; padding: 10px 0; }
-.today-page .remaining-lesson { display: grid; grid-template-columns: 58px minmax(0,1fr); gap: 12px; width: 100%; min-height: 64px; padding: 12px 0; text-align: left; border: 0; border-top: 1px solid var(--color-border-light); background: transparent; color: var(--color-text); font: inherit; cursor: pointer; }
-.remaining-clock { font-size: 14px; line-height: 1.7; color: var(--color-text-secondary); }
-.remaining-clock small { display: block; font-size: 11px; }
-.remaining-info { min-width: 0; align-self: center; }
-.remaining-info strong { display: block; font-size: 14px; font-weight: 600; line-height: 1.6; overflow-wrap: anywhere; }
-.remaining-info > span { display: block; margin-top: 3px; font-size: 12px; color: var(--color-text-secondary); line-height: 1.7; overflow-wrap: anywhere; }
-.remaining-break { padding: 6px 0 6px 70px; border-top: 1px dashed var(--color-border-light); font-size: 12px; line-height: 1.7; color: var(--color-text-secondary); }
-.remaining-break.is-current { color: var(--color-primary-dark); }
-.remaining-done { font-size: 13px; line-height: 1.8; color: var(--color-text-secondary); }
-.weather-strip { margin: -4px 0 14px; color: var(--color-text-secondary); font-size: 13px; line-height: 1.7; border-bottom: 1px solid var(--color-border-light); }
-.weather-strip > summary { min-height: 44px; padding: 9px 0; cursor: pointer; overflow-wrap: anywhere; }
-.weather-body { padding: 0 0 12px; }
 .weather-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
 .weather-hours { max-height: 260px; overflow: auto; margin: 10px 0; border: 1px solid var(--color-border); border-radius: 8px; }
 .weather-hours table { width: 100%; border-collapse: collapse; color: var(--color-text); font-variant-numeric: tabular-nums; }
@@ -219,3 +176,76 @@ body:has(#view-today.active .today-page) #quick-capture { display: none; }
 .weather-hours th, .weather-hours td { padding: 8px 6px; text-align: left; font-size: 12px; border-bottom: 1px solid var(--color-border-light); }
 .weather-strip :is(button,a,summary):focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
 .today-page .today-preparation .preparation-fit-line { flex: 1 0 100%; font-size: 12px; font-weight: 400; color: var(--color-text-secondary); line-height: 1.8; overflow-wrap: anywhere; }
+
+/* Course and item content share one ordered region on every screen size. */
+.home-modules { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.today-page .home-module { min-width: 0; margin: 0; padding: 4px 0 0; border: 0; border-top: 1px solid var(--color-border-light); border-radius: 0; background: transparent; box-shadow: none; }
+.home-module-heading { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-width: 0; }
+.home-module-heading h2 { flex: 1; min-width: 0; margin: 0; font-size: 13px; line-height: 1.7; font-weight: 500; }
+.home-module-toggle { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; min-height: 44px; min-width: 44px; max-width: 100%; padding: 4px 0; border: 0; border-radius: 6px; background: transparent; color: var(--color-text-secondary); font: inherit; text-align: left; cursor: pointer; }
+.home-module-count { font-size: 12px; font-weight: 400; }
+.home-module-toggle[aria-expanded="true"] .course-list-chevron { transform: rotate(225deg); margin-bottom: 0; }
+.home-module-actions { display: flex; align-items: center; flex-shrink: 0; gap: 2px; }
+.home-capture-button { min-width: 44px; min-height: 44px; padding: 4px 6px; border: 0; border-radius: 6px; background: transparent; color: var(--color-primary-dark); font: inherit; font-size: 13px; cursor: pointer; }
+.home-module-menu { position: relative; }
+.home-module-menu > summary { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 6px; list-style: none; font-size: 22px; line-height: 1; color: var(--color-text-secondary); cursor: pointer; }
+.home-module-options { position: absolute; z-index: 10; top: 100%; right: 0; width: min(240px, 72vw); padding: 4px; border: 1px solid var(--color-border); border-radius: 10px; background: var(--color-surface); box-shadow: var(--shadow-md); }
+.home-module-options button { display: block; width: 100%; min-height: 44px; padding: 8px 12px; border: 0; border-radius: 6px; background: transparent; color: var(--color-text); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.home-module-options button:disabled { color: var(--color-text-secondary); opacity: .6; cursor: default; }
+.home-module-toggle:hover, .home-capture-button:hover, .home-module-menu > summary:hover, .home-module-options button:not(:disabled):hover { background: var(--color-surface-subtle); }
+.home-layout-status { margin: 0; font-size: 12px; line-height: 1.7; color: var(--color-text-secondary); }
+.home-layout-status:empty { display: none; }
+.today-page .personal-today .home-personal-item { padding: 4px 0 12px; }
+.personal-today:not(.is-sorting) .home-drag-handle { display: none; }
+.personal-today:not(.is-sorting) .home-order-toolbar { display: none; }
+.today-page .home-personal-open .personal-text { font-size: 15px; }
+.today-page .home-personal-time > strong { font-size: 17px; }
+.today-page .home-personal-fact { gap: 6px; }
+.today-page .home-personal-content { gap: 3px; }
+.today-page .personal-home-empty { padding: 0 0 8px; margin: 0; }
+.today-page .home-order-more { justify-content: space-between; }
+.today-page .home-order-more .personal-view-all { margin: 0; font-size: 12px; color: var(--color-text-secondary); }
+.status-continuation { margin: 0; color: var(--color-text-secondary); font-size: 12px; line-height: 1.8; }
+
+.upcoming-course { border-bottom: 1px solid var(--color-border-light); }
+.upcoming-course > summary { display: grid; grid-template-columns: 50px minmax(0,1fr) 8px; align-items: center; gap: 12px; min-height: 64px; padding: 10px 0; list-style: none; cursor: pointer; }
+.upcoming-time { align-self: start; padding-top: 2px; font-size: 14px; line-height: 1.6; color: var(--color-text); }
+.upcoming-time small { display: block; font-size: 12px; color: var(--color-text-secondary); }
+.upcoming-content { min-width: 0; font-size: 13px; line-height: 1.8; }
+.upcoming-content strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 15px; line-height: 1.6; font-weight: 600; color: var(--color-text); overflow-wrap: anywhere; }
+.upcoming-location { margin-right: 10px; color: var(--color-text-secondary); overflow-wrap: anywhere; }
+.upcoming-sections { display: inline-block; font-size: 12px; color: var(--color-text-secondary); }
+.upcoming-course[open] .upcoming-content strong { display: block; overflow: visible; }
+.upcoming-course[open] > summary > .course-list-chevron, .weather-strip[open] .weather-context > .course-list-chevron { transform: rotate(225deg); margin-bottom: 0; }
+.upcoming-detail { padding: 0 0 6px 62px; font-size: 13px; line-height: 1.8; color: var(--color-text-secondary); }
+.upcoming-detail p { margin: 4px 0; overflow-wrap: anywhere; }
+.course-segment-list { margin: 0; padding: 0; list-style: none; }
+.course-segment-list li { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; padding: 3px 0; color: var(--color-text); }
+.course-segment-list li.is-break { color: var(--color-text-secondary); }
+.course-gap-note { margin: 0; padding: 8px 0; font-size: 12px; line-height: 1.8; color: var(--color-text-secondary); }
+.remaining-more, .remaining-done { margin: 6px 0; font-size: 12px; line-height: 1.8; color: var(--color-text-secondary); }
+.course-history > summary { min-height: 44px; padding: 12px 0; list-style: none; font-size: 12px; color: var(--color-text-secondary); cursor: pointer; }
+.course-history > summary::after { content: ' ＋'; }
+.course-history[open] > summary::after { content: ' −'; }
+.history-course { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; width: 100%; min-height: 44px; padding: 8px 0; border: 0; background: transparent; color: var(--color-text-secondary); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
+.history-course > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.today-page .today-course-list .personal-view-all { color: var(--color-text-secondary); font-size: 12px; }
+.today-page .home-module[hidden], .today-page .upcoming-course[hidden], .today-page .course-gap-note[hidden] { display: none; }
+
+/* Forecast context stays beside the date in the hierarchy, below course content. */
+.weather-strip { margin: -10px 0 12px; border: 0; font-size: 12px; }
+.weather-strip > summary { min-height: 44px; padding: 5px 0; list-style: none; }
+.weather-context { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 10px; min-height: 24px; }
+.weather-range { font-size: 14px; font-weight: 500; color: var(--color-text-secondary); }
+.weather-qualifier, .weather-place { font-size: 12px; color: var(--color-text-secondary); }
+.weather-context > .course-list-chevron { align-self: center; width: 6px; height: 6px; }
+.weather-rain-note { display: block; margin-top: 2px; font-size: 12px; line-height: 1.8; color: var(--color-text); }
+.weather-body { padding: 4px 0 12px; }
+.today-page .today-preparation, .today-page .today-overview { padding: 0; border: 0; border-top: 1px solid var(--color-border-light); border-radius: 0; background: transparent; }
+.today-page .today-preparation > summary, .today-page .today-overview > summary { min-height: 44px; padding: 6px 0; }
+.today-page .preparation-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); }
+@media (max-width: 360px) {
+  .home-module-toggle { gap: 2px 6px; }
+  .upcoming-course > summary { grid-template-columns: 46px minmax(0,1fr) 8px; gap: 8px; }
+  .upcoming-detail { padding-left: 54px; }
+}

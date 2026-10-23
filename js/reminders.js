@@ -1,8 +1,8 @@
-import { escapeText as esc } from './tasks-store.js?v=20261023-1';
-import { getTodayStr, localDate } from './time.js?v=20261023-1';
-import { readAgenda, saveReminderPrefs, MARKET_GROUPS } from './agenda-store.js?v=20261023-1';
-import { plannerContext } from './agenda.js?v=20261023-1';
-import { buildReminders, clock, MARKET_CALENDAR } from './agenda-model.js?v=20261023-1';
+import { escapeText as esc } from './tasks-store.js?v=20261023-2';
+import { getTodayStr, localDate } from './time.js?v=20261023-2';
+import { readAgenda, saveReminderPrefs, MARKET_GROUPS } from './agenda-store.js?v=20261023-2';
+import { plannerContext } from './agenda.js?v=20261023-2';
+import { buildReminders, clock, MARKET_CALENDAR } from './agenda-model.js?v=20261023-2';
 
 const DELIVERY_KEY='course-dashboard-reminder-delivery-v1';
 let setup=false;

@@ -1,12 +1,12 @@
-import { readDailyData, saveDailyProfile, DAILY_KEY } from './daily-store.js?v=20261023-1';
-import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261023-1';
-import { buildAdvice, chooseAdvice, planOutfits, departurePlan, localDate, nextDate, dailyFacts, shortAdvice } from './daily-model.js?v=20261023-1';
-import { cachedWeather } from './weather-client.js?v=20261023-1';
-import { weatherSummary } from './weather-model.js?v=20261023-1';
-import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261023-1';
-import { aiEnabled, AI_KEY, DAILY_CACHE_KEY, cachedDaily, dailyIdentity, requestDaily, canRequestDaily, dailyWaitMessage } from './ai-client.js?v=20261023-1';
-import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261023-1';
-import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261023-1';
+import { readDailyData, saveDailyProfile, DAILY_KEY } from './daily-store.js?v=20261023-2';
+import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261023-2';
+import { buildAdvice, chooseAdvice, planOutfits, departurePlan, localDate, nextDate, dailyFacts, shortAdvice } from './daily-model.js?v=20261023-2';
+import { cachedWeather } from './weather-client.js?v=20261023-2';
+import { weatherSummary } from './weather-model.js?v=20261023-2';
+import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261023-2';
+import { aiEnabled, AI_KEY, DAILY_CACHE_KEY, cachedDaily, dailyIdentity, requestDaily, canRequestDaily, dailyWaitMessage } from './ai-client.js?v=20261023-2';
+import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261023-2';
+import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261023-2';
 
 function getContext(state, dm, now) {
   const today = localDate(now);

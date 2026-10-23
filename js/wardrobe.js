@@ -1,11 +1,11 @@
 import { CATEGORIES, COLORS, CLOTHING_STATES, DEFAULT_PROFILE, DAILY_KEY, readDailyData, rawDailyData, emptyDailyData,
-  validateDailyData, addGarments, editGarment, changeGarmentState, setArchived, saveOutfit, saveRunPlan, saveDailyProfile, mergeDailyBackup } from './daily-store.js?v=20261023-1';
-import { localDate, nextDate, planOutfits, isAvailable, runningSuitable } from './daily-model.js?v=20261023-1';
-import { cachedWeather, refreshWeather } from './weather-client.js?v=20261023-1';
-import { weatherSummary } from './weather-model.js?v=20261023-1';
-import { aiEnabled, callAI } from './ai-client.js?v=20261023-1';
-import { outfitAIInput, applyOutfitChoice } from './outfit-ai.js?v=20261023-1';
-import { escapeText as esc, validDate } from './tasks-store.js?v=20261023-1';
+  validateDailyData, addGarments, editGarment, changeGarmentState, setArchived, saveOutfit, saveRunPlan, saveDailyProfile, mergeDailyBackup } from './daily-store.js?v=20261023-2';
+import { localDate, nextDate, planOutfits, isAvailable, runningSuitable } from './daily-model.js?v=20261023-2';
+import { cachedWeather, refreshWeather } from './weather-client.js?v=20261023-2';
+import { weatherSummary } from './weather-model.js?v=20261023-2';
+import { aiEnabled, callAI } from './ai-client.js?v=20261023-2';
+import { outfitAIInput, applyOutfitChoice } from './outfit-ai.js?v=20261023-2';
+import { escapeText as esc, validDate } from './tasks-store.js?v=20261023-2';
 
 const optionHTML = (values, selected) => Object.entries(values).map(([value, label]) => `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(label)}</option>`).join('');
 const numberField = (label, name, value, max = 180) => `<label>${label}<input name="${name}" type="number" min="0" max="${max}" value="${value}"></label>`;

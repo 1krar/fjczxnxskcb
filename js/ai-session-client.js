@@ -1,4 +1,4 @@
-import { validAccessToken } from './ai-access.js?v=20261023-1';
+import { validAccessToken } from './ai-access.js?v=20261023-2';
 
 const LEGACY_KEY = 'course-dashboard-ai-access';
 export const AUTH_EVENT_KEY = 'course-dashboard-ai-auth-change';

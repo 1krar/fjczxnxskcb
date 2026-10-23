@@ -1,4 +1,4 @@
-import { getCoursePhase } from './time.js?v=20261023-1';
+import { getCoursePhase } from './time.js?v=20261023-2';
 // Shared course counts and time calculations. All intervals are [start, end).
 const MINUTE = 60000;
 
@@ -132,4 +132,22 @@ export function getRemainingPeriods(courses, now) {
   for (const gap of getCourseGaps(courses)) if (gap.end > now) breaks.push({ ...gap, kind:'break', internal:false });
   return { lessons:lessons.sort((a,b)=>a.start-b.start), unknown,
     rows:[...lessons,...breaks].sort((a,b)=>a.start-b.start || a.end-b.end) };
+}
+
+// Group by the original course occurrence; identical names in different slots stay distinct.
+// The current/next occurrence lives in the main card, including its remaining small lessons.
+export function getUpcomingCourseGroups(courses, now) {
+  const context = getTodayState(courses,now), remaining = getRemainingPeriods(courses,now);
+  const focus = context.currentCourse || context.nextCourse || (context.state==='TIME_UNKNOWN'?courses[0]:null);
+  const unknown = new Set(remaining.unknown);
+  const groups = courses.filter(course => course!==focus && (unknown.has(course) || course.endDateTime>now)).map(course => ({
+    course, unknown:unknown.has(course), lessons:course.segments?.filter(part=>part.kind==='lesson') || [],
+  })).sort((a,b) => Number(a.unknown)-Number(b.unknown) || (a.course.startDateTime-b.course.startDateTime) || courseKey(a.course).localeCompare(courseKey(b.course)));
+  const pending = focus?.segments?.filter(part=>part.kind==='lesson'&&part.start>now) || [];
+  return { focus, groups, pending,
+    lessonCount:groups.filter(row=>!row.unknown).reduce((sum,row)=>sum+(row.lessons.length || Math.max(1,row.course.endSection-row.course.startSection+1)),0),
+    unknownCount:groups.filter(row=>row.unknown).length,
+    past:courses.filter(course=>course!==focus&&!unknown.has(course)&&course.endDateTime<=now),
+    gaps:getCourseGaps(courses).filter(gap=>gap.durationMin>=60&&gap.end>now&&gap.start>now),
+  };
 }

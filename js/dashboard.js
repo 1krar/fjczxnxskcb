@@ -1,14 +1,16 @@
-import { getTodayStr, getDayName, getCurrentWeek, getCourseState } from './time.js?v=20261023-1';
-import { showCourseDetail } from './app.js?v=20261023-1';
-import { formatLocation } from './location.js?v=20261023-1';
-import { mountTodayItems } from './tasks.js?v=20261023-1';
-import { escapeText } from './tasks-store.js?v=20261023-1';
-import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes, getRemainingPeriods } from './day-plan.js?v=20261023-1';
-import { mountDailyAssistant } from './daily-widgets.js?v=20261023-1';
-import { mountTodayAgenda } from './today-agenda.js?v=20261023-1';
-import { readDailyData } from './daily-store.js?v=20261023-1';
-import { departurePlan } from './daily-model.js?v=20261023-1';
-import { mountWeather } from './weather-widget.js?v=20261023-1';
+import { getTodayStr, getDayName, getCurrentWeek } from './time.js?v=20261023-2';
+import { showCourseDetail } from './app.js?v=20261023-2';
+import { formatLocation } from './location.js?v=20261023-2';
+import { mountTodayItems } from './tasks.js?v=20261023-2';
+import { escapeText } from './tasks-store.js?v=20261023-2';
+import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261023-2';
+import { readHomeLayout, defaultHomeLayout, homeModuleHeading, mountHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261023-2';
+import { renderUpcomingCourses, courseListCount, courseContinuation } from './home-courses.js?v=20261023-2';
+import { mountDailyAssistant } from './daily-widgets.js?v=20261023-2';
+import { mountTodayAgenda } from './today-agenda.js?v=20261023-2';
+import { readDailyData } from './daily-store.js?v=20261023-2';
+import { departurePlan } from './daily-model.js?v=20261023-2';
+import { mountWeather } from './weather-widget.js?v=20261023-2';
 
 const esc = escapeText;
 let tickHandler = null;
@@ -52,7 +54,7 @@ function countdownText(milliseconds) {
 
 function courseButton(course, state, segment = null) {
   if (!course) return '';
-  const lesson = segment?.kind === 'lesson' ? segment : !segment ? course.segments?.find(part => part.kind === 'lesson') : null;
+  const lesson = segment?.kind === 'lesson' ? segment : segment?.kind==='break' ? course.segments?.find(part=>part.kind==='lesson'&&part.start>=segment.end) : course.segments?.find(part => part.kind === 'lesson');
   const time = lesson ? `第${lesson.section}小节 · ${lesson.startTime}—${lesson.endTime}` : `${course.startTime || '时间待确认'}${course.endTime ? `—${course.endTime}` : ''}`;
   return `<button type="button" class="status-course" data-course-key="${esc(courseKey(course))}">
     <span class="status-title">${esc(course.courseName)}</span>
@@ -67,7 +69,7 @@ function renderStatus(context, courses, nextDay, state, now) {
   const resting = ['NO_CLASS', 'WEEKEND', 'DAY_FINISHED', 'TIME_UNKNOWN'].includes(context.state);
   let content;
   if (resting) {
-    content = context.state === 'TIME_UNKNOWN' ? `${courseButton(courses[0], state)}<a class="status-schedule-link" href="#/data">查看导入的时间信息 →</a>` : '';
+    content = context.state === 'TIME_UNKNOWN' ? `${courseButton(context.currentCourse||context.nextCourse||courses[0], state)}<a class="status-schedule-link" href="#/data">查看导入的时间信息 →</a>` : '';
     if (context.state !== 'TIME_UNKNOWN' && nextDay) {
       content += `<p class="next-day-info">${nextDay.isTomorrow ? '明日首课' : '下一有课日'} · ${esc(nextDay.date.slice(5))} 星期${nextDay.weekday}</p>${courseButton(nextDay.courses[0], state)}`;
     } else if (context.state !== 'TIME_UNKNOWN') {
@@ -88,7 +90,8 @@ function renderStatus(context, courses, nextDay, state, now) {
       if (plan) support = `<p class="status-action-line"><strong>${esc(plan.clock)} 建议出发</strong><span>按你的路线预算估算</span></p>`;
     } catch { /* Course time stays available when optional daily preferences cannot be read. */ }
   }
-  return `<div class="status-main${resting ? ' is-resting' : ''}"><div class="status-heading"><div class="status-tag accent-${label.accent}">${label.label}</div></div><div class="status-focus-row${countdown ? ' has-countdown' : ''}"><div class="status-course-info">${content}</div>${countdown}</div>${support}</div>`;
+  const continuation=!resting?courseContinuation(context.currentCourse||context.nextCourse,context.currentSegment,now):'';
+  return `<div class="status-main${resting ? ' is-resting' : ''}"><div class="status-heading"><div class="status-tag accent-${label.accent}">${label.label}</div></div><div class="status-focus-row${countdown ? ' has-countdown' : ''}"><div class="status-course-info">${content}</div>${countdown}</div>${support}${continuation?`<p class="status-continuation">${esc(continuation)}</p>`:''}</div>`;
 }
 
 function progressPercent(course, now, segment) {
@@ -98,37 +101,6 @@ function progressPercent(course, now, segment) {
   return duration > 0 ? Math.max(0, Math.min(100, (now - start) / duration * 100)) : 0;
 }
 
-function renderCourseRow(course, context, now, state) {
-  const status = getCourseState(course, now);
-  const isNext = course === context.nextCourse;
-  const tag = status === 'in_progress' ? '进行中' : status === 'break' ? '课间' : status === 'finished' ? '已结束' : isNext ? '下一次课' : '';
-  return `<button type="button" class="tl-item ${status === 'finished' ? 'tl-finished' : status === 'in_progress' ? 'tl-in-progress' : 'tl-before'}${isNext ? ' tl-next' : ''}" data-course-key="${esc(courseKey(course))}">
-    <span class="tl-time mono"><span class="tl-start">${esc(course.startTime || '待确认')}</span><span class="tl-end">${esc(course.endTime)}</span></span>
-    <span class="tl-marker ${status === 'in_progress' ? 'active' : ''}" aria-hidden="true"></span>
-    <span class="tl-content"><span class="tl-name">${esc(course.courseName)}</span>
-      <span class="tl-meta"><span class="tl-section">第${course.startSection}—${course.endSection}节</span>${tag ? `<span class="tl-state">${tag}</span>` : ''}</span>
-      <span class="tl-loc">${esc(formatLocation(course.location, state.settings.showFullLocation) || '教室待确认')}</span>
-      ${course.teacher && state.settings.showTeacher ? `<span class="tl-teacher">${esc(course.teacher)}</span>` : ''}
-    </span></button>`;
-}
-
-function renderTimeline(courses, context, now, state) {
-  const past = courses.filter(course => getCourseState(course, now) === 'finished');
-  const remaining = getRemainingPeriods(courses, now);
-  const history = past.length ? `<details class="tl-history"><summary>已结束 ${past.length} 次课<span>展开查看</span></summary>${past.map(course => renderCourseRow(course, context, now, state)).join('')}</details>` : '';
-  const clock=value=>`${String(value.getHours()).padStart(2,'0')}:${String(value.getMinutes()).padStart(2,'0')}`;
-  const rows = remaining.rows.map(part => {
-    if (part.kind === 'break') return `<div class="remaining-break${part.start <= now ? ' is-current' : ''}">${part.start <= now ? '当前 · ' : ''}${part.internal ? '课间' : '课表空档'} ${clock(part.start)}—${clock(part.end)} · 共${formatMinutes((part.end-part.start)/60000)}</div>`;
-    return `<button type="button" class="remaining-lesson" data-course-key="${esc(courseKey(part.course))}"><span class="remaining-clock mono">${esc(part.startTime)}<small>${esc(part.endTime)}</small></span><span class="remaining-info"><strong>${esc(part.course.courseName)}</strong><span>${part.unsplit ? '原始课程时段' : `第${part.section}小节`} · ${esc(formatLocation(part.course.location,state.settings.showFullLocation)||'教室待确认')}</span></span></button>`;
-  }).join('');
-  const unknown = remaining.unknown.map(course => `<button type="button" class="remaining-lesson" data-course-key="${esc(courseKey(course))}"><span class="remaining-clock">时间待定</span><span class="remaining-info"><strong>${esc(course.courseName)}</strong><span>${esc(course.location || '教室待确认')}</span></span></button>`).join('');
-  return `${rows}${unknown}${!remaining.lessons.length&&!remaining.unknown.length ? `<p class="remaining-done">${context.currentCourse ? '本节之后，今天没有待开始的课程' : '今日课程已结束'}</p>` : ''}${history}`;
-}
-
-function courseListSummary(courses, context, now) {
-  const remaining = getRemainingPeriods(courses, now);
-  return `<span class="course-list-title">今天接下来</span><span class="course-list-meta">${remaining.lessons.length ? `待开始 ${remaining.lessons.length}${remaining.lessons.some(row=>row.unsplit) ? '个时段' : '小节'}` : '无待开始小节'}${remaining.unknown.length ? ` · ${remaining.unknown.length}次课时间待定` : ''}</span>`;
-}
 
 function renderOverview(courses, now, info) {
   const summary = getCourseSummary(courses);
@@ -152,15 +124,35 @@ export function renderDashboard(container, state, dm) {
   const nextDay = findNextClassDay(dm, state.currentClass, today);
   const context = getTodayState(courses, now);
   const semester = getSemesterProgress(dm.getSemesterInfo());
+  const scope={semester:dm.getSemesterInfo().semester,className:state.currentClass};
+  const layout=()=>{try{return readHomeLayout(scope);}catch{return defaultHomeLayout();}};
   container.innerHTML = `<section class="today-page"><div id="dash-advice-slot"></div><header class="today-header-row"><h1 class="today-date-sub"><a href="#/agenda" aria-label="打开日历与日程"><time datetime="${today}">${Number(today.slice(5, 7))}月${Number(today.slice(8))}日 · 星期${getDayName(today)}</time></a></h1><span class="today-week-badge">${semester.label}</span><button type="button" class="daily-restore" data-restore-advice hidden>恢复今日一句</button></header><span class="sr-only" id="dash-advice-status" role="status" aria-live="polite"></span>
     <div id="dash-weather-slot"></div><div class="today-body-grid"><div class="today-now-column"><section class="today-status accent-${STATE_LABELS[context.state].accent}" id="dash-status" aria-label="当前课程与下一次安排">${renderStatus(context, courses, nextDay, state, now)}</section>
-    <div id="dash-planner-slot"></div>${courses.length ? `<section class="today-course-list" id="dash-course-list" aria-label="今日剩余课程"><div class="remaining-heading">${courseListSummary(courses, context, now)}</div><div class="today-timeline" id="dash-timeline">${renderTimeline(courses, context, now, state)}</div><a class="personal-view-all" href="#/schedule">查看完整课表 →</a></section>` : ''}</div><div class="today-priority" id="dash-personal-slot"></div>
+    <div id="dash-planner-slot"></div><div class="home-modules" id="dash-home-modules"><section class="home-module" id="dash-personal-slot" data-home-module="items"></section><section class="home-module today-course-list" id="dash-course-list" data-home-module="courses"${!courses.length?' hidden':''}>${homeModuleHeading('courses')}<div id="dash-courses-content"><div class="today-timeline" id="dash-timeline">${renderUpcomingCourses(courses,now,state,layout().expanded.courses)}</div></div></section></div><p class="home-layout-status" id="dash-layout-status" role="status" aria-live="polite"></p></div>
     <div class="today-support-column">
     <div id="dash-prep-slot"></div>${renderOverview(courses, now, dm.getSemesterInfo())}</div></div></section>`;
   const cleanupItems = mountTodayItems(container, state, dm);
   const cleanupAssistant = mountDailyAssistant(container, state, dm);
   const cleanupAgendaBrief = mountTodayAgenda(container, state, dm);
   const cleanupWeather = mountWeather(container);
+  const cleanupLayout = mountHomeLayout(container,scope);
+  function refreshCourses(time) {
+    const timeline=container.querySelector('#dash-timeline');
+    const opened=new Set([...timeline.querySelectorAll('[data-course-detail][open]')].map(node=>node.dataset.courseDetail));
+    const focused=timeline.contains(document.activeElement)?document.activeElement:null;
+    const focusKey=focused?.closest('[data-course-detail]')?.dataset.courseDetail;
+    const focusButtonKey=focused?.dataset.courseKey;
+    timeline.innerHTML=renderUpcomingCourses(courses,time,state,layout().expanded.courses,opened);
+    container.querySelector('#dash-courses-count').textContent=courseListCount(courses,time);
+    if (focusKey) {
+      const row=[...timeline.querySelectorAll('[data-course-detail]')].find(node=>node.dataset.courseDetail===focusKey);
+      if (row && !row.hidden) {
+        if (focusButtonKey) [...row.querySelectorAll('[data-course-key]')].find(node=>node.dataset.courseKey===focusButtonKey)?.focus({preventScroll:true});
+        else row.querySelector('summary')?.focus({preventScroll:true});
+      } else container.querySelector('[data-home-toggle="courses"]').focus({preventScroll:true});
+    }
+  }
+  refreshCourses(now);
   const allCourses = [...courses, ...(nextDay?.courses || [])];
   const onClick = event => {
     const button = event.target.closest('[data-course-key]');
@@ -180,21 +172,7 @@ export function renderDashboard(container, state, dm) {
       status.className = `today-status accent-${STATE_LABELS[next.state].accent}`;
       status.innerHTML = renderStatus(next, courses, nextDay, state, time);
       if (statusFocused) status.querySelector('.status-course, a')?.focus({ preventScroll: true });
-      const listSummary = container.querySelector('#dash-course-list > .remaining-heading');
-      if (listSummary) listSummary.innerHTML = courseListSummary(courses, next, time);
-      const timeline = container.querySelector('#dash-timeline');
-      if (timeline) {
-        const historyWasOpen = timeline.querySelector('.tl-history')?.open || false;
-        const focusKey = timeline.contains(document.activeElement) ? document.activeElement?.dataset.courseKey : null;
-        timeline.innerHTML = renderTimeline(courses, next, time, state);
-        const history = timeline.querySelector('.tl-history');
-        if (history) history.open = historyWasOpen;
-        if (focusKey) {
-          const focusedCourse = [...container.querySelectorAll('[data-course-key]')].find(button => button.dataset.courseKey === focusKey);
-          if (focusedCourse?.closest('.tl-history')) history.open = true;
-          focusedCourse?.focus({ preventScroll: true });
-        }
-      }
+      refreshCourses(time);
     }
     const countdown = container.querySelector('#dash-countdown');
     if (countdown && next.countdown !== null) countdown.textContent = countdownText(next.countdown);
@@ -202,16 +180,23 @@ export function renderDashboard(container, state, dm) {
     if (progress && next.currentCourse) progress.style.width = `${progressPercent(next.currentCourse, time, next.currentSegment)}%`;
   };
   const preferencesChanged = () => { previousKey = ''; handler({ detail:{ now:new Date() } }); };
+  const layoutChanged=()=>refreshCourses(new Date());
+  const layoutStorage=event=>{if(event.key===HOME_LAYOUT_KEY||event.key===null)layoutChanged();};
   tickHandler = handler;
   document.addEventListener('app:tick', handler);
   window.addEventListener('daily:changed', preferencesChanged);
+  window.addEventListener('home-layout:changed',layoutChanged);
+  window.addEventListener('storage',layoutStorage);
   return () => {
     cleanupItems?.();
     cleanupAssistant();
     cleanupAgendaBrief();
     cleanupWeather();
+    cleanupLayout();
     document.removeEventListener('app:tick', handler);
     window.removeEventListener('daily:changed', preferencesChanged);
+    window.removeEventListener('home-layout:changed',layoutChanged);
+    window.removeEventListener('storage',layoutStorage);
     container.removeEventListener('click', onClick);
     if (tickHandler === handler) tickHandler = null;
   };
