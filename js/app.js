@@ -1,19 +1,21 @@
-import { dataManager } from './data.js?v=20261022-1';
-import { getSettings, setSelectedClass } from './storage.js?v=20261022-1';
-import { getCurrentWeek, getTodayStr } from './time.js?v=20261022-1';
-import { renderDashboard, cleanupDashboard } from './dashboard.js?v=20261022-1';
-import { renderSchedule, cleanupSchedule } from './schedule.js?v=20261022-1';
-import { renderAnalytics, cleanupAnalytics } from './analytics.js?v=20261022-1';
-import { renderCompare, cleanupCompare } from './compare.js?v=20261022-1';
-import { renderData } from './data-page.js?v=20261022-1';
-import { applySavedUpdates } from './data-update.js?v=20261022-1';
-import { renderSettings } from './settings.js?v=20261022-1';
-import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js?v=20261022-1';
-import { renderWardrobe } from './wardrobe.js?v=20261022-1';
-import { renderAgenda, selectAgendaDate } from './agenda.js?v=20261022-1';
-import { setupReminders, renderReminderSettings } from './reminders.js?v=20261022-1';
-import { renderApiSettings } from './api-settings.js?v=20261022-1';
-import { segmentMarkup } from './course-segments.js?v=20261022-1';
+import { dataManager } from './data.js?v=20261023-1';
+import { getSettings, setSelectedClass } from './storage.js?v=20261023-1';
+import { getCurrentWeek, getTodayStr } from './time.js?v=20261023-1';
+import { renderDashboard, cleanupDashboard } from './dashboard.js?v=20261023-1';
+import { renderSchedule, cleanupSchedule } from './schedule.js?v=20261023-1';
+import { renderAnalytics, cleanupAnalytics } from './analytics.js?v=20261023-1';
+import { renderCompare, cleanupCompare } from './compare.js?v=20261023-1';
+import { renderData } from './data-page.js?v=20261023-1';
+import { applySavedUpdates } from './data-update.js?v=20261023-1';
+import { renderSettings } from './settings.js?v=20261023-1';
+import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js?v=20261023-1';
+import { renderWardrobe } from './wardrobe.js?v=20261023-1';
+import { renderAgenda, selectAgendaDate } from './agenda.js?v=20261023-1';
+import { setupReminders, renderReminderSettings } from './reminders.js?v=20261023-1';
+import { renderApiSettings } from './api-settings.js?v=20261023-1';
+import { segmentMarkup } from './course-segments.js?v=20261023-1';
+import { readAISettings } from './ai-client.js?v=20261023-1';
+import { startAISession } from './ai-session-client.js?v=20261023-1';
 
 const state = {
   currentClass: '',
@@ -43,6 +45,7 @@ const routes = {
 function $(id) { return document.getElementById(id); }
 
 async function init() {
+  if (readAISettings().enabled) startAISession();
   const dataUrl = 'data/2026-2027-1_虚拟现实技术应用_全部班级.json';
   const result = await dataManager.load(dataUrl);
 

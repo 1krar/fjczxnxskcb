@@ -93,7 +93,7 @@ assert.ok(!buildAdvice(quietInput).some(row=>row.id.startsWith('shortage:') || r
 assert.ok(!buildAdvice({...input,items:[{...item,dueDate:'2020-01-01'}]}).some(row=>row.id.startsWith('item:')), 'ancient unfinished records must not dominate daily prose forever');
 assert.equal(chooseAdvice(advice, 'scope', now, 2).line, original.line, 'same date/context reuses wording');
 assert.notEqual(chooseAdvice(advice, 'scope', now, 2, true).line, original.line);
-assert.ok(chooseAdvice(advice, 'scope', now, 2, true).id.startsWith('item:'), 'refresh cannot hide urgent facts');
+assert.notEqual(chooseAdvice(advice, 'scope', now, 2, true).id, original.id, 'optional daily prose can change topic while task reminders remain separate');
 assert.equal(chooseAdvice(advice, 'scope', now, 2, true).limited, true);
 assert.notEqual(chooseAdvice(advice, 'scope', new Date(+now + 60001), 2, true).limited, true);
 

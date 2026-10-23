@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { dailyFacts, buildAdvice, shortAdvice } from '../js/daily-model.js';
+import { dailyFacts, buildAdvice, shortAdvice, dailySourceId } from '../js/daily-model.js';
 import { dailyIdentity } from '../js/ai-client.js';
 import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from '../js/daily-visibility.js';
 import { DEFAULT_PROFILE } from '../js/daily-store.js';
@@ -15,15 +15,19 @@ const input = { now, courses:[], tomorrowCourses:[], items:[
   item('soon','2026-10-21','15:40',{ title:'最近的活动', location:'示例教室', nextStep:'带纸笔' }),
 ] };
 let facts = dailyFacts(input);
-assert.match(facts.find(f=>f.id==='item:0').text,/最近的活动/,'rank before taking a bounded selection');
-assert.match(facts.find(f=>f.id==='item:0').text,/开始：2026-10-21 15:40/);
-assert.doesNotMatch(facts.find(f=>f.id==='item:0').text,/截止/,'an activity start never becomes a deadline');
-assert.match(facts.find(f=>f.id==='item:0').text,/带纸笔/);
+const soonId=dailySourceId('item','soon');
+assert.match(facts.find(f=>f.id===soonId).text,/最近的活动/,'rank before taking a bounded selection');
+assert.match(facts.find(f=>f.id===soonId).text,/开始：2026-10-21 15:40/);
+assert.doesNotMatch(facts.find(f=>f.id===soonId).text,/截止/,'an activity start never becomes a deadline');
+assert.match(facts.find(f=>f.id===soonId).text,/带纸笔/);
+assert.ok(dailyFacts({...input,items:input.items.slice().reverse()}).some(f=>f.id===soonId),'source IDs survive list reordering');
 assert.ok(facts.length<=12 && facts.every(f=>f.text.length<=350));
 const pending = dailyFacts({...input,items:[item('pending','2026-10-21','17:00',{needsConfirmation:true,location:''})]});
-assert.match(pending.find(f=>f.id==='item:0').text,/17:00.*待确认/,'retain known fields with uncertainty stated');
+assert.match(pending.find(f=>f.id.startsWith('item:')).text,/17:00.*待确认/,'retain known fields with uncertainty stated');
 assert.ok(!dailyFacts({...input,items:[item('done','2026-10-21','17:00',{completedAt:now.toISOString()})]}).some(f=>f.id.startsWith('item:')));
-assert.ok(dailyFacts({...input,items:[item('undated','','15:40')]}).some(f=>/日期未定 15:40/.test(f.text)));
+assert.ok(!dailyFacts({...input,items:[item('undated','','15:40')]}).some(f=>f.id.startsWith('item:')),'undated general notes do not become a daily refrain');
+const linked=dailyFacts({...input,items:[item('formula','','',{courseName:'数学'})],tomorrowCourses:[{courseName:'数学',startTime:'08:00',endTime:'09:40'}]});
+assert.ok(linked.some(f=>f.id===dailySourceId('item','formula')),'an undated note can matter for a linked upcoming course');
 assert.equal(dailyIdentity(scope,'2026-10-21',facts),dailyIdentity(scope,'2026-10-21',dailyFacts({...input,now:new Date('2026-10-21T15:01:00')})),'clock ticks do not invalidate current prose');
 assert.notEqual(dailyIdentity(scope,'2026-10-21',facts),dailyIdentity(scope,'2026-10-21',dailyFacts({...input,now:new Date('2026-10-21T18:00:00')})),'phase/time-passed changes expire prose');
 assert.notEqual(dailyIdentity(scope,'2026-10-21',facts),dailyIdentity(scope,'2026-10-21',dailyFacts({...input,items:input.items.filter(i=>i.id!=='soon')})),'completion/removal changes the contextual key');

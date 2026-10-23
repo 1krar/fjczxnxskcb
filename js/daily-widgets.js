@@ -1,12 +1,12 @@
-import { readDailyData, saveDailyProfile, DAILY_KEY } from './daily-store.js?v=20261022-1';
-import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261022-1';
-import { buildAdvice, chooseAdvice, planOutfits, departurePlan, localDate, nextDate, dailyFacts, shortAdvice } from './daily-model.js?v=20261022-1';
-import { cachedWeather } from './weather-client.js?v=20261022-1';
-import { weatherSummary } from './weather-model.js?v=20261022-1';
-import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261022-1';
-import { aiEnabled, AI_KEY, cachedDaily, dailyIdentity, requestDaily } from './ai-client.js?v=20261022-1';
-import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261022-1';
-import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261022-1';
+import { readDailyData, saveDailyProfile, DAILY_KEY } from './daily-store.js?v=20261023-1';
+import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261023-1';
+import { buildAdvice, chooseAdvice, planOutfits, departurePlan, localDate, nextDate, dailyFacts, shortAdvice } from './daily-model.js?v=20261023-1';
+import { cachedWeather } from './weather-client.js?v=20261023-1';
+import { weatherSummary } from './weather-model.js?v=20261023-1';
+import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261023-1';
+import { aiEnabled, AI_KEY, DAILY_CACHE_KEY, cachedDaily, dailyIdentity, requestDaily, canRequestDaily, dailyWaitMessage } from './ai-client.js?v=20261023-1';
+import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261023-1';
+import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261023-1';
 
 function getContext(state, dm, now) {
   const today = localDate(now);
@@ -29,7 +29,6 @@ export function mountDailyAssistant(container, state, dm) {
   const restore = container.querySelector('[data-restore-advice]');
   const live = container.querySelector('#dash-advice-status');
   let disposed = false, busyKey = '', currentKey = '', aiNote = '', memoryEntry = null;
-  const settled = new Set();
   const markup = new Map();
   function update(element, html) {
     if (markup.get(element) === html) return;
@@ -69,10 +68,11 @@ export function mountDailyAssistant(container, state, dm) {
       if (key !== currentKey) { currentKey = key; aiNote = ''; }
       const cached = useAI ? (memoryEntry?.key === key ? memoryEntry : cachedDaily(key)) : null;
       const entry = cached && shortAdvice(cached.sentence) ? cached : null;
-      const shouldRequest = useAI && busyKey !== key && (refresh || !entry && !settled.has(key));
-      if (shouldRequest) { busyKey = key; settled.add(key); }
+      const shouldRequest = useAI && !busyKey && (refresh || !entry) && canRequestDaily(key, refresh);
+      if (refresh && useAI && !shouldRequest && !busyKey) aiNote = dailyWaitMessage(key);
+      if (shouldRequest) busyKey = key;
       const local = chooseAdvice(pool, `${context.scope.semester}|${context.scope.className}`, now, data.profile.refreshPerMinute, refresh && !useAI);
-      const chosen = entry ? { id:'ai', priority:10, line:entry.sentence, basis:entry.basisIds.map(id => facts.find(fact=>fact.id===id)?.text || '').join(' '), href:'#/agenda' } : local;
+      const chosen = entry ? { id:'ai', priority:10, line:entry.sentence, basis:entry.basisIds.map(id => facts.find(fact=>fact.id===id)?.text || '').join(' ') || '轻量日常评论，未引用个人安排。', href:'#/agenda' } : local;
       const feedback = local.limited ? `这分钟已经换了${data.profile.refreshPerMinute}次，约${local.retrySeconds}秒后可以再换。` : aiNote || local.storageWarning || '';
       const content = `<details class="daily-banner-details" data-detail="advice-tools"><summary aria-label="今日一句：${esc(chosen.line)}，展开操作与依据"><span class="daily-sentence">${esc(chosen.line)}</span></summary>
         <div class="daily-banner-tools"><div class="daily-inline-actions"><button type="button" class="daily-text-button" data-refresh-advice ${busyKey === key ? 'disabled' : ''}>${busyKey === key ? '生成中…' : '换一句'}</button><a class="daily-link" href="${chosen.href}">相关安排</a><a class="daily-link" href="#/api">AI 设置</a><button type="button" class="daily-text-button" data-disable-advice>不再显示</button></div>
@@ -130,7 +130,8 @@ export function mountDailyAssistant(container, state, dm) {
   };
   const cleanupSwipe = setupSwipeDismiss(advice, () => visibilityAction('today'));
   const changed = () => render();
-  const storage = event => { if ([DAILY_KEY, AGENDA_KEY, AI_KEY, ADVICE_VISIBILITY_KEY, 'course-dashboard-personal-items-v1', null].includes(event.key)) render(); };
+  const resumed = () => { if (!document.hidden) render(); };
+  const storage = event => { if ([DAILY_KEY, AGENDA_KEY, AI_KEY, DAILY_CACHE_KEY, ADVICE_VISIBILITY_KEY, 'course-dashboard-personal-items-v1', null].includes(event.key)) render(); };
   const tick = event => {
     const now = event.detail?.now || new Date();
     const minute = Math.floor(+now / 60000);
@@ -138,10 +139,13 @@ export function mountDailyAssistant(container, state, dm) {
   };
   container.addEventListener('click', click);
   document.addEventListener('app:tick', tick);
+  document.addEventListener('visibilitychange', resumed);
   window.addEventListener('daily:changed', changed);
   window.addEventListener('personal-items:changed', changed);
   window.addEventListener('agenda:changed', changed);
   window.addEventListener('ai:changed', changed);
+  window.addEventListener('online', changed);
+  window.addEventListener('daily-ai:changed', changed);
   window.addEventListener('weather:changed', changed);
   window.addEventListener('storage', storage);
   render();
@@ -150,10 +154,13 @@ export function mountDailyAssistant(container, state, dm) {
     cleanupSwipe();
     container.removeEventListener('click', click);
     document.removeEventListener('app:tick', tick);
+    document.removeEventListener('visibilitychange', resumed);
     window.removeEventListener('daily:changed', changed);
     window.removeEventListener('personal-items:changed', changed);
     window.removeEventListener('agenda:changed', changed);
     window.removeEventListener('ai:changed', changed);
+    window.removeEventListener('online', changed);
+    window.removeEventListener('daily-ai:changed', changed);
     window.removeEventListener('weather:changed', changed);
     window.removeEventListener('storage', storage);
   };

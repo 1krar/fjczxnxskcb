@@ -1,7 +1,7 @@
-import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems, sortHomeItems, saveHomeOrder } from './tasks-store.js?v=20261022-1';
-import { setupHoldSort } from './hold-sort.js?v=20261022-1';
-import { getTodayStr } from './time.js?v=20261022-1';
-import { setupCaptureAI } from './capture-ai.js?v=20261022-1';
+import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems, sortHomeItems, saveHomeOrder } from './tasks-store.js?v=20261023-1';
+import { setupHoldSort } from './hold-sort.js?v=20261023-1';
+import { getTodayStr } from './time.js?v=20261023-1';
+import { setupCaptureAI } from './capture-ai.js?v=20261023-1';
 
 let context = null;
 let editingId = '';

@@ -1,6 +1,6 @@
-import { CATEGORIES } from './daily-store.js?v=20261022-1';
-import { getTodayState } from './day-plan.js?v=20261022-1';
-import { weatherDay, weatherFacts } from './weather-model.js?v=20261022-1';
+import { CATEGORIES } from './daily-store.js?v=20261023-1';
+import { getTodayState } from './day-plan.js?v=20261023-1';
+import { weatherDay, weatherFacts } from './weather-model.js?v=20261023-1';
 
 export const shortAdvice = value => typeof value === 'string' && [...value.trim()].length >= 5 && [...value.trim()].length <= 48 && !/[\r\n]/.test(value.trim());
 const shortLabel = (value, length = 10) => {
@@ -220,7 +220,7 @@ function readChoices() {
   } catch { return {}; }
 }
 export function chooseAdvice(pool, scope, now, limit, refresh = false) {
-  const eligible = pool[0]?.priority >= 80 ? pool.filter(item => item.priority === pool[0].priority) : pool;
+  const eligible = pool;
   if (!eligible.length) return null;
   const variants = eligible.flatMap(item => item.lines.map(line => ({ ...item, line })));
   const fingerprint = JSON.stringify(eligible.map(item => [item.id, item.lines, item.basis]));
@@ -232,7 +232,11 @@ export function chooseAdvice(pool, scope, now, limit, refresh = false) {
   let index = Number.isInteger(old.index) && old.index >= 0 ? old.index % variants.length : eligible[0].priority >= 80 ? 0 : seed % variants.length;
   if (refresh) {
     if (calls.length >= limit) return { ...variants[index], limited: true, retrySeconds: Math.max(1, Math.ceil((calls[0] + 60000 - now) / 1000)) };
-    index = (index + 1) % variants.length;
+    // Change the subject before repeating another wording of the same reminder.
+    const previous = index;
+    const next = variants.findIndex((row, at) => at > index && row.id !== variants[index].id);
+    index = next >= 0 ? next : variants.findIndex(row => row.id !== variants[index].id);
+    if (index < 0) index = (previous + 1) % variants.length;
     calls.push(+now);
   }
   const result = { scope, date, fingerprint, index, calls };
@@ -241,6 +245,13 @@ export function chooseAdvice(pool, scope, now, limit, refresh = false) {
     catch { return { ...variants[index], storageWarning: '换句状态未能保存，建议内容仍可查看。' }; }
   }
   return variants[index];
+}
+
+// Stable across sorting and completion of other items; safe as a bounded schema identifier.
+export function dailySourceId(kind, value) {
+  let a=2166136261, b=5381;
+  for (const char of String(value)) { a=Math.imul(a^char.codePointAt(0),16777619); b=Math.imul(b,33)^char.codePointAt(0); }
+  return `${kind}:${(a>>>0).toString(16).padStart(8,'0')}${(b>>>0).toString(16).padStart(8,'0')}`;
 }
 
 // Only this bounded summary is sent for daily prose, never the complete stores.
@@ -258,8 +269,10 @@ export function dailyFacts({ now, courses, tomorrowCourses, items, activities = 
     if (!rows.some(course => course.startTime < '18:00' && course.endTime > '12:00')) facts.push({ id:`afternoon:${id}`, text:`${label}下午课表无课；仍需考虑要记得、已确认活动和准备事项，未记录的安排未知。` });
   }
   // Reserve the remaining budget for the most relevant personal records before generic context.
-  const remembered = adviceItems(items, now).slice(0,3).map((item,index) => ({ id:`item:${index}`, text:`要记得：${(item.title || item.text).slice(0,80)}。${item.timeRole === 'start' ? '开始' : item.timeRole === 'deadline' ? '截止' : '所设时间（含义未指定）'}：${item.dueDate || '日期未定'} ${item.dueTime || '时刻未定'}。${item.dueDate && itemAt(item) < +now ? '所设时间已过；' : ''}${item.location ? `地点${item.location.slice(0,40)}；` : ''}${item.nextStep ? `用户准备动作${item.nextStep.slice(0,60)}；` : ''}${item.timeContext ? `相关区间${item.timeContext.slice(0,40)}；` : ''}${item.needsConfirmation ? '此记录标为待确认，不能把时间地点当成已核实；' : ''}仅知道尚未标记完成，不知道实际进度。`.slice(0,350) }));
-  const confirmed = activities.filter(item => item.status === 'confirmed' && [today,tomorrow].includes(item.date) && new Date(`${item.endDate || item.date}T${item.endTime || '23:59'}`) > now).sort((a,b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`)).slice(0,2).map((item,index) => ({ id:`activity:${index}`, text:`已确认参加：${item.title.slice(0,100)}，${item.date} ${item.startTime}—${item.endTime}，${item.location || '未设地点'}。`.slice(0,350) }));
+  const relevant = adviceItems(items, now).filter(item => item.dueDate && itemAt(item) >= +now && itemAt(item) <= +now+2*86400000 ||
+    !item.dueDate && item.courseName && [courses,tomorrowCourses].flat().some(course => course.courseName === item.courseName));
+  const remembered = relevant.slice(0,3).map(item => ({ id:dailySourceId('item', item.id), text:`要记得：${(item.title || item.text).slice(0,80)}。${item.timeRole === 'start' ? '开始' : item.timeRole === 'deadline' ? '截止' : '所设时间（含义未指定）'}：${item.dueDate || '日期未定'} ${item.dueTime || '时刻未定'}。${item.location ? `地点${item.location.slice(0,40)}；` : ''}${item.nextStep ? `用户准备动作${item.nextStep.slice(0,60)}；` : ''}${item.timeContext ? `相关区间${item.timeContext.slice(0,40)}；` : ''}${item.needsConfirmation ? '此记录标为待确认，不能把时间地点当成已核实；' : ''}仅知道尚未标记完成，不知道实际进度。`.slice(0,350) }));
+  const confirmed = activities.filter(item => item.status === 'confirmed' && [today,tomorrow].includes(item.date) && new Date(`${item.endDate || item.date}T${item.endTime || '23:59'}`) > now).sort((a,b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`)).slice(0,2).map(item => ({ id:dailySourceId('activity', item.id), text:`已确认参加：${item.title.slice(0,100)}，${item.date} ${item.startTime}—${item.endTime}，${item.location || '未设地点'}。`.slice(0,350) }));
   facts.splice(3,0,...remembered,...confirmed,...weatherFacts(weather,now));
   return facts.slice(0,12);
 }

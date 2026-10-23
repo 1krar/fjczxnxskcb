@@ -96,3 +96,10 @@ assert.equal(recovered.items[0].fields.startTime.value,'15:40');assert.equal(rec
 assert.equal(recovered.items[0].fields.endTime.value,null);assert.equal(recovered.items[0].fields.endTime.status,'uncertain');
 assert.equal(recovered.items[0].fields.date.value,null);assert.equal(recovered.items[0].fields.nextStep.value,'提前到场');
 console.log('通知容错网关：缺失引用、漏字段、状态不一致和坏辅助时刻仍返回可用的时间地点。');
+
+output={sentence:'给喜欢的小事留点时间，也是一种不错的安排。',basisIds:[]};
+response=await call({action:'daily',facts:[{id:'context',text:'私人安排未知。'}],recentTopics:[{ids:['item:stable'],sentence:'刚聊过某个事项。'}]},{},{now:new Date('2026-10-24T01:00:00Z')});
+assert.equal(response.status,200,'ordinary conversation does not need invented personal evidence');
+assert.deepEqual((await response.json()).result.basisIds,[]);
+assert.equal(JSON.parse(lastBody.messages[1].content).recentTopics[0].ids[0],'item:stable');
+assert.match(lastBody.messages[0].content,/不必每句都提/);
