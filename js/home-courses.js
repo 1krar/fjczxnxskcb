@@ -1,8 +1,8 @@
-import { notesForCourse } from './persistent-model.js?v=20261023-3c';
-import { renderContextNotes } from './context-notes.js?v=20261023-3c';
-import { getUpcomingCourseGroups, courseKey, formatMinutes } from './day-plan.js?v=20261023-3c';
-import { escapeText as esc } from './tasks-store.js?v=20261023-3c';
-import { formatLocation } from './location.js?v=20261023-3c';
+import { notesForCourse } from './persistent-model.js?v=20261023-4b';
+import { renderContextNotes } from './context-notes.js?v=20261023-4b';
+import { getUpcomingCourseGroups, courseKey, formatMinutes } from './day-plan.js?v=20261023-4b';
+import { escapeText as esc } from './tasks-store.js?v=20261023-4b';
+import { formatLocation } from './location.js?v=20261023-4b';
 
 export function courseListCount(courses,now) {
   const value=getUpcomingCourseGroups(courses,now), timed=value.groups.length-value.unknownCount;

@@ -1,6 +1,6 @@
-import { CATEGORIES } from './daily-store.js?v=20261023-3c';
-import { getTodayState } from './day-plan.js?v=20261023-3c';
-import { weatherDay, weatherFacts } from './weather-model.js?v=20261023-3c';
+import { CATEGORIES } from './daily-store.js?v=20261023-4b';
+import { getTodayState } from './day-plan.js?v=20261023-4b';
+import { weatherDay, weatherFacts } from './weather-model.js?v=20261023-4b';
 
 export const shortAdvice = value => typeof value === 'string' && [...value.trim()].length >= 5 && [...value.trim()].length <= 48 && !/[\r\n]/.test(value.trim());
 const shortLabel = (value, length = 10) => {
@@ -32,6 +32,15 @@ export const isShorts = item => ['sportshorts', 'shorts'].includes(item.category
 export const isAvailable = item => !item.deletedAt && ['ready','rewear'].includes(item.state);
 export function runningSuitable(item) {
   return item.running === 'yes' || item.running === 'auto' && Boolean(CATEGORIES[item.category]?.running);
+}
+
+export function plannedOutfit(data,row,fit) {
+  const pieces=row&&!row.planCancelledAt?row.selectedPieces.map(piece=>data.garments.find(item=>item.id===piece.id)):[];
+  const bottom=pieces.find(item=>item&&CATEGORIES[item.category].group==='bottom');
+  const usable=!!pieces.length&&pieces.every(item=>item&&isAvailable(item))&&!!bottom&&
+    (!fit.requireShorts||isShorts(bottom))&&(!(fit.pe||fit.run)||pieces.filter(item=>['bottom','shoes'].includes(CATEGORIES[item.category].group)).every(runningSuitable))&&
+    (bottom.needsBelt!=='yes'||pieces.some(item=>item.category==='belt'));
+  return {pieces,usable};
 }
 
 export function outfitRecommendation(data, date, courses = [], futureCourses = [], options = {}) {

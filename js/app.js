@@ -1,21 +1,21 @@
-import { dataManager } from './data.js?v=20261023-3c';
-import { getSettings, setSelectedClass } from './storage.js?v=20261023-3c';
-import { getCurrentWeek, getTodayStr } from './time.js?v=20261023-3c';
-import { renderDashboard, cleanupDashboard } from './dashboard.js?v=20261023-3c';
-import { renderSchedule, cleanupSchedule } from './schedule.js?v=20261023-3c';
-import { renderAnalytics, cleanupAnalytics } from './analytics.js?v=20261023-3c';
-import { renderCompare, cleanupCompare } from './compare.js?v=20261023-3c';
-import { renderData } from './data-page.js?v=20261023-3c';
-import { applySavedUpdates } from './data-update.js?v=20261023-3c';
-import { renderSettings } from './settings.js?v=20261023-3c';
-import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js?v=20261023-3c';
-import { renderWardrobe } from './wardrobe.js?v=20261023-3c';
-import { renderAgenda, selectAgendaDate } from './agenda.js?v=20261023-3c';
-import { setupReminders, renderReminderSettings } from './reminders.js?v=20261023-3c';
-import { renderApiSettings } from './api-settings.js?v=20261023-3c';
-import { segmentMarkup } from './course-segments.js?v=20261023-3c';
-import { readAISettings } from './ai-client.js?v=20261023-3c';
-import { startAISession } from './ai-session-client.js?v=20261023-3c';
+import { dataManager } from './data.js?v=20261023-4b';
+import { getSettings, setSelectedClass } from './storage.js?v=20261023-4b';
+import { getCurrentWeek, getTodayStr } from './time.js?v=20261023-4b';
+import { renderDashboard, cleanupDashboard } from './dashboard.js?v=20261023-4b';
+import { renderSchedule, cleanupSchedule } from './schedule.js?v=20261023-4b';
+import { renderAnalytics, cleanupAnalytics } from './analytics.js?v=20261023-4b';
+import { renderCompare, cleanupCompare } from './compare.js?v=20261023-4b';
+import { renderData } from './data-page.js?v=20261023-4b';
+import { applySavedUpdates } from './data-update.js?v=20261023-4b';
+import { renderSettings } from './settings.js?v=20261023-4b';
+import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js?v=20261023-4b';
+import { renderWardrobe } from './wardrobe.js?v=20261023-4b';
+import { renderAgenda, selectAgendaDate } from './agenda.js?v=20261023-4b';
+import { setupReminders, renderReminderSettings } from './reminders.js?v=20261023-4b';
+import { renderApiSettings } from './api-settings.js?v=20261023-4b';
+import { segmentMarkup } from './course-segments.js?v=20261023-4b';
+import { readAISettings } from './ai-client.js?v=20261023-4b';
+import { startAISession } from './ai-session-client.js?v=20261023-4b';
 
 const state = {
   currentClass: '',
@@ -98,7 +98,8 @@ function setupResizeHandler() {
       state.isMobile = window.innerWidth <= 768;
       if (wasMobile !== state.isMobile) {
         updateNavActiveState();
-        rerenderCurrentPage();
+        // Wardrobe layout already adapts in CSS; preserve open editors and dates.
+        if (state.route !== 'wardrobe') rerenderCurrentPage();
       }
     }, 150);
   });

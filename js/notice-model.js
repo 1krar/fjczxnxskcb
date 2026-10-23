@@ -1,5 +1,5 @@
-import { getSectionTime } from './time.js?v=20261023-3c';
-import { NOTICE_VERSION, NOTICE_FIELDS, normalizeNoticeExtraction } from './notice-form.js?v=20261023-3c';
+import { getSectionTime } from './time.js?v=20261023-4b';
+import { NOTICE_VERSION, NOTICE_FIELDS, normalizeNoticeExtraction } from './notice-form.js?v=20261023-4b';
 
 export function seasonForDate(date,courses,rule) {
   const actual=courses.find(course=>course.date===date&&course.season);if(actual)return actual.season;

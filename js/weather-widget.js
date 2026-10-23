@@ -1,9 +1,9 @@
-import { readDailyData } from './daily-store.js?v=20261023-3c';
-import { cachedWeather, refreshWeather } from './weather-client.js?v=20261023-3c';
-import { weatherDay, weatherStatus } from './weather-model.js?v=20261023-3c';
-import { weatherHeadline } from './weather-presentation.js?v=20261023-3c';
-import { localDate } from './daily-model.js?v=20261023-3c';
-import { escapeText as esc } from './tasks-store.js?v=20261023-3c';
+import { readDailyData } from './daily-store.js?v=20261023-4b';
+import { cachedWeather, refreshWeather } from './weather-client.js?v=20261023-4b';
+import { weatherDay, weatherStatus } from './weather-model.js?v=20261023-4b';
+import { weatherHeadline } from './weather-presentation.js?v=20261023-4b';
+import { localDate } from './daily-model.js?v=20261023-4b';
+import { escapeText as esc } from './tasks-store.js?v=20261023-4b';
 
 export function mountWeather(container) {
   const slot = container.querySelector('#dash-weather-slot');

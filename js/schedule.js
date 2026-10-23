@@ -1,8 +1,8 @@
-import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse, localDate } from './time.js?v=20261023-3c';
-import { segmentMarkup } from './course-segments.js?v=20261023-3c';
-import { showCourseDetail } from './app.js?v=20261023-3c';
-import { formatLocation } from './location.js?v=20261023-3c';
-import { getCourseGaps, getDayWindow } from './day-plan.js?v=20261023-3c';
+import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse, localDate } from './time.js?v=20261023-4b';
+import { segmentMarkup } from './course-segments.js?v=20261023-4b';
+import { showCourseDetail } from './app.js?v=20261023-4b';
+import { formatLocation } from './location.js?v=20261023-4b';
+import { getCourseGaps, getDayWindow } from './day-plan.js?v=20261023-4b';
 
 let tickHandler = null;
 let scheduleState = { week: 1, selectedDay: 1, searchOpen: false };
