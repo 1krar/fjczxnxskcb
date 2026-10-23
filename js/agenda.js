@@ -1,10 +1,10 @@
-import { getTodayStr, localDate, getDayName } from './time.js?v=20261023-2';
-import { escapeText as esc, itemsForScope, itemTimeLabel } from './tasks-store.js?v=20261023-2';
-import { readDailyData } from './daily-store.js?v=20261023-2';
-import { readAgenda, scopedActivities, saveActivity, exportAgenda, mergeAgenda, validateAgenda, validateActivity, downloadFile } from './agenda-store.js?v=20261023-2';
-import { at, addDate, clock, activityInterval, activityOnDate, checkActivity, buildReminders, marketReminders, tradingDay, exportCalendarEvents } from './agenda-model.js?v=20261023-2';
-import { showCourseDetail } from './app.js?v=20261023-2';
-import { segmentMarkup } from './course-segments.js?v=20261023-2';
+import { getTodayStr, localDate, getDayName } from './time.js?v=20261023-3c';
+import { escapeText as esc, itemsForScope, itemTimeLabel } from './tasks-store.js?v=20261023-3c';
+import { readDailyData } from './daily-store.js?v=20261023-3c';
+import { readAgenda, scopedActivities, saveActivity, exportAgenda, mergeAgenda, validateAgenda, validateActivity, downloadFile } from './agenda-store.js?v=20261023-3c';
+import { at, addDate, clock, activityInterval, activityOnDate, checkActivity, buildReminders, marketReminders, tradingDay, exportCalendarEvents } from './agenda-model.js?v=20261023-3c';
+import { showCourseDetail } from './app.js?v=20261023-3c';
+import { segmentMarkup } from './course-segments.js?v=20261023-3c';
 
 let selectedDate = getTodayStr();
 let displayedMonth = selectedDate.slice(0,7);
@@ -15,7 +15,7 @@ let agendaCleanup = null;
 export function cleanupAgenda() { agendaCleanup?.(); agendaCleanup=null; }
 export function plannerContext(state, dm, date = getTodayStr()) {
   const data = readAgenda(), scope = { semester: dm.getSemesterInfo().semester, className: state.currentClass };
-  return { date, data, scope, prefs: data.reminders, courses: dm.getCourses(state.currentClass), activities: scopedActivities(scope,data), tasks: itemsForScope(scope), profile: readDailyData().profile };
+  return { date, data, scope, prefs: data.reminders, courses: dm.getCourses(state.currentClass), activities: scopedActivities(scope,data), tasks: itemsForScope(scope).filter(item=>item.reminderMode!=='persistent'), profile: readDailyData().profile };
 }
 function monthDates(month) {
   const first = new Date(`${month}-01T12:00:00`), start = new Date(first);

@@ -1,4 +1,4 @@
-import { localDate, getCoursePhase } from './time.js?v=20261023-2';
+import { localDate, getCoursePhase } from './time.js?v=20261023-3c';
 
 export const MARKET_CALENDAR = { from: '2026-01-01', through: '2026-12-31', checkedAt: '2026-10-20',
   source: 'https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml' };
@@ -100,7 +100,7 @@ export function buildReminders({ date, courses, activities, tasks, prefs, profil
     reminders.push({ key:`activity:${item.id}`,type:'activity',title:`准备参加「${item.title}」`,start,remindAt,expires:arrival,
       detail:`${clock(arrival)} ${item.checkInTime?'签到':'开始'} · ${item.location||'地点待核对'} · ${item.travelBefore===null?'通勤尚未计入':`含去程 ${item.travelBefore} 分钟`}` });
   }
-  for(const item of tasks.filter(item=>!item.completedAt&&!item.deletedAt&&!item.needsConfirmation&&item.dueDate)) {
+  for(const item of tasks.filter(item=>item.reminderMode!=='persistent'&&!item.completedAt&&!item.deletedAt&&!item.needsConfirmation&&item.dueDate)) {
     if(!item.dueTime&&!prefs.dateOnlyReminder)continue;
     const target=at(item.dueDate,item.dueTime||'00:00'),remindAt=item.dueTime?new Date(+target-prefs.taskLeadHours*3600000):at(addDate(item.dueDate,-1),prefs.dateOnlyTime);
     if(localDate(remindAt)>date||item.dueDate<date)continue;

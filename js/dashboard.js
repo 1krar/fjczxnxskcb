@@ -1,16 +1,18 @@
-import { getTodayStr, getDayName, getCurrentWeek } from './time.js?v=20261023-2';
-import { showCourseDetail } from './app.js?v=20261023-2';
-import { formatLocation } from './location.js?v=20261023-2';
-import { mountTodayItems } from './tasks.js?v=20261023-2';
-import { escapeText } from './tasks-store.js?v=20261023-2';
-import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261023-2';
-import { readHomeLayout, defaultHomeLayout, homeModuleHeading, mountHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261023-2';
-import { renderUpcomingCourses, courseListCount, courseContinuation } from './home-courses.js?v=20261023-2';
-import { mountDailyAssistant } from './daily-widgets.js?v=20261023-2';
-import { mountTodayAgenda } from './today-agenda.js?v=20261023-2';
-import { readDailyData } from './daily-store.js?v=20261023-2';
-import { departurePlan } from './daily-model.js?v=20261023-2';
-import { mountWeather } from './weather-widget.js?v=20261023-2';
+import { notesForCourse, notesForMoment } from './persistent-model.js?v=20261023-3c';
+import { renderContextNotes, mountNoteActions } from './context-notes.js?v=20261023-3c';
+import { getTodayStr, getDayName, getCurrentWeek } from './time.js?v=20261023-3c';
+import { showCourseDetail } from './app.js?v=20261023-3c';
+import { formatLocation } from './location.js?v=20261023-3c';
+import { mountTodayItems, openCapture } from './tasks.js?v=20261023-3c';
+import { escapeText, itemsForScope } from './tasks-store.js?v=20261023-3c';
+import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261023-3c';
+import { readHomeLayout, defaultHomeLayout, homeModuleHeading, mountHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261023-3c';
+import { renderUpcomingCourses, courseListCount, courseContinuation } from './home-courses.js?v=20261023-3c';
+import { mountDailyAssistant } from './daily-widgets.js?v=20261023-3c';
+import { mountTodayAgenda } from './today-agenda.js?v=20261023-3c';
+import { readDailyData } from './daily-store.js?v=20261023-3c';
+import { departurePlan } from './daily-model.js?v=20261023-3c';
+import { mountWeather } from './weather-widget.js?v=20261023-3c';
 
 const esc = escapeText;
 let tickHandler = null;
@@ -91,7 +93,7 @@ function renderStatus(context, courses, nextDay, state, now) {
     } catch { /* Course time stays available when optional daily preferences cannot be read. */ }
   }
   const continuation=!resting?courseContinuation(context.currentCourse||context.nextCourse,context.currentSegment,now):'';
-  return `<div class="status-main${resting ? ' is-resting' : ''}"><div class="status-heading"><div class="status-tag accent-${label.accent}">${label.label}</div></div><div class="status-focus-row${countdown ? ' has-countdown' : ''}"><div class="status-course-info">${content}</div>${countdown}</div>${support}${continuation?`<p class="status-continuation">${esc(continuation)}</p>`:''}</div>`;
+  return `<div class="status-main${resting ? ' is-resting' : ''}"><div class="status-heading"><div class="status-tag accent-${label.accent}">${label.label}</div></div><div class="status-focus-row${countdown ? ' has-countdown' : ''}"><div class="status-course-info">${content}</div>${countdown}</div>${support}${continuation?`<p class="status-continuation">${esc(continuation)}</p>`:''}</div><div id="dash-course-notes"></div>`;
 }
 
 function progressPercent(course, now, segment) {
@@ -128,7 +130,7 @@ export function renderDashboard(container, state, dm) {
   const layout=()=>{try{return readHomeLayout(scope);}catch{return defaultHomeLayout();}};
   container.innerHTML = `<section class="today-page"><div id="dash-advice-slot"></div><header class="today-header-row"><h1 class="today-date-sub"><a href="#/agenda" aria-label="打开日历与日程"><time datetime="${today}">${Number(today.slice(5, 7))}月${Number(today.slice(8))}日 · 星期${getDayName(today)}</time></a></h1><span class="today-week-badge">${semester.label}</span><button type="button" class="daily-restore" data-restore-advice hidden>恢复今日一句</button></header><span class="sr-only" id="dash-advice-status" role="status" aria-live="polite"></span>
     <div id="dash-weather-slot"></div><div class="today-body-grid"><div class="today-now-column"><section class="today-status accent-${STATE_LABELS[context.state].accent}" id="dash-status" aria-label="当前课程与下一次安排">${renderStatus(context, courses, nextDay, state, now)}</section>
-    <div id="dash-planner-slot"></div><div class="home-modules" id="dash-home-modules"><section class="home-module" id="dash-personal-slot" data-home-module="items"></section><section class="home-module today-course-list" id="dash-course-list" data-home-module="courses"${!courses.length?' hidden':''}>${homeModuleHeading('courses')}<div id="dash-courses-content"><div class="today-timeline" id="dash-timeline">${renderUpcomingCourses(courses,now,state,layout().expanded.courses)}</div></div></section></div><p class="home-layout-status" id="dash-layout-status" role="status" aria-live="polite"></p></div>
+    <div id="dash-planner-slot"></div><div id="dash-moment-notes"></div><p class="context-notes-status" data-notes-status role="status" aria-live="polite"></p><div class="home-modules" id="dash-home-modules"><section class="home-module" id="dash-personal-slot" data-home-module="items"></section><section class="home-module today-course-list" id="dash-course-list" data-home-module="courses"${!courses.length?' hidden':''}>${homeModuleHeading('courses')}<div id="dash-courses-content"><div class="today-timeline" id="dash-timeline">${renderUpcomingCourses(courses,now,state,layout().expanded.courses)}</div></div></section></div><p class="home-layout-status" id="dash-layout-status" role="status" aria-live="polite"></p></div>
     <div class="today-support-column">
     <div id="dash-prep-slot"></div>${renderOverview(courses, now, dm.getSemesterInfo())}</div></div></section>`;
   const cleanupItems = mountTodayItems(container, state, dm);
@@ -136,13 +138,31 @@ export function renderDashboard(container, state, dm) {
   const cleanupAgendaBrief = mountTodayAgenda(container, state, dm);
   const cleanupWeather = mountWeather(container);
   const cleanupLayout = mountHomeLayout(container,scope);
+  const noteItems=()=>{try{return itemsForScope(scope);}catch{return [];}};
+  const noteMarkup=new Map();
+  function noteSlot(selector,items) {
+    const slot=container.querySelector(selector);if(!slot)return;
+    const html=renderContextNotes(items,selector.slice(1));
+    if(noteMarkup.get(slot)===html)return;
+    const opened=slot.querySelector('details')?.open;
+    slot.innerHTML=html;noteMarkup.set(slot,html);
+    if(opened&&slot.querySelector('details'))slot.querySelector('details').open=true;
+  }
+  function refreshNotes(time) {
+    const items=noteItems(),value=getTodayState(courses,time),focus=value.currentCourse||value.nextCourse;
+    noteSlot('#dash-course-notes',notesForCourse(items,focus,{now:time,view:'focus'}));
+    noteSlot('#dash-moment-notes',notesForMoment(items,time,dm.getCourses(state.currentClass)));
+  }
+  const cleanupNotes=mountNoteActions(container,openCapture);
   function refreshCourses(time) {
     const timeline=container.querySelector('#dash-timeline');
     const opened=new Set([...timeline.querySelectorAll('[data-course-detail][open]')].map(node=>node.dataset.courseDetail));
+    const noteOpened=new Set([...timeline.querySelectorAll('[data-detail][open]')].map(node=>node.dataset.detail));
     const focused=timeline.contains(document.activeElement)?document.activeElement:null;
     const focusKey=focused?.closest('[data-course-detail]')?.dataset.courseDetail;
     const focusButtonKey=focused?.dataset.courseKey;
-    timeline.innerHTML=renderUpcomingCourses(courses,time,state,layout().expanded.courses,opened);
+    timeline.innerHTML=renderUpcomingCourses(courses,time,state,layout().expanded.courses,opened,noteItems());
+    timeline.querySelectorAll('[data-detail]').forEach(node=>node.open=noteOpened.has(node.dataset.detail));
     container.querySelector('#dash-courses-count').textContent=courseListCount(courses,time);
     if (focusKey) {
       const row=[...timeline.querySelectorAll('[data-course-detail]')].find(node=>node.dataset.courseDetail===focusKey);
@@ -153,6 +173,7 @@ export function renderDashboard(container, state, dm) {
     }
   }
   refreshCourses(now);
+  refreshNotes(now);
   const allCourses = [...courses, ...(nextDay?.courses || [])];
   const onClick = event => {
     const button = event.target.closest('[data-course-key]');
@@ -161,7 +182,7 @@ export function renderDashboard(container, state, dm) {
     if (course) showCourseDetail(course);
   };
   container.addEventListener('click', onClick);
-  let previousKey = stateKey(context);
+  let previousKey = stateKey(context),noteMinute=Math.floor(+now/60000);
   const handler = event => {
     const time = event.detail?.now || new Date();
     const next = getTodayState(courses, time);
@@ -173,7 +194,10 @@ export function renderDashboard(container, state, dm) {
       status.innerHTML = renderStatus(next, courses, nextDay, state, time);
       if (statusFocused) status.querySelector('.status-course, a')?.focus({ preventScroll: true });
       refreshCourses(time);
+      refreshNotes(time);
     }
+    const minute=Math.floor(+time/60000);
+    if(minute!==noteMinute){noteMinute=minute;refreshNotes(time);}
     const countdown = container.querySelector('#dash-countdown');
     if (countdown && next.countdown !== null) countdown.textContent = countdownText(next.countdown);
     const progress = container.querySelector('#dash-progress');
@@ -181,10 +205,14 @@ export function renderDashboard(container, state, dm) {
   };
   const preferencesChanged = () => { previousKey = ''; handler({ detail:{ now:new Date() } }); };
   const layoutChanged=()=>refreshCourses(new Date());
+  const notesChanged=()=>{refreshNotes(new Date());refreshCourses(new Date());};
+  const notesStorage=event=>{if(event.key===null||event.key==='course-dashboard-personal-items-v1')notesChanged();};
   const layoutStorage=event=>{if(event.key===HOME_LAYOUT_KEY||event.key===null)layoutChanged();};
   tickHandler = handler;
   document.addEventListener('app:tick', handler);
   window.addEventListener('daily:changed', preferencesChanged);
+  window.addEventListener('personal-items:changed',notesChanged);
+  window.addEventListener('storage',notesStorage);
   window.addEventListener('home-layout:changed',layoutChanged);
   window.addEventListener('storage',layoutStorage);
   return () => {
@@ -193,6 +221,9 @@ export function renderDashboard(container, state, dm) {
     cleanupAgendaBrief();
     cleanupWeather();
     cleanupLayout();
+    cleanupNotes();
+    window.removeEventListener('personal-items:changed',notesChanged);
+    window.removeEventListener('storage',notesStorage);
     document.removeEventListener('app:tick', handler);
     window.removeEventListener('daily:changed', preferencesChanged);
     window.removeEventListener('home-layout:changed',layoutChanged);

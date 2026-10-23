@@ -1,3 +1,4 @@
+import { normalizeNoteRule, isPersistent, noteDate } from './persistent-model.js?v=20261023-3c';
 const KEY = 'course-dashboard-personal-items-v1';
 export const KINDS = { task: '作业 / 待办', exam: '考试', bring: '带物品', change: '课程变更', note: '随手记' };
 export const SOURCES = { oral: '课堂口头', qq: 'QQ 群', other: '其他' };
@@ -29,6 +30,12 @@ export function validateItem(item) {
     ['courseName', 300, '课程'], ['text', 5000, '正文'], ['nextStep', 1000, '下一步'],
   ]) result[key] = cleanText(item[key], max, label);
   for (const [key,max,label] of [['title',300,'事项名称'],['location',300,'地点'],['timeContext',500,'时间区间'],['referenceAt',100,'通知参考时间']]) result[key] = cleanText(item[key] ?? '', max, label);
+  result.reminderMode = item.reminderMode ?? 'task';
+  if (!['task','persistent'].includes(result.reminderMode)) throw new Error('事项提醒模式无效');
+  result.noteRule = normalizeNoteRule(item.noteRule);
+  result.notePaused = item.notePaused ?? false;
+  result.noteHiddenOn = item.noteHiddenOn ?? '';
+  if (typeof result.notePaused !== 'boolean' || typeof result.noteHiddenOn !== 'string' || result.noteHiddenOn && !validDate(result.noteHiddenOn)) throw new Error('常驻提示状态无效');
   result.timeRole = item.timeRole ?? '';
   if (!['','start','deadline'].includes(result.timeRole)) throw new Error('事项时间类型无效');
   result.homeOrder = item.homeOrder ?? null;
@@ -52,14 +59,14 @@ export function validateItem(item) {
 }
 
 export function validateBackup(value) {
-  if (!value || value.schemaVersion !== 1 || !Array.isArray(value.items) || value.items.length > 5000) throw new Error('这不是支持的个人事项备份文件');
+  if (!value || ![1,2].includes(value.schemaVersion) || !Array.isArray(value.items) || value.items.length > 5000) throw new Error('这不是支持的个人事项备份文件');
   const ids = new Set();
   const items = value.items.map(validateItem);
   for (const item of items) {
     if (ids.has(item.id)) throw new Error('备份中有重复编号，未进行导入');
     ids.add(item.id);
   }
-  return { schemaVersion: 1, items };
+  return { schemaVersion: 2, items };
 }
 
 export function readItems() {
@@ -70,7 +77,7 @@ export function readItems() {
 }
 
 function writeItems(items) {
-  const value = validateBackup({ schemaVersion: 1, items });
+  const value = validateBackup({ schemaVersion: 2, items });
   try { localStorage.setItem(KEY, JSON.stringify(value)); } catch { throw new Error('本机保存失败，可能是空间不足或存储被禁用。输入内容仍保留，请先备份或检查浏览器设置'); }
   window.dispatchEvent(new CustomEvent('personal-items:changed'));
 }
@@ -85,7 +92,8 @@ export function saveItem(fields, id = '') {
   if (id && !previous) throw new Error('这条事项已不存在，请刷新后重试');
   const now = new Date().toISOString();
   const item = validateItem({
-    ...fields,
+    ...previous, ...fields,
+    ...(previous && fields.reminderMode && fields.reminderMode !== previous.reminderMode ? {notePaused:false,noteHiddenOn:''} : {}),
     homeOrder:previous?.homeOrder ?? null,
     id: previous?.id || crypto.randomUUID(),
     createdAt: previous?.createdAt || now,
@@ -98,12 +106,15 @@ export function saveItem(fields, id = '') {
 }
 
 export function updateItemState(id, action) {
-  if (!['complete', 'reopen', 'trash', 'restore'].includes(action)) throw new Error('不支持的操作');
+  if (!['complete', 'reopen', 'trash', 'restore', 'pause', 'resume', 'hideToday', 'showToday', 'stopPersistent'].includes(action)) throw new Error('不支持的操作');
   const items = readItems();
   if (!items.some(item => item.id === id)) throw new Error('这条事项已不存在，请刷新后重试');
   const now = new Date().toISOString();
   writeItems(items.map(item => item.id !== id ? item : {
     ...item, updatedAt: now,
+    notePaused: action === 'pause' ? true : ['resume','stopPersistent'].includes(action) ? false : item.notePaused,
+    noteHiddenOn: action === 'hideToday' ? noteDate(new Date()) : ['showToday','stopPersistent'].includes(action) ? '' : item.noteHiddenOn,
+    reminderMode: action === 'stopPersistent' ? 'task' : item.reminderMode,
     completedAt: action === 'complete' ? now : action === 'reopen' ? '' : item.completedAt,
     deletedAt: action === 'trash' ? now : action === 'restore' ? '' : item.deletedAt,
   }));
@@ -128,7 +139,7 @@ export function exportBackup(raw = false) {
   if (raw) {
     try { contents = localStorage.getItem(KEY) || '{"schemaVersion":1,"items":[]}'; }
     catch { throw new Error('浏览器无法读取原始数据'); }
-  } else contents = JSON.stringify({ schemaVersion: 1, exportedAt: new Date().toISOString(), items: readItems() }, null, 2);
+  } else contents = JSON.stringify({ schemaVersion: 2, exportedAt: new Date().toISOString(), items: readItems() }, null, 2);
   const url = URL.createObjectURL(new Blob([contents], { type: 'application/json' }));
   const link = document.createElement('a');
   link.href = url;
@@ -152,7 +163,7 @@ export function dateLabel(item, today) {
 }
 
 export function isOverdue(item, today, now = new Date()) {
-  if (!item.dueDate || item.completedAt || item.deletedAt) return false;
+  if (isPersistent(item) || !item.dueDate || item.completedAt || item.deletedAt) return false;
   if (item.dueDate < today) return true;
   return item.dueDate === today && !!item.dueTime && new Date(`${item.dueDate}T${item.dueTime}:00`) < now;
 }
@@ -179,7 +190,7 @@ export function sortHomeItems(items, now = new Date(), manual = true) {
 export function saveHomeOrder(scope, ids = null) {
   if (!scope?.semester || !scope?.className || ids!==null && (!Array.isArray(ids) || ids.length>5000 || ids.some(id=>typeof id!=='string') || new Set(ids).size!==ids.length)) throw new Error('排序内容无效');
   const all=readItems(),matches=item=>item.semester===scope.semester&&item.className===scope.className;
-  const active=all.filter(item=>matches(item)&&!item.completedAt&&!item.deletedAt);
+  const active=all.filter(item=>matches(item)&&!isPersistent(item)&&!item.completedAt&&!item.deletedAt);
   const available=new Set(active.map(item=>item.id));
   const supplied=new Set(ids||[]);
   const ordered=ids===null?[]:[...ids.filter(id=>available.has(id)),...sortHomeItems(active).filter(item=>!supplied.has(item.id)).map(item=>item.id)];

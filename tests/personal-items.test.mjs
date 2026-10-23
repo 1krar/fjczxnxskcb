@@ -1,5 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
 
 const memory = new Map();
 let failWrite = false;
@@ -8,8 +7,7 @@ globalThis.localStorage = {
   setItem: (key, value) => { if (failWrite) throw new Error('quota'); memory.set(key, value); },
 };
 globalThis.window = new EventTarget();
-const source = await readFile(new URL('../js/tasks-store.js', import.meta.url), 'utf8');
-const store = await import(`data:text/javascript;base64,${Buffer.from(source).toString('base64')}`);
+const store = await import('../js/tasks-store.js');
 const fields = {
   semester: '2026-2027-1', className: '三班', courseName: '英语',
   text: '下周交演讲稿\n具体时间再确认 <img src=x onerror=alert(1)>',

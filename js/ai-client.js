@@ -1,5 +1,5 @@
-import { aiSessionStatus, restoreAISession, lockAISession } from './ai-session-client.js?v=20261023-2';
-export { aiSessionStatus, restoreAISession, unlockAISession, logoutAISession } from './ai-session-client.js?v=20261023-2';
+import { aiSessionStatus, restoreAISession, lockAISession } from './ai-session-client.js?v=20261023-3c';
+export { aiSessionStatus, restoreAISession, unlockAISession, logoutAISession } from './ai-session-client.js?v=20261023-3c';
 export const AI_KEY = 'course-dashboard-ai-v1';
 export const DAILY_CACHE_KEY = 'course-dashboard-ai-daily-v2';
 const LEASE_KEY = DAILY_CACHE_KEY + '-lease';

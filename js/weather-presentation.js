@@ -1,4 +1,4 @@
-import { weatherDay, weatherStatus } from './weather-model.js?v=20261023-2';
+import { weatherDay, weatherStatus } from './weather-model.js?v=20261023-3c';
 
 export function weatherHeadline(weather,now=new Date(),city='') {
   const today=new Date(+now+8*3600000).toISOString().slice(0,10),status=weatherStatus(weather,now);

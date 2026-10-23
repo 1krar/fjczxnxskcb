@@ -1,6 +1,6 @@
-import { CATEGORIES } from './daily-store.js?v=20261023-2';
-import { getTodayState } from './day-plan.js?v=20261023-2';
-import { weatherDay, weatherFacts } from './weather-model.js?v=20261023-2';
+import { CATEGORIES } from './daily-store.js?v=20261023-3c';
+import { getTodayState } from './day-plan.js?v=20261023-3c';
+import { weatherDay, weatherFacts } from './weather-model.js?v=20261023-3c';
 
 export const shortAdvice = value => typeof value === 'string' && [...value.trim()].length >= 5 && [...value.trim()].length <= 48 && !/[\r\n]/.test(value.trim());
 const shortLabel = (value, length = 10) => {
@@ -11,7 +11,7 @@ const itemAt = item => item.dueDate ? +new Date(`${item.dueDate}T${item.dueTime 
 
 // Select by relevance before bounding the context; manual homepage order is unrelated.
 export function adviceItems(items, now) {
-  return items.filter(item => !item.completedAt && !item.deletedAt &&
+  return items.filter(item => item.reminderMode !== 'persistent' && !item.completedAt && !item.deletedAt &&
     (!item.dueDate || itemAt(item) >= +now - 86400000 && itemAt(item) <= +now + 7 * 86400000))
     .sort((a, b) => {
       const rank = item => !item.dueDate ? 4 : item.needsConfirmation ? 3 : itemAt(item) < +now ? 2 : 0;
@@ -204,7 +204,7 @@ export function buildAdvice({ now, courses, tomorrowCourses, items, data, future
   const hasAfternoon = courses.some(course => course.startDateTime && course.endDateTime && course.startDateTime.getHours() < 18 && (course.endDateTime.getHours() > 12 || course.endDateTime.getHours() === 12 && course.endDateTime.getMinutes() > 0));
   const confirmedActivities = activities.filter(item => item.status === 'confirmed');
   const afternoonActivity = confirmedActivities.some(item => item.date <= today && (item.endDate || item.date) >= today && (item.date < today || item.startTime < '18:00') && ((item.endDate || item.date) > today || item.endTime > '12:00'));
-  const afternoonItem = items.some(item => !item.completedAt && !item.deletedAt && item.dueDate === today && (item.timeRole === 'deadline' || item.kind === 'task' || !item.dueTime || item.dueTime >= '12:00' && item.dueTime <= '18:00'));
+  const afternoonItem = items.some(item => item.reminderMode !== 'persistent' && !item.completedAt && !item.deletedAt && item.dueDate === today && (item.timeRole === 'deadline' || item.kind === 'task' || !item.dueTime || item.dueTime >= '12:00' && item.dueTime <= '18:00'));
   if (!hasAfternoon && !afternoonActivity && !afternoonItem && now.getHours() < 18) add('afternoon', 30, ['下午课表留白，若无别的安排，可以出去走走。', '下午课表无课，也可以留一点时间给自己。'], '当前课表下午无课，且未记录下午事项；其他私人安排未知。', '#/agenda');
   const activity = confirmedActivities.find(item => item.date === today || item.date === tomorrow);
   if (activity) add(`activity:${activity.id}`, 40, [`${activity.date === today ? '今天' : '明天'}还有${shortLabel(activity.title)}，留点准备时间。`, `给${shortLabel(activity.title)}留点余地，路上不用太赶。`], `来自已确认活动：${activity.date} ${activity.startTime}—${activity.endTime}。`, '#/agenda');

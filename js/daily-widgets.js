@@ -1,12 +1,14 @@
-import { readDailyData, saveDailyProfile, DAILY_KEY } from './daily-store.js?v=20261023-2';
-import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261023-2';
-import { buildAdvice, chooseAdvice, planOutfits, departurePlan, localDate, nextDate, dailyFacts, shortAdvice } from './daily-model.js?v=20261023-2';
-import { cachedWeather } from './weather-client.js?v=20261023-2';
-import { weatherSummary } from './weather-model.js?v=20261023-2';
-import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261023-2';
-import { aiEnabled, AI_KEY, DAILY_CACHE_KEY, cachedDaily, dailyIdentity, requestDaily, canRequestDaily, dailyWaitMessage } from './ai-client.js?v=20261023-2';
-import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261023-2';
-import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261023-2';
+import { notesForCourse } from './persistent-model.js?v=20261023-3c';
+import { renderContextNotes } from './context-notes.js?v=20261023-3c';
+import { readDailyData, saveDailyProfile, DAILY_KEY } from './daily-store.js?v=20261023-3c';
+import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261023-3c';
+import { buildAdvice, chooseAdvice, planOutfits, departurePlan, localDate, nextDate, dailyFacts, shortAdvice } from './daily-model.js?v=20261023-3c';
+import { cachedWeather } from './weather-client.js?v=20261023-3c';
+import { weatherSummary } from './weather-model.js?v=20261023-3c';
+import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261023-3c';
+import { aiEnabled, AI_KEY, DAILY_CACHE_KEY, cachedDaily, dailyIdentity, requestDaily, canRequestDaily, dailyWaitMessage } from './ai-client.js?v=20261023-3c';
+import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261023-3c';
+import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261023-3c';
 
 function getContext(state, dm, now) {
   const today = localDate(now);
@@ -99,11 +101,13 @@ export function mountDailyAssistant(container, state, dm) {
     const fit = plan.daily;
     const first = fit.sets[0];
     const hasGarments = data.garments.some(item => !item.deletedAt);
-    const due = items.filter(item => !item.completedAt && !item.deletedAt && !item.needsConfirmation && item.dueDate === date);
+    const due = items.filter(item => item.reminderMode !== 'persistent' && !item.completedAt && !item.deletedAt && !item.needsConfirmation && item.dueDate === date);
+    const prepNotes=[...new Map(courses.flatMap(course=>notesForCourse(items,course,{now,view:'prepare'})).map(item=>[item.id,item])).values()];
     const departure = departurePlan(courses[0], data.profile);
     update(preparation, `<summary><span class="preparation-title">${preparingToday ? '今日出门准备' : '明日准备'}</span><span class="preparation-summary">${plan.weather?esc(weatherSummary(plan.weather)):date.slice(5)+' · 物品与穿衣'}<span class="course-list-chevron" aria-hidden="true"></span></span>${first?`<span class="preparation-fit-line">${first.pieces.map(item=>esc(item.name)).join(' ＋ ')}${plan.sportNeeded?' · 另看运动准备':''}</span>`:''}</summary>
       <div class="preparation-body">${!courses.length ? '<p class="daily-muted">这天课表上无课，个人安排可以在待办里查看。</p>' : ''}
       ${departure ? `<p class="daily-muted">${esc(departure.text)}</p><p class="daily-small">${esc(departure.basis)}</p>` : ''}
+      ${renderContextNotes(prepNotes,'prepare')}
       ${due.length ? `<div class="preparation-items"><h2>已记下的事项</h2>${due.slice(0, 3).map(item => `<a href="#/tasks"><span>${esc(item.text)}</span><span class="daily-small">${esc(dateLabel(item, context.today))}</span></a>`).join('')}${due.length > 3 ? `<a class="daily-link" href="#/tasks">查看全部${due.length}条 →</a>` : ''}</div>` : ''}
       <div class="preparation-outfit"><h2>${preparingToday ? '今天' : '明日'}穿衣${plan.sportNeeded ? ' · 有运动安排' : ''}</h2>
       ${hasGarments ? first ? `<p class="daily-fit-preview">${first.pieces.map(item => esc(item.name)).join(' ＋ ')}</p><p class="daily-muted">${esc(first.reasons[0])}</p>` : `<p class="daily-muted">${esc(fit.missing[0] || '先检查一下可穿单品。')}</p>` : '<p class="daily-muted">录几件常穿衣服，就能结合活动和洗晒状态选搭配。</p>'}

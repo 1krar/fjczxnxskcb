@@ -96,3 +96,27 @@
 .notice-fields dt { color: var(--color-text-secondary); font-size: 13px; }
 .notice-fields dd { margin: 0; overflow-wrap: anywhere; }
 .notice-fields small { display: block; color: var(--color-text-secondary); font-size: 12px; margin-top: 3px; }
+/* Low priority notes stay at the associated content, with detail on demand. */
+.context-notes { min-width:0; margin:8px 0; color:var(--color-text-secondary); font-size:.82rem; }
+.context-notes > summary { display:flex; align-items:center; gap:8px; min-height:44px; cursor:pointer; list-style:none; padding:4px 0; }
+.context-notes > summary::-webkit-details-marker { display:none; }
+.context-note-label { flex:none; font-size:.72rem; color:var(--color-text-secondary); }
+.context-note-preview { flex:1; min-width:0; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+.context-note-count { flex:none; font-size:.72rem; }
+.context-note-body { border-inline-start:2px solid var(--color-border); padding-inline-start:12px; }
+.context-note-body article + article { margin-top:12px; }
+.context-note-body p { white-space:pre-wrap; overflow-wrap:anywhere; margin:4px 0; line-height:1.6; }
+.context-note-body small { display:block; color:var(--color-text-secondary); line-height:1.6; }
+.context-note-actions { display:flex; flex-wrap:wrap; gap:4px 12px; }
+.context-note-actions button { background:none; border:0; color:var(--color-text-secondary); min-height:44px; padding:4px 0; cursor:pointer; font:inherit; font-size:.76rem; }
+.context-notes-status { color:var(--color-text-secondary); font-size:.76rem; line-height:1.6; }
+.context-notes-status:empty { display:none; }
+.capture-note-options { border:1px solid var(--color-border); border-radius:10px; padding:12px; min-width:0; margin-bottom:12px; }
+.capture-note-options legend { font-size:.82rem; color:var(--color-text-secondary); padding:0 4px; }
+.capture-note-days { display:flex; flex-wrap:wrap; gap:2px 8px; }
+.capture-note-days label { display:flex; align-items:center; gap:4px; min-height:44px; font-size:.8rem; }
+.capture-note-days input { width:18px; height:18px; margin:0; }
+.capture-note-options [hidden], .capture-note-options[hidden] { display:none !important; }
+
+.capture-dialog .capture-note-days label { display:flex; margin:0; font-weight:400; }
+.capture-dialog [hidden] { display:none !important; }
