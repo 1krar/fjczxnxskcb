@@ -1077,8 +1077,8 @@ img, svg, video, canvas {
   align-items: center;
   justify-content: center;
   gap: 2px;
-  color: var(--color-text-tertiary);
-  font-size: 10px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
   font-weight: var(--font-weight-medium);
   padding: 4px 2px;
   transition: color var(--transition-fast),
@@ -1124,7 +1124,7 @@ img, svg, video, canvas {
 }
 
 .bottom-nav-label {
-  font-size: 10px;
+  font-size: 12px;
   line-height: 1.2;
   letter-spacing: 0.01em;
 }

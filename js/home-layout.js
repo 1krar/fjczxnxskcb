@@ -1,3 +1,5 @@
+import { animateReorder } from './hold-sort.js?v=20261024-1';
+
 export const HOME_LAYOUT_KEY = 'course-dashboard-home-layout-v1';
 const modules = ['items','courses'];
 const labels = { items:'要记得', courses:'后续课程' };
@@ -39,7 +41,7 @@ export function mountHomeLayout(container,scope) {
     catch(error) { status.textContent = error.message; }
     const focused = root.contains(document.activeElement) ? document.activeElement : null;
     const first = root.querySelector(`[data-home-module="${value.order[0]}"]`);
-    if (first && first !== root.firstElementChild) root.prepend(first);
+    if (first && first !== root.firstElementChild) animateReorder(root,()=>root.prepend(first));
     for (const id of modules) {
       const toggle = root.querySelector(`[data-home-toggle="${id}"]`), move = root.querySelector(`[data-home-move="${id}"]`);
       toggle?.setAttribute('aria-expanded',String(value.expanded[id]));

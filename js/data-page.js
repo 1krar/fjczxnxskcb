@@ -1,5 +1,5 @@
-import { formatDate } from './time.js?v=20261023-4b';
-import { rerenderCurrentPage, selectClass } from './app.js?v=20261023-4b';
+import { formatDate } from './time.js?v=20261024-1';
+import { rerenderCurrentPage, selectClass } from './app.js?v=20261024-1';
 import {
   compareCourses,
   getSavedUpdate,
@@ -8,7 +8,7 @@ import {
   removeClassUpdate,
   saveClassUpdate,
   validateImportedData,
-} from './data-update.js?v=20261023-4b';
+} from './data-update.js?v=20261024-1';
 
 let updateNotice = '';
 
@@ -21,7 +21,8 @@ export function renderData(container, state, dm) {
   const saved = getSavedUpdate(info.semester, state.currentClass);
 
   container.innerHTML = `
-    <div class="analytics-grid">
+    <header class="personal-page-heading"><div><h1>课表数据</h1><p>导入后，当前设备立即使用新课表。</p></div></header>
+    <details class="data-details"><summary>学期、班级与文件检查</summary><div class="analytics-grid">
       <div class="analytics-card">
         <div class="analytics-card-title">数据信息</div>
         <div class="data-info-grid">
@@ -73,38 +74,42 @@ export function renderData(container, state, dm) {
       </div>
 
       <div class="analytics-card analytics-full">
-        <div class="analytics-card-title">数据校验</div>
+        <div class="analytics-card-title">文件检查</div>
         ${errors.length === 0
-          ? `<div class="badge badge-success" style="font-size:14px;padding:8px 12px;">✓ 数据校验通过，未发现异常</div>`
+          ? `<div class="badge badge-success" style="font-size:14px;padding:8px 12px;">✓ 文件结构检查通过</div><p class="data-update-help">检查课程数据的结构与时间字段，不代表已核实学校的临时调课。</p>`
           : `<div class="error-banner">检测到 ${errors.length} 个数据异常：</div>
              <ul style="margin-top:8px;padding-left:20px;font-size:13px;color:var(--color-text-secondary);">
                ${errors.map(e => `<li>${e}</li>`).join('')}
              </ul>`}
       </div>
-    </div>
+    </div></details>
 
-    <div class="card card-pad data-update-card" style="margin-top:24px;">
-      <div class="analytics-card-title">更新课表</div>
-      <p class="data-update-help">先在电脑上运行“抓取课表.cmd”并完成学校登录，再将生成的 JSON 文件导入这里。更新会保存在当前设备的浏览器中。</p>
+    <section class="card card-pad data-update-card">
+      <h2 class="analytics-card-title">导入新课表</h2>
+      <p class="data-update-help">选择学校课表抓取脚本生成的 JSON 文件，查看变更后确认使用。</p>
       <div class="data-update-current">
         <span>当前班级：<strong id="data-update-class"></strong></span>
         <span id="data-update-source"></span>
       </div>
       <div class="data-update-actions">
         <button type="button" class="btn btn-primary" id="data-update-choose">选择课表文件</button>
-        <button type="button" class="btn" id="data-update-project">读取项目新文件</button>
-        <button type="button" class="btn" id="data-update-restore" ${saved ? '' : 'disabled'}>恢复原版</button>
         <input type="file" id="data-update-file" accept=".json,application/json" hidden>
       </div>
-      <p class="data-update-help">电脑本地预览时，可在抓取后点“读取项目新文件”；在线网站需先发布新文件，或直接选择文件导入。</p>
       <div class="data-update-message" id="data-update-message" role="status" aria-live="polite"></div>
       <div class="data-update-preview" id="data-update-preview" hidden>
         <strong id="data-update-preview-title"></strong>
         <p id="data-update-preview-detail"></p>
         <button type="button" class="btn btn-primary" id="data-update-apply">确认使用新课表</button>
       </div>
-    </div>
+      <details class="data-update-help-details"><summary>获取文件与其他操作</summary>
+        <p class="data-update-help">在电脑运行“抓取课表.cmd”，自行完成学校登录，使用生成的 JSON 文件。导入内容仅保存在本浏览器。</p>
+        <div class="data-update-actions"><button type="button" class="btn" id="data-update-project">读取项目新文件</button><button type="button" class="btn" id="data-update-restore" ${saved ? '' : 'disabled'}>恢复原版</button></div>
+        <p class="data-update-help">本地预览可在抓取后直接读取项目文件；在线网站需要先发布该文件，也可以直接导入。</p>
+      </details>
+    </section>
   `;
+
+  container.querySelector('.data-details').before(container.querySelector('.data-update-card'));
 
   container.querySelector('#data-update-class').textContent = state.currentClass;
   container.querySelector('#data-update-source').textContent = saved

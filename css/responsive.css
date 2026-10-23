@@ -494,7 +494,7 @@
 
   .m-day-picker {
     display: flex;
-    gap: 4px;
+    gap: 6px;
     margin-bottom: 12px;
     position: sticky;
     top: var(--mobile-header-height);
@@ -504,7 +504,7 @@
   }
 
   .m-day-chip {
-    flex: 1;
+    flex: 1 0 calc((100% - 36px) / 7);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -517,7 +517,7 @@
     transition: border-color var(--duration-fast) var(--ease-out),
                 background var(--duration-fast) var(--ease-out),
                 color var(--duration-fast) var(--ease-out);
-    min-height: 40px;
+    min-height: 44px;
   }
 
   .m-day-chip:active { transform: scale(0.96); }
@@ -536,7 +536,7 @@
   }
 
   .m-day-chip-name {
-    font-size: 10px;
+    font-size: 12px;
     font-weight: 500;
   }
 
@@ -587,7 +587,7 @@
   }
 
   .m-agenda-item.finished {
-    opacity: 0.45;
+    opacity: 1;
   }
 
   .m-agenda-item.in-progress {

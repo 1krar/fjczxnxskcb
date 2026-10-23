@@ -1,8 +1,8 @@
-import { escapeText as esc } from './tasks-store.js?v=20261023-4b';
-import { getTodayStr, localDate } from './time.js?v=20261023-4b';
-import { readAgenda, saveReminderPrefs, MARKET_GROUPS } from './agenda-store.js?v=20261023-4b';
-import { plannerContext } from './agenda.js?v=20261023-4b';
-import { buildReminders, clock, MARKET_CALENDAR } from './agenda-model.js?v=20261023-4b';
+import { escapeText as esc } from './tasks-store.js?v=20261024-1';
+import { getTodayStr, localDate } from './time.js?v=20261024-1';
+import { readAgenda, saveReminderPrefs, MARKET_GROUPS } from './agenda-store.js?v=20261024-1';
+import { plannerContext } from './agenda.js?v=20261024-1';
+import { buildReminders, clock, MARKET_CALENDAR } from './agenda-model.js?v=20261024-1';
 
 const DELIVERY_KEY='course-dashboard-reminder-delivery-v1';
 let setup=false;
@@ -64,15 +64,15 @@ export function renderReminderSettings(container,state,dm) {
   <div class="agenda-form-grid"><label>课程提前准备（分钟）<input name="courseLead" type="number" min="1" max="120" value="${prefs.courseLead}" required></label><label>有具体截止时间的事项提前（小时）<input name="taskLeadHours" type="number" min="1" max="168" value="${prefs.taskLeadHours}" required></label></div>
   <label class="agenda-check"><input type="checkbox" name="dateOnlyReminder" ${prefs.dateOnlyReminder?'checked':''}>只有日期的已确认事项，在前一天提醒</label><label>前一天的提醒时间<input type="time" name="dateOnlyTime" value="${prefs.dateOnlyTime}" required></label>
   <p class="agenda-muted">课程另加生活偏好中的匹配路线和早餐时间；活动按其去程、签到和准备时间计算。只有日期的事项使用上述准备提醒，不把它当作具体截止时刻。待核对通知不会自动定时提醒。</p>
-  <fieldset><legend>大 A 时间提醒</legend><label class="agenda-check"><input type="checkbox" name="market" ${prefs.market?'checked':''}>开启大A提前提醒</label><div class="agenda-option-list">${Object.entries(MARKET_GROUPS).map(([key,label])=>`<label class="agenda-check"><input type="checkbox" name="groups" value="${key}" ${prefs.groups.includes(key)?'checked':''}>${label}</label>`).join('')}</div>
+  <details class="reminder-market-settings"><summary>大 A 提前提醒${prefs.market?' · 已开启':' · 未开启'}</summary><fieldset><legend>提醒范围与时间</legend><label class="agenda-check"><input type="checkbox" name="market" ${prefs.market?'checked':''}>开启大A提前提醒</label><div class="agenda-option-list">${Object.entries(MARKET_GROUPS).map(([key,label])=>`<label class="agenda-check"><input type="checkbox" name="groups" value="${key}" ${prefs.groups.includes(key)?'checked':''}>${label}</label>`).join('')}</div>
   <div class="agenda-form-grid"><label>固定提前（分钟）<input name="marketLead" type="number" min="1" max="60" value="${prefs.marketLead}" required></label><label>最多提前到（分钟）<input name="maxEarly" type="number" min="1" max="120" value="${prefs.maxEarly}" required></label></div>
   <label class="agenda-check"><input type="checkbox" name="preferBreak" ${prefs.preferBreak?'checked':''}>固定提醒落在上课中时，优先挪到此前课间</label><p class="agenda-muted">只在“最多提前”窗口内查找课间。找不到就使用固定提前量；不会延到节点之后。相邻集合竞价与开收盘合并成一条。</p>
   <p class="agenda-muted">北京时间；内置交易日历覆盖至 ${MARKET_CALENDAR.through}，核对于 ${MARKET_CALENDAR.checkedAt}。超出覆盖年份暂停大A提醒，需更新日历。周末调班不会改变休市判断。<a href="${MARKET_CALENDAR.source}" target="_blank" rel="noopener">交易所休市公告</a></p></fieldset>
-  <p id="reminder-error" class="personal-error" role="alert"></p><p id="reminder-saved" role="status"></p><button type="submit" class="btn btn-primary">保存提醒设置</button></form>
+  </details><div class="settings-save-bar"><p id="reminder-error" class="personal-error" role="alert"></p><p id="reminder-saved" role="status"></p><button type="submit" class="btn btn-primary">保存提醒设置</button></div></form>
   <section class="agenda-panel"><h2>今天接下来的提前提醒</h2><div id="reminder-preview">${preview.map(item=>`<div class="agenda-record"><div><strong>${clock(item.remindAt)} · ${esc(item.title)}</strong><p>${esc(item.detail)}</p></div></div>`).join('')||'<p class="agenda-muted">今天没有待到来的提醒；记录确认活动或补上事项截止时间后，会在这里出现。</p>'}</div></section></section>`;
   container.querySelector('#reminder-settings').onsubmit=event=>{
     event.preventDefault();const data=new FormData(event.currentTarget);
-    try {saveReminderPrefs({enabled:data.has('enabled'),dateOnlyReminder:data.has('dateOnlyReminder'),dateOnlyTime:data.get('dateOnlyTime'),market:data.has('market'),preferBreak:data.has('preferBreak'),groups:data.getAll('groups'),...Object.fromEntries(['courseLead','taskLeadHours','marketLead','maxEarly'].map(key=>[key,Number(data.get(key))]))});renderReminderSettings(container,state,dm);container.querySelector('#reminder-saved').textContent='提醒设置已保存，预览已更新。';}
+    try {saveReminderPrefs({enabled:data.has('enabled'),dateOnlyReminder:data.has('dateOnlyReminder'),dateOnlyTime:data.get('dateOnlyTime'),market:data.has('market'),preferBreak:data.has('preferBreak'),groups:data.getAll('groups'),...Object.fromEntries(['courseLead','taskLeadHours','marketLead','maxEarly'].map(key=>[key,Number(data.get(key))]))});renderReminderSettings(container,state,dm);container.querySelector('#reminder-saved').textContent='提醒设置已保存，预览已更新。';container.querySelector('#reminder-settings button[type=submit]').focus({preventScroll:true});}
     catch(error){container.querySelector('#reminder-error').textContent=error.message;}
   };
 }

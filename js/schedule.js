@@ -1,8 +1,9 @@
-import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse, localDate } from './time.js?v=20261023-4b';
-import { segmentMarkup } from './course-segments.js?v=20261023-4b';
-import { showCourseDetail } from './app.js?v=20261023-4b';
-import { formatLocation } from './location.js?v=20261023-4b';
-import { getCourseGaps, getDayWindow } from './day-plan.js?v=20261023-4b';
+import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse, localDate } from './time.js?v=20261024-1';
+import { segmentMarkup } from './course-segments.js?v=20261024-1';
+import { showCourseDetail } from './app.js?v=20261024-1';
+import { formatLocation } from './location.js?v=20261024-1';
+import { getCourseGaps, getDayWindow } from './day-plan.js?v=20261024-1';
+import { escapeText as esc } from './tasks-store.js?v=20261024-1';
 
 let tickHandler = null;
 let scheduleState = { week: 1, selectedDay: 1, searchOpen: false };
@@ -22,7 +23,7 @@ function getCourseColor(courseName) {
 // ========== Conflict Detection ==========
 function detectConflicts(coursesByDay) {
   const conflicts = [];
-  for (let d = 1; d <= 5; d++) {
+  for (let d = 1; d <= 7; d++) {
     const courses = coursesByDay[d] || [];
     for (let i = 0; i < courses.length; i++) {
       for (let j = i + 1; j < courses.length; j++) {
@@ -90,7 +91,7 @@ function getWeekStats(dm, className, week) {
   // Busiest day
   let busiestDay = 1;
   let maxPeriods = 0;
-  for (let d = 1; d <= 5; d++) {
+  for (let d = 1; d <= 7; d++) {
     if (byDay[d] > maxPeriods) {
       maxPeriods = byDay[d];
       busiestDay = d;
@@ -117,7 +118,7 @@ function getWeekStats(dm, className, week) {
     dayFree,
     totalFreeMin,
     busiestDay,
-    busiestDayName: ['一', '二', '三', '四', '五'][busiestDay - 1] || '一',
+    busiestDayName: ['一', '二', '三', '四', '五', '六', '日'][busiestDay - 1] || '一',
   };
 }
 
@@ -153,15 +154,18 @@ export function renderSchedule(container, state, dm) {
   const todayWeekday = now.getDay() === 0 ? 7 : now.getDay();
 
   if (scheduleState.week === currentWeek) {
-    scheduleState.selectedDay = todayWeekday > 5 ? 1 : todayWeekday;
+    scheduleState.selectedDay = todayWeekday;
   } else {
     scheduleState.selectedDay = scheduleState.selectedDay || 1;
-    if (scheduleState.selectedDay > 5) scheduleState.selectedDay = 1;
+    if (scheduleState.selectedDay > 7) scheduleState.selectedDay = 1;
   }
 
   const isMobile = () => window.innerWidth <= 768;
 
   function buildHTML() {
+    const now = new Date();
+    const todayStr = localDate(now);
+    const currentWeek = Math.max(1, getCurrentWeek(info.semesterStart));
     const week = scheduleState.week;
     const weekDates = getWeekDates(week, info.semesterStart);
     const isCurrentWeek = week === currentWeek;
@@ -169,7 +173,7 @@ export function renderSchedule(container, state, dm) {
 
     // Common data
     const coursesByDay = {};
-    for (let d = 1; d <= 5; d++) {
+    for (let d = 1; d <= 7; d++) {
       coursesByDay[d] = dm.getCoursesByWeekday(state.currentClass, week, d);
     }
     const conflicts = detectConflicts(coursesByDay);
@@ -186,7 +190,7 @@ export function renderSchedule(container, state, dm) {
   }
 
   function getSeason(coursesByDay) {
-    for (let d = 1; d <= 5; d++) {
+    for (let d = 1; d <= 7; d++) {
       const c = coursesByDay[d]?.[0];
       if (c?.season) return c.season;
     }
@@ -195,7 +199,7 @@ export function renderSchedule(container, state, dm) {
 
   // ========== Desktop View ==========
   function buildDesktopView({ week, weekDates, todayStr, isCurrentWeek, coursesByDay, conflicts, weekStats, season, sectionTimes, state, info, dm, now }) {
-    const dayNames = ['周一', '周二', '周三', '周四', '周五'];
+    const dayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     const hasAnyCourse = Object.values(coursesByDay).some(arr => arr.length > 0);
 
     let html = `
@@ -205,20 +209,20 @@ export function renderSchedule(container, state, dm) {
           <div class="sch-class-name">${state.currentClass}</div>
         </div>
         <div class="sch-week-nav">
-          <button class="sch-week-btn" id="week-prev" ${week <= info.firstWeek ? 'disabled' : ''}>
+          <button class="sch-week-btn" id="week-prev" aria-label="上一周" ${week <= info.firstWeek ? 'disabled' : ''}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
           </button>
           <div class="sch-week-info">
             <div class="sch-week-main">第 ${week} 周</div>
-            <div class="sch-week-sub mono">${weekDates[0].slice(5)} — ${weekDates[4].slice(5)}</div>
+            <div class="sch-week-sub mono">${weekDates[0].slice(5)} — ${weekDates[6].slice(5)}</div>
           </div>
-          <button class="sch-week-btn" id="week-next" ${week >= info.lastWeek ? 'disabled' : ''}>
+          <button class="sch-week-btn" id="week-next" aria-label="下一周" ${week >= info.lastWeek ? 'disabled' : ''}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </button>
           ${!isCurrentWeek ? `<button class="sch-today-btn" id="week-today">本周</button>` : ''}
         </div>
         <div class="sch-header-right">
-          <button class="sch-search-btn" id="search-toggle-btn" title="搜索">
+          <button class="sch-search-btn" id="search-toggle-btn" aria-label="搜索课程" title="搜索">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           </button>
         </div>
@@ -249,13 +253,13 @@ export function renderSchedule(container, state, dm) {
         <div class="sch-empty-week">
           <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--color-text-tertiary);margin-bottom:10px;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
           <div class="sch-empty-title">第 ${week} 周没有课程安排</div>
-          <div class="sch-empty-sub">${weekDates[0].slice(5)} — ${weekDates[4].slice(5)}</div>
+          <div class="sch-empty-sub">${weekDates[0].slice(5)} — ${weekDates[6].slice(5)}</div>
         </div>`;
     }
 
     // Compute ONE nextCourse across all week courses (not per-day)
     const allWeekCourses = [];
-    for (let d = 1; d <= 5; d++) {
+    for (let d = 1; d <= 7; d++) {
       for (const c of coursesByDay[d]) {
         allWeekCourses.push(c);
       }
@@ -266,13 +270,13 @@ export function renderSchedule(container, state, dm) {
     const todayCol = (() => {
       if (!isCurrentWeek) return -1;
       const wd = now.getDay() === 0 ? 7 : now.getDay();
-      return wd <= 5 ? wd : -1;
+      return wd;
     })();
 
     let gridHTML = '';
     gridHTML += `<div class="sch-grid-corner"><span>节次</span></div>`;
 
-    for (let d = 0; d < 5; d++) {
+    for (let d = 0; d < 7; d++) {
       const dateStr = weekDates[d];
       const isToday = dateStr === todayStr;
       gridHTML += `<div class="sch-day-header ${isToday ? 'today' : ''}" style="grid-column:${d + 2};">
@@ -290,7 +294,7 @@ export function renderSchedule(container, state, dm) {
         ${stStart ? `<span class="sch-section-time mono">${stStart}</span>` : ''}
       </div>`;
 
-      for (let d = 1; d <= 5; d++) {
+      for (let d = 1; d <= 7; d++) {
         const course = coursesByDay[d].find(c => c.startSection === s);
         if (course) {
           const span = course.endSection - course.startSection + 1;
@@ -308,7 +312,7 @@ export function renderSchedule(container, state, dm) {
           gridHTML += `<div class="${cardClass}" style="grid-row:${s + 1} / span ${span};grid-column:${d + 1};--course-hue:${hue}deg;" data-course-id="${d}-${s}">
             <div class="sch-course-bar"></div>
             <div class="sch-course-body">
-              <div class="sch-course-name">${course.courseName}</div>
+              <button type="button" class="sch-course-name" aria-label="查看课程详情：${esc(course.courseName)}">${esc(course.courseName)}</button>
               ${course.location ? `<div class="sch-course-loc">${formatLocation(course.location, state.settings.showFullLocation)}</div>` : ''}
               ${state.settings.showTeacher && course.teacher ? `<div class="sch-course-teacher">${course.teacher}</div>` : ''}
               <div class="sch-course-sec mono">第${course.startSection}-${course.endSection}节</div>
@@ -336,7 +340,7 @@ export function renderSchedule(container, state, dm) {
 
     return `
       <div class="sch-grid-wrapper">
-        <div class="sch-grid" style="grid-template-rows: 40px repeat(10, minmax(44px, 1fr));">
+        <div class="sch-grid" style="--schedule-days:7;grid-template-rows: 40px repeat(10, minmax(44px, 1fr));">
           ${gridHTML}
           ${timeLineHTML}
         </div>
@@ -345,7 +349,7 @@ export function renderSchedule(container, state, dm) {
 
   // ========== Mobile View ==========
   function buildMobileView({ week, weekDates, todayStr, isCurrentWeek, coursesByDay, conflicts, weekStats, season, sectionTimes, state, info, dm, now }) {
-    const dayNames = ['一', '二', '三', '四', '五'];
+    const dayNames = ['一', '二', '三', '四', '五', '六', '日'];
     const selectedDay = scheduleState.selectedDay;
     const dayCourses = coursesByDay[selectedDay] || [];
     const dayDateStr = weekDates[selectedDay - 1];
@@ -354,7 +358,7 @@ export function renderSchedule(container, state, dm) {
 
     // Compute ONE nextCourse across all week courses (not per-day)
     const allWeekCourses = [];
-    for (let d = 1; d <= 5; d++) {
+    for (let d = 1; d <= 7; d++) {
       for (const c of coursesByDay[d]) {
         allWeekCourses.push(c);
       }
@@ -364,17 +368,17 @@ export function renderSchedule(container, state, dm) {
     let html = `
       <div class="m-sch-header">
         <div class="m-sch-week-row">
-          <button class="m-sch-week-btn" id="week-prev" ${week <= info.firstWeek ? 'disabled' : ''}>
+          <button class="m-sch-week-btn" id="week-prev" aria-label="上一周" ${week <= info.firstWeek ? 'disabled' : ''}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
           </button>
           <div class="m-sch-week-info">
             <span class="m-sch-week-main">第 ${week} 周</span>
-            <span class="m-sch-week-sub mono">${weekDates[0].slice(5)} — ${weekDates[4].slice(5)}</span>
+            <span class="m-sch-week-sub mono">${weekDates[0].slice(5)} — ${weekDates[6].slice(5)}</span>
           </div>
-          <button class="m-sch-week-btn" id="week-next" ${week >= info.lastWeek ? 'disabled' : ''}>
+          <button class="m-sch-week-btn" id="week-next" aria-label="下一周" ${week >= info.lastWeek ? 'disabled' : ''}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </button>
-          <button class="m-sch-search-btn" id="search-toggle-btn">
+          <button class="m-sch-search-btn" id="search-toggle-btn" aria-label="搜索课程">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           </button>
         </div>`;
@@ -391,13 +395,13 @@ export function renderSchedule(container, state, dm) {
 
     // Day picker (horizontal scroll)
     html += `<div class="m-day-picker" id="mobile-day-picker">`;
-    for (let d = 0; d < 5; d++) {
+    for (let d = 0; d < 7; d++) {
       const dateStr = weekDates[d];
       const isDayToday = dateStr === todayStr;
       const isActive = (d + 1) === selectedDay;
       const dayNum = dateStr.slice(8);
       html += `
-        <button class="m-day-chip ${isDayToday ? 'today' : ''} ${isActive ? 'active' : ''}" data-day="${d + 1}">
+        <button class="m-day-chip ${isDayToday ? 'today' : ''} ${isActive ? 'active' : ''}" data-day="${d + 1}" aria-pressed="${isActive}"${isDayToday ? ' aria-current="date"' : ''}>
           <span class="m-day-chip-name">周${dayNames[d]}</span>
           <span class="m-day-chip-date mono">${parseInt(dayNum)}</span>
         </button>`;
@@ -405,12 +409,12 @@ export function renderSchedule(container, state, dm) {
     html += `</div>`;
 
     // Day title
-    const fullDayNames = ['周一', '周二', '周三', '周四', '周五'];
+    const fullDayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
     html += `
       <div class="m-day-title-row">
         <span class="m-day-title">${fullDayNames[selectedDay - 1]}</span>
         <span class="m-day-title-date mono">${dayDateStr.slice(5)}</span>
-        ${isDayToday ? '<span class="m-day-today-badge">今天</span>' : ''}
+        ${isDayToday ? '<span class="m-day-today-badge">今天</span>' : '<button type="button" class="daily-text-button" id="week-today">回到今天</button>'}
       </div>`;
 
     // Agenda
@@ -419,18 +423,9 @@ export function renderSchedule(container, state, dm) {
     if (dayCourses.length === 0) {
       html += `
         <div class="m-agenda-empty">
-          <div class="m-agenda-empty-title">今日无课</div>
-          <div class="m-agenda-empty-sub">课表上没有课程安排</div>
-          <div class="m-agenda-empty-stats">
-            <div class="m-empty-stat">
-              <span class="m-empty-stat-num mono">00</span>
-              <span class="m-empty-stat-label">课程</span>
-            </div>
-            <div class="m-empty-stat">
-              <span class="m-empty-stat-num mono">00</span>
-              <span class="m-empty-stat-label">节次</span>
-            </div>
-          </div>
+          <div class="m-agenda-empty-title">${isDayToday ? '今天无课' : '这天无课'}</div>
+          <div class="m-agenda-empty-sub">${dayDateStr.slice(5)} · 课表上没有课程安排</div>
+          ${week < info.lastWeek ? '<button type="button" class="btn" id="schedule-empty-next">查看下一周</button>' : ''}
         </div>`;
     } else {
       for (let i = 0; i < dayCourses.length; i++) {
@@ -455,7 +450,7 @@ export function renderSchedule(container, state, dm) {
               ${cState === 'in_progress' ? '<div class="m-ag-now-tag">正在上课</div>' : ''}
               ${cState === 'break' ? '<div class="m-ag-break-tag">大课内课间</div>' : ''}
               ${isNext && cState === 'before' ? '<div class="m-ag-next-tag">下一次课</div>' : ''}
-              <div class="m-ag-name">${c.courseName}</div>
+              <button type="button" class="m-ag-name" aria-label="查看课程详情：${esc(c.courseName)}">${esc(c.courseName)}</button>
               <div class="m-ag-meta">
                 ${c.location ? `<span class="m-ag-loc">${formatLocation(c.location, state.settings.showFullLocation)}</span>` : ''}
                 ${state.settings.showTeacher && c.teacher ? `<span class="m-ag-teacher">${c.teacher}</span>` : ''}
@@ -488,7 +483,7 @@ export function renderSchedule(container, state, dm) {
     html += `</div>`; // close m-agenda
 
     // Week Summary (mobile)
-    html += buildWeekSummary(weekStats, conflicts, 'mobile');
+    html += `<details class="m-week-overview"><summary>本周概览 · ${weekStats.totalPeriods} 节 · ${weekStats.totalHours} 小时</summary>${buildWeekSummary(weekStats, conflicts, 'mobile')}</details>`;
 
     html += `<div id="search-results-container"></div>`;
     return html;
@@ -497,7 +492,7 @@ export function renderSchedule(container, state, dm) {
   // ========== Week Summary ==========
   function buildWeekSummary(stats, conflicts, mode) {
     const maxPeriods = Math.max(...Object.values(stats.byDay));
-    const dayNames = ['一', '二', '三', '四', '五'];
+    const dayNames = ['一', '二', '三', '四', '五', '六', '日'];
 
     return `
       <div class="sch-week-summary">
@@ -529,7 +524,7 @@ export function renderSchedule(container, state, dm) {
         <div class="sch-load">
           <div class="sch-load-label">本周课程负荷</div>
           <div class="sch-load-bars">
-            ${[1,2,3,4,5].map(d => {
+            ${[1,2,3,4,5,6,7].map(d => {
               const periods = stats.byDay[d] || 0;
               const height = maxPeriods > 0 ? (periods / maxPeriods) * 100 : 0;
               const isBusiest = d === stats.busiestDay;
@@ -547,7 +542,7 @@ export function renderSchedule(container, state, dm) {
             <div class="sch-conflict-label">⚠ 检测到 ${conflicts.length} 个课程冲突</div>
             ${conflicts.slice(0, 3).map(c => `
               <div class="sch-conflict-item">
-                <span>周${['一','二','三','四','五'][c.day-1]} 第${c.sections}节</span>
+                <span>周${['一','二','三','四','五','六','日'][c.day-1]} 第${c.sections}节</span>
                 <span>${c.type === 'room' ? `教室冲突：${c.room}` : '时间冲突'}</span>
               </div>`).join('')}
           </div>` : ''}
@@ -577,7 +572,7 @@ export function renderSchedule(container, state, dm) {
     // Update every minute for state changes, every second for time line
     const currentMin = now.getMinutes();
     const season = (() => {
-      for (let d = 1; d <= 5; d++) {
+      for (let d = 1; d <= 7; d++) {
         const c = dm.getCoursesByWeekday(state.currentClass, scheduleState.week, d)[0];
         if (c?.season) return c.season;
       }
@@ -611,7 +606,7 @@ export function renderSchedule(container, state, dm) {
   function updateCourseStates(now, dm, state, season) {
     // Collect ALL week courses to compute ONE nextCourse
     const allWeekCourses = [];
-    for (let d = 1; d <= 5; d++) {
+    for (let d = 1; d <= 7; d++) {
       const dayCs = dm.getCoursesByWeekday(state.currentClass, scheduleState.week, d);
       for (const c of dayCs) allWeekCourses.push(c);
     }
@@ -705,8 +700,13 @@ export function renderSchedule(container, state, dm) {
       state.scheduleWeek = scheduleState.week;
       const now = new Date();
       const wd = now.getDay() === 0 ? 7 : now.getDay();
-      scheduleState.selectedDay = wd > 5 ? 1 : wd;
+      scheduleState.selectedDay = wd;
       rerender();
+    });
+
+    container.querySelector('#schedule-empty-next')?.addEventListener('click', () => {
+      scheduleState.week++; scheduleState.selectedDay = 1;
+      state.scheduleWeek = scheduleState.week; rerender();
     });
 
     // Search toggle
@@ -741,6 +741,12 @@ export function renderSchedule(container, state, dm) {
           rerender();
         });
       });
+      const active = dayPicker.querySelector('.m-day-chip.active');
+      if (active) {
+        const area=dayPicker.getBoundingClientRect(), chip=active.getBoundingClientRect();
+        if (chip.right>area.right) dayPicker.scrollLeft+=chip.right-area.right;
+        else if (chip.left<area.left) dayPicker.scrollLeft-=area.left-chip.left;
+      }
     }
 
     // Course clicks - desktop
@@ -820,8 +826,12 @@ export function renderSchedule(container, state, dm) {
   }
 
   function rerender() {
+    const previous=container.contains(document.activeElement)?document.activeElement:null;
+    const focusDay=previous?.dataset.day, focusId=previous?.id;
     container.innerHTML = `<nav class="agenda-view-switch" aria-label="课表视图"><a href="#/schedule" aria-current="page">周课表</a><a href="#/agenda">日历与日程</a><a href="#/reminders">提醒设置</a></nav>` + buildHTML();
     attachEvents();
+    const next=focusDay?container.querySelector(`[data-day="${focusDay}"]`):focusId?container.querySelector(`#${CSS.escape(focusId)}`):null;
+    if (next&&!next.disabled) next.focus({preventScroll:true});
   }
 
   return function cleanup() {

@@ -1,3 +1,19 @@
+const moveAnimations = new WeakMap();
+// Animate existing nodes only. The DOM order changes immediately for keyboard and reading order.
+export function animateReorder(list, change, excluded = null) {
+  const nodes = [...list.children];
+  const positions = new Map(nodes.map(node => [node, node.getBoundingClientRect().top]));
+  change();
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  for (const node of nodes) {
+    if (node === excluded || !node.isConnected || !node.animate) continue;
+    moveAnimations.get(node)?.cancel();
+    const offset = positions.get(node) - node.getBoundingClientRect().top;
+    if (Math.abs(offset) < 1) continue;
+    moveAnimations.set(node, node.animate([{transform:`translateY(${offset}px)`},{transform:'translateY(0)'}], {duration:180,easing:'cubic-bezier(.2,.7,.2,1)'}));
+  }
+}
+
 // Keep ordinary touch scrolling until the user holds still for a moment.
 export function setupHoldSort(list, {onCommit, announce}) {
   let gesture=null,timer=0,frame=0;
@@ -9,7 +25,8 @@ export function setupHoldSort(list, {onCommit, announce}) {
   }
   function place(y) {
     const target=rows().find(row=>row!==gesture.row&&y<row.getBoundingClientRect().top+row.getBoundingClientRect().height/2);
-    if(target)list.insertBefore(gesture.row,target);else list.append(gesture.row);
+    if ((target || null) === gesture.row.nextElementSibling) return;
+    animateReorder(list,()=>{if(target)list.insertBefore(gesture.row,target);else list.append(gesture.row);},gesture.row);
   }
   function scroll() {
     if(!gesture?.active)return;

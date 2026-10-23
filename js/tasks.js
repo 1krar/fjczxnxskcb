@@ -1,10 +1,10 @@
-import { NOTE_SCENES, isPersistent, normalizeNoteRule, noteRuleLabel, notesForCourse } from './persistent-model.js?v=20261023-4b';
-import { renderContextNotes, mountNoteActions } from './context-notes.js?v=20261023-4b';
-import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems, sortHomeItems, saveHomeOrder } from './tasks-store.js?v=20261023-4b';
-import { setupHoldSort } from './hold-sort.js?v=20261023-4b';
-import { getTodayStr } from './time.js?v=20261023-4b';
-import { setupCaptureAI } from './capture-ai.js?v=20261023-4b';
-import { homeModuleHeading, readHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261023-4b';
+import { NOTE_SCENES, isPersistent, normalizeNoteRule, noteRuleLabel, notesForCourse } from './persistent-model.js?v=20261024-1';
+import { renderContextNotes, mountNoteActions } from './context-notes.js?v=20261024-1';
+import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems, sortHomeItems, saveHomeOrder } from './tasks-store.js?v=20261024-1';
+import { setupHoldSort } from './hold-sort.js?v=20261024-1';
+import { getTodayStr } from './time.js?v=20261024-1';
+import { setupCaptureAI } from './capture-ai.js?v=20261024-1';
+import { homeModuleHeading, readHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261024-1';
 
 let context = null;
 let editingId = '';
@@ -307,13 +307,14 @@ export function renderTasks(container, state, dm) {
     return;
   }
   const today = getTodayStr();
+  if (!all.length) { activeTab = 'open'; search = ''; courseFilter = ''; }
   const courses = [...new Set(all.map(item => item.courseName).filter(Boolean))].sort();
   if (courseFilter && !courses.includes(courseFilter)) courseFilter = '';
   const counts = { notes:all.filter(item=>isPersistent(item)&&!item.completedAt&&!item.deletedAt).length, open: all.filter(item => !isPersistent(item) && !item.completedAt && !item.deletedAt).length, done: all.filter(item => item.completedAt && !item.deletedAt).length, trash: all.filter(item => item.deletedAt).length };
   container.innerHTML = `<div class="personal-page">
     <div class="personal-page-heading"><div><h1>个人事项</h1><p>先记一句，稍后补充</p></div><button type="button" class="btn btn-primary" id="personal-add">＋ 记一下</button></div>
-    <div class="personal-tabs" role="group" aria-label="事项状态">${[['open', '未完成'], ['notes','长期记着'], ['done', '已完成'], ['trash', '回收站']].map(([key, label]) => `<button type="button" data-personal-tab="${key}" aria-pressed="${activeTab === key}" class="${activeTab === key ? 'active' : ''}">${label} <span>${counts[key]}</span></button>`).join('')}</div>
-    <div class="personal-filters"><label>搜索<input type="search" id="personal-search" placeholder="搜索通知原话或下一步" value="${esc(search)}"></label><label>课程<select id="personal-course-filter"><option value="">全部课程与未关联事项</option>${courses.map(name => `<option value="${esc(name)}" ${courseFilter === name ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label></div>
+    <div class="personal-tabs"${!all.length ? ' hidden' : ''} role="group" aria-label="事项状态">${[['open', '未完成'], ['notes','长期记着'], ['done', '已完成'], ['trash', '回收站']].map(([key, label]) => `<button type="button" data-personal-tab="${key}" aria-pressed="${activeTab === key}" class="${activeTab === key ? 'active' : ''}">${label} <span>${counts[key]}</span></button>`).join('')}</div>
+    <div class="personal-filters"${!all.length ? ' hidden' : ''}><label>搜索<input type="search" id="personal-search" placeholder="搜索通知原话或下一步" value="${esc(search)}"></label><label>课程<select id="personal-course-filter"><option value="">全部课程与未关联事项</option>${courses.map(name => `<option value="${esc(name)}" ${courseFilter === name ? 'selected' : ''}>${esc(name)}</option>`).join('')}</select></label></div>
     <div id="personal-list"></div>
     <details class="personal-backup card"><summary>保存与备份</summary><p>个人事项保存在当前浏览器，刷新后仍在。本地预览与在线网站各自保存；云同步尚未启用。换设备前可以导出备份。</p><p>备份包含所有班级、学期的个人事项，也包含长期记着、已完成和回收站中的记录。</p><div class="personal-backup-actions"><button type="button" class="btn" id="personal-export">导出备份</button><button type="button" class="btn" id="personal-import">恢复备份</button><input type="file" id="personal-import-file" accept=".json,application/json" hidden></div><div id="personal-import-preview" hidden></div><p id="personal-backup-message" role="status">${esc(notice)}</p></details>
   </div>`;

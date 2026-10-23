@@ -1,7 +1,7 @@
-import { CATEGORIES } from './daily-store.js?v=20261023-4b';
-import { WEAR_SLOTS, WEAR_FEEDBACK, wearDate } from './wear-model.js?v=20261023-4b';
-import { saveActualWear, changeWearRecord, samePieces } from './wear-store.js?v=20261023-4b';
-import { escapeText as esc } from './tasks-store.js?v=20261023-4b';
+import { CATEGORIES } from './daily-store.js?v=20261024-1';
+import { WEAR_SLOTS, WEAR_FEEDBACK, wearDate } from './wear-model.js?v=20261024-1';
+import { saveActualWear, changeWearRecord, samePieces } from './wear-store.js?v=20261024-1';
+import { escapeText as esc } from './tasks-store.js?v=20261024-1';
 
 const names=pieces=>pieces.map(piece=>piece.name).join(' ＋ ');
 export function mountWearLog(root,{getData,getDate,onSaved,guard}) {
@@ -13,21 +13,34 @@ export function mountWearLog(root,{getData,getDate,onSaved,guard}) {
       <details data-wear-extra><summary>时间与穿着感受（可选）</summary><label>大约几点穿上<input type="time" name="actualTime"></label><p class="daily-small">不填也能记。与洗衣同一天但未记时间时，不猜测先洗还是先穿。</p><label>体验评分<select name="rating"><option value="">暂不评分</option><option value="1">1 · 很不满意</option><option value="2">2 · 不太满意</option><option value="3">3 · 一般</option><option value="4">4 · 满意</option><option value="5">5 · 很满意</option></select></label><div class="wear-feedback-tags" role="group" aria-label="穿着感受">${Object.entries(WEAR_FEEDBACK).map(([key,label])=>`<label><input type="checkbox" name="wearFeedback" value="${key}">${label}</label>`).join('')}</div><label>其他感受<textarea name="comment" rows="2" maxlength="500" placeholder="可不填"></textarea></label></details>
       <p class="personal-error" data-wear-error role="alert"></p><p class="daily-small">保存实穿不会自动把单品移到待洗；按实际情况单独调整洗晒状态。</p><button type="submit" class="btn btn-primary">保存实穿</button>
     </form></dialog>`;
-  const $=selector=>root.querySelector(selector),dialog=$('dialog'),form=$('[data-wear-form]');let limit=10,expected='',originalPieces=[];
+  const $=selector=>root.querySelector(selector),dialog=$('dialog'),form=$('[data-wear-form]');let limit=10,expected='',originalPieces=[],openRecordIds=new Set();
   function record(row) {
     const actual=row.actualPieces.length&&!row.actualUndoneAt,planned=row.selectedPieces.length&&!row.planCancelledAt;
     return `<article class="wear-record" data-wear-id="${esc(row.id)}"><div class="wear-record-heading"><strong>${esc(row.date.slice(5))} · ${WEAR_SLOTS[row.slot]}</strong><span class="daily-small">${row.deletedAt?'已收起':actual?'已确认穿过':planned?'已选计划':row.actualUndoneAt?'已撤销实穿':'计划已取消'}</span></div>
       ${row.actualPieces.length?`<p class="wear-record-pieces${row.actualUndoneAt?' is-undone':''}">${esc(names(row.actualPieces))}</p>${actual&&row.rating!==null?`<p class="daily-small">体验 ${row.rating}/5${row.feedback.length?' · '+row.feedback.map(tag=>WEAR_FEEDBACK[tag]).join('、'):''}</p>`:actual&&row.feedback.length?`<p class="daily-small">${row.feedback.map(tag=>WEAR_FEEDBACK[tag]).join('、')}</p>`:''}${actual&&row.comment?`<p class="daily-small wear-comment">${esc(row.comment)}</p>`:''}`:''}
       ${row.selectedPieces.length?`<p class="daily-small">${row.planCancelledAt?'已取消计划':actual?'原计划':'计划'}：${esc(names(row.selectedPieces))}${actual&&!samePieces(row.selectedPieces,row.actualPieces)?' · 实际有调整':''}</p>`:''}
-      <div class="wear-record-actions">${row.deletedAt?'<button type="button" data-wear-action="restore">恢复记录</button>':`${row.date<=wearDate(new Date())?`<button type="button" data-wear-edit>${actual?'修改 / 评分':'记录实穿'}</button>`:'<span class="daily-small">到当天再确认实穿</span>'}${actual?'<button type="button" data-wear-action="undoActual">撤销实穿</button>':row.actualUndoneAt?'<button type="button" data-wear-action="restoreActual">恢复实穿</button>':''}${planned?'<button type="button" data-wear-action="clearPlan">取消计划</button>':row.planCancelledAt?'<button type="button" data-wear-action="restorePlan">恢复计划</button>':''}<button type="button" data-wear-action="trash">收起记录</button>`}</div></article>`;
+      <div class="wear-record-actions">${row.deletedAt?'<button type="button" data-wear-action="restore">恢复记录</button>':`${row.date<=wearDate(new Date())?`<button type="button" data-wear-edit>${actual?'修改 / 评分':'记录实穿'}</button>`:'<span class="daily-small">到当天再确认实穿</span>'}<details class="wear-record-more"${openRecordIds.has(row.id)?' open':''}><summary>更多操作</summary><div>${actual?'<button type="button" data-wear-action="undoActual">撤销实穿</button>':row.actualUndoneAt?'<button type="button" data-wear-action="restoreActual">恢复实穿</button>':''}${planned?'<button type="button" data-wear-action="clearPlan">取消计划</button>':row.planCancelledAt?'<button type="button" data-wear-action="restorePlan">恢复计划</button>':''}<button type="button" data-wear-action="trash">收起记录</button></div></details>`}</div></article>`;
   }
   function render() {
+    openRecordIds=new Set([...root.querySelectorAll('.wear-record-more[open]')].map(node=>node.closest('[data-wear-id]').dataset.wearId));
+    const focused=document.activeElement, focusId=focused?.closest('[data-wear-id]')?.dataset.wearId;
+    const focusAction=focused?.dataset.wearAction, focusEdit=focused?.hasAttribute('data-wear-edit'), focusSummary=focused?.matches('.wear-record-more > summary');
     const data=getData(),date=getDate(),current=(data.wearLogs||[]).filter(row=>row.date===date&&!row.deletedAt&&(row.selectedPieces.length||row.actualPieces.length));
     $('[data-wear-current]').innerHTML=current.length?current.map(record).join(''):'<p class="daily-muted">这天还没记录。选好一套后留作计划，穿过再确认。</p>';
     const history=[...(data.wearLogs||[])].filter(row=>row.date!==date||row.deletedAt).sort((a,b)=>b.date.localeCompare(a.date)||b.updatedAt.localeCompare(a.updatedAt));
     $('.wear-history > summary').textContent=`最近记录与已收起内容 · ${history.length}条`;
     $('[data-wear-history]').innerHTML=history.slice(0,limit).map(record).join('')||'<p class="daily-small">还没有其他记录。</p>';
     $('[data-wear-more]').hidden=history.length<=limit;
+    if (focusId) {
+      const row=[...root.querySelectorAll('[data-wear-id]')].find(node=>node.dataset.wearId===focusId);
+      const target=focusEdit?row?.querySelector('[data-wear-edit]'):focusSummary?row?.querySelector('.wear-record-more > summary'):focusAction?[...row?.querySelectorAll('[data-wear-action]')||[]].find(node=>node.dataset.wearAction===focusAction):null;
+      target?.focus({preventScroll:true});
+    }
+  }
+  function focusRecord(id) {
+    const row=[...root.querySelectorAll('[data-wear-id]')].find(node=>node.dataset.wearId===id);
+    const history=row?.closest('.wear-history');
+    (history&&!history.open?history.querySelector('summary'):row?.querySelector('[data-wear-edit], summary, button')||$('[data-wear-new]')).focus({preventScroll:true});
   }
   function fill(date,slot) {
     const data=getData(),row=data.wearLogs?.find(row=>row.date===date&&row.slot===slot);expected=row?.updatedAt||'';
@@ -51,7 +64,7 @@ export function mountWearLog(root,{getData,getDate,onSaved,guard}) {
       else if(button.hasAttribute('data-wear-new'))open();
       else if(button.hasAttribute('data-wear-more')){limit+=10;render();}
       else if(button.hasAttribute('data-wear-edit')){const row=getData().wearLogs.find(row=>row.id===button.closest('[data-wear-id]').dataset.wearId);open(row.date,row.slot);}
-      else if(button.dataset.wearAction){guard();const id=button.closest('[data-wear-id]').dataset.wearId;changeWearRecord(id,button.dataset.wearAction);onSaved('穿搭记录已更新；洗晒状态未改动');render();$('[data-wear-status]').textContent='已保存，可在记录中恢复或修改。';$('[data-wear-new]').focus({preventScroll:true});}
+      else if(button.dataset.wearAction){guard();const id=button.closest('[data-wear-id]').dataset.wearId;changeWearRecord(id,button.dataset.wearAction);onSaved('穿搭记录已更新；洗晒状态未改动');render();$('[data-wear-status]').textContent='已保存，可在记录中恢复或修改。';focusRecord(id);}
     }catch(error){$('[data-wear-status]').textContent=error.message;}
   };
   const change=event=>{
@@ -63,7 +76,7 @@ export function mountWearLog(root,{getData,getDate,onSaved,guard}) {
   };
   const submit=event=>{
     if(event.target!==form)return;event.preventDefault();
-    try{guard();const fields=new FormData(form);saveActualWear({date:fields.get('wearDate'),slot:fields.get('wearSlot'),garmentIds:fields.getAll('actualGarment'),actualTime:fields.get('actualTime')||'',rating:fields.get('rating')?Number(fields.get('rating')):null,feedback:fields.getAll('wearFeedback'),comment:fields.get('comment').trim(),expectedUpdatedAt:expected});dialog.close();onSaved('已记下实际穿搭，同一日期和时段不会重复计数');render();$('[data-wear-new]').focus({preventScroll:true});}catch(error){$('[data-wear-error]').textContent=error.message;}
+    try{guard();const fields=new FormData(form);saveActualWear({date:fields.get('wearDate'),slot:fields.get('wearSlot'),garmentIds:fields.getAll('actualGarment'),actualTime:fields.get('actualTime')||'',rating:fields.get('rating')?Number(fields.get('rating')):null,feedback:fields.getAll('wearFeedback'),comment:fields.get('comment').trim(),expectedUpdatedAt:expected});dialog.close();onSaved('已记下实际穿搭，同一日期和时段不会重复计数');render();focusRecord(id);}catch(error){$('[data-wear-error]').textContent=error.message;}
   };
   root.addEventListener('click',click);form.addEventListener('change',change);form.addEventListener('submit',submit);render();
   return {render,open,cleanup:()=>{dialog.close();root.removeEventListener('click',click);form.removeEventListener('change',change);form.removeEventListener('submit',submit);}};

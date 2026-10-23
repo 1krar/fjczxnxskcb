@@ -204,7 +204,7 @@
 
 .sch-grid {
   display: grid;
-  grid-template-columns: 60px repeat(5, 1fr);
+  grid-template-columns: 60px repeat(var(--schedule-days, 5), minmax(0, 1fr));
   position: relative;
   background: var(--color-surface);
   min-width: 0;
@@ -425,7 +425,8 @@
 
 /* Course states */
 .sch-course.finished {
-  opacity: 0.38;
+  opacity: 1;
+  background: var(--color-surface-subtle);
 }
 
 .sch-course.finished .sch-course-bar {
@@ -1086,7 +1087,7 @@
 
 /* Agenda item states */
 .m-agenda-item.finished {
-  opacity: 0.45;
+  opacity: 1;
 }
 
 .m-agenda-item.finished .m-ag-bar {
@@ -1241,3 +1242,23 @@
     height: 48px;
   }
 }
+.m-agenda-item.finished .m-ag-body::after { content:'已结束'; display:block; width:max-content; margin-top:6px; font-size:12px; color:var(--color-text-secondary); }
+.sch-course.finished .sch-course-sec::after { content:' · 已结束'; }
+.sch-course-loc, .sch-course-teacher, .sch-course-sec { color:var(--color-text-secondary); }
+.m-ag-end, .m-ag-sec { color:var(--color-text-secondary); }
+.m-day-picker { gap:6px; }
+.m-day-chip { flex:1 0 calc((100% - 36px)/7); min-width:44px; padding:10px 2px; }
+.m-day-chip-name { font-size:12px; }
+.m-agenda-empty-stats { display:none; }
+.m-agenda-empty > .btn { margin-top:16px; }
+.sch-load-bars { grid-template-columns:repeat(7,minmax(0,1fr)); }
+.m-week-overview { border-top:1px solid var(--color-border); margin:18px 0; }
+.m-week-overview > summary { min-height:48px; align-content:center; cursor:pointer; font-size:13px; color:var(--color-text-secondary); }
+.m-week-overview .sch-summary-label { display:none; }
+.m-week-overview .sch-week-summary { border:0; margin-top:0; padding-top:8px; }
+.sch-course-loc, .sch-course-teacher { font-size:12px; }
+.sch-course-sec { font-size:11px; }
+.sch-course:focus-visible, .m-agenda-item:focus-visible { outline:2px solid var(--color-primary); outline-offset:-2px; }
+.sch-course-name, .m-ag-name { display:block; width:100%; padding:0; text-align:left; }
+.sch-course-name { display:-webkit-box; -webkit-line-clamp:2; font-size:14px; line-height:1.4; max-height:2.8em; }
+.sch-section-time { font-size:11px; color:var(--color-text-secondary); }

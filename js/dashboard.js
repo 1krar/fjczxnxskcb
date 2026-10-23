@@ -1,18 +1,18 @@
-import { notesForCourse, notesForMoment } from './persistent-model.js?v=20261023-4b';
-import { renderContextNotes, mountNoteActions } from './context-notes.js?v=20261023-4b';
-import { getTodayStr, getDayName, getCurrentWeek } from './time.js?v=20261023-4b';
-import { showCourseDetail } from './app.js?v=20261023-4b';
-import { formatLocation } from './location.js?v=20261023-4b';
-import { mountTodayItems, openCapture } from './tasks.js?v=20261023-4b';
-import { escapeText, itemsForScope } from './tasks-store.js?v=20261023-4b';
-import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261023-4b';
-import { readHomeLayout, defaultHomeLayout, homeModuleHeading, mountHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261023-4b';
-import { renderUpcomingCourses, courseListCount, courseContinuation } from './home-courses.js?v=20261023-4b';
-import { mountDailyAssistant } from './daily-widgets.js?v=20261023-4b';
-import { mountTodayAgenda } from './today-agenda.js?v=20261023-4b';
-import { readDailyData } from './daily-store.js?v=20261023-4b';
-import { departurePlan } from './daily-model.js?v=20261023-4b';
-import { mountWeather } from './weather-widget.js?v=20261023-4b';
+import { notesForCourse, notesForMoment } from './persistent-model.js?v=20261024-1';
+import { renderContextNotes, mountNoteActions } from './context-notes.js?v=20261024-1';
+import { getTodayStr, getDayName, getCurrentWeek } from './time.js?v=20261024-1';
+import { showCourseDetail } from './app.js?v=20261024-1';
+import { formatLocation } from './location.js?v=20261024-1';
+import { mountTodayItems, openCapture } from './tasks.js?v=20261024-1';
+import { escapeText, itemsForScope } from './tasks-store.js?v=20261024-1';
+import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261024-1';
+import { readHomeLayout, defaultHomeLayout, homeModuleHeading, mountHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261024-1';
+import { renderUpcomingCourses, courseListCount, courseContinuation } from './home-courses.js?v=20261024-1';
+import { mountDailyAssistant } from './daily-widgets.js?v=20261024-1';
+import { mountTodayAgenda } from './today-agenda.js?v=20261024-1';
+import { readDailyData } from './daily-store.js?v=20261024-1';
+import { departurePlan } from './daily-model.js?v=20261024-1';
+import { mountWeather } from './weather-widget.js?v=20261024-1';
 
 const esc = escapeText;
 let tickHandler = null;
@@ -73,7 +73,8 @@ function renderStatus(context, courses, nextDay, state, now) {
   if (resting) {
     content = context.state === 'TIME_UNKNOWN' ? `${courseButton(context.currentCourse||context.nextCourse||courses[0], state)}<a class="status-schedule-link" href="#/data">查看导入的时间信息 →</a>` : '';
     if (context.state !== 'TIME_UNKNOWN' && nextDay) {
-      content += `<p class="next-day-info">${nextDay.isTomorrow ? '明日首课' : '下一有课日'} · ${esc(nextDay.date.slice(5))} 星期${nextDay.weekday}</p>${courseButton(nextDay.courses[0], state)}`;
+      const nextCourse = nextDay.courses[0];
+      content += `<h2 class="status-rest-title">${context.state === 'DAY_FINISHED' ? '今天的课上完了' : '今天无课'}</h2><div class="status-next-preview"><p class="next-day-info">${nextDay.isTomorrow ? '明日首课' : '下一有课日'} · ${esc(nextDay.date.slice(5))} 星期${nextDay.weekday}</p><button type="button" class="status-next-course" data-course-key="${esc(courseKey(nextCourse))}"><strong>${esc(nextCourse.courseName)}</strong><span>${esc(nextCourse.startTime || '时间待确认')} · ${esc(formatLocation(nextCourse.location, state.settings.showFullLocation) || '教室待确认')} <span aria-hidden="true">→</span></span></button></div>`;
     } else if (context.state !== 'TIME_UNKNOWN') {
       content = `<h2 class="status-rest-title">${context.state === 'DAY_FINISHED' ? '今天的课上完了' : '今天课表上没有课程'}</h2><p class="status-sub">也给自己的安排留一点时间。</p><a class="status-schedule-link" href="#/schedule">查看其他日期 →</a>`;
     }
@@ -93,7 +94,7 @@ function renderStatus(context, courses, nextDay, state, now) {
     } catch { /* Course time stays available when optional daily preferences cannot be read. */ }
   }
   const continuation=!resting?courseContinuation(context.currentCourse||context.nextCourse,context.currentSegment,now):'';
-  return `<div class="status-main${resting ? ' is-resting' : ''}"><div class="status-heading"><div class="status-tag accent-${label.accent}">${label.label}</div></div><div class="status-focus-row${countdown ? ' has-countdown' : ''}"><div class="status-course-info">${content}</div>${countdown}</div>${support}${continuation?`<p class="status-continuation">${esc(continuation)}</p>`:''}</div><div id="dash-course-notes"></div>`;
+  return `<div class="status-main${resting ? ' is-resting' : ''}">${resting && context.state!=='TIME_UNKNOWN'?'':`<div class="status-heading"><div class="status-tag accent-${label.accent}">${label.label}</div></div>`}<div class="status-focus-row${countdown ? ' has-countdown' : ''}"><div class="status-course-info">${content}</div>${countdown}</div>${support}${continuation?`<p class="status-continuation">${esc(continuation)}</p>`:''}</div><div id="dash-course-notes"></div>`;
 }
 
 function progressPercent(course, now, segment) {

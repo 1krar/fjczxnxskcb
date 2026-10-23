@@ -1,16 +1,17 @@
-import { getTodayStr, localDate, getDayName } from './time.js?v=20261023-4b';
-import { escapeText as esc, itemsForScope, itemTimeLabel } from './tasks-store.js?v=20261023-4b';
-import { readDailyData } from './daily-store.js?v=20261023-4b';
-import { readAgenda, scopedActivities, saveActivity, exportAgenda, mergeAgenda, validateAgenda, validateActivity, downloadFile } from './agenda-store.js?v=20261023-4b';
-import { at, addDate, clock, activityInterval, activityOnDate, checkActivity, buildReminders, marketReminders, tradingDay, exportCalendarEvents } from './agenda-model.js?v=20261023-4b';
-import { showCourseDetail } from './app.js?v=20261023-4b';
-import { segmentMarkup } from './course-segments.js?v=20261023-4b';
+import { getTodayStr, localDate, getDayName } from './time.js?v=20261024-1';
+import { escapeText as esc, itemsForScope, itemTimeLabel } from './tasks-store.js?v=20261024-1';
+import { readDailyData } from './daily-store.js?v=20261024-1';
+import { readAgenda, scopedActivities, saveActivity, exportAgenda, mergeAgenda, validateAgenda, validateActivity, downloadFile } from './agenda-store.js?v=20261024-1';
+import { at, addDate, clock, activityInterval, activityOnDate, checkActivity, buildReminders, marketReminders, tradingDay, exportCalendarEvents } from './agenda-model.js?v=20261024-1';
+import { showCourseDetail } from './app.js?v=20261024-1';
+import { segmentMarkup } from './course-segments.js?v=20261024-1';
 
 let selectedDate = getTodayStr();
 let displayedMonth = selectedDate.slice(0,7);
-let compactWeek = false;
+let compactWeek = null;
+let followsToday = true;
 let notice = '';
-export function selectAgendaDate(date) { selectedDate=date;displayedMonth=date.slice(0,7); }
+export function selectAgendaDate(date) { selectedDate=date;displayedMonth=date.slice(0,7);followsToday=date===getTodayStr(); }
 let agendaCleanup = null;
 export function cleanupAgenda() { agendaCleanup?.(); agendaCleanup=null; }
 export function plannerContext(state, dm, date = getTodayStr()) {
@@ -29,6 +30,8 @@ function warnings(issues) {
 }
 export function renderAgenda(container,state,dm) {
   cleanupAgenda();
+  if (followsToday) { selectedDate=getTodayStr(); displayedMonth=selectedDate.slice(0,7); }
+  if (compactWeek === null) compactWeek=window.innerWidth<=768;
   let context;
   try { context=plannerContext(state,dm,selectedDate); }
   catch(error) {
@@ -103,9 +106,9 @@ export function renderAgenda(container,state,dm) {
   form.addEventListener('submit',event=>{event.preventDefault();try{saveActivity(fields(),editing?.id||'');dialog.close();notice='活动已保存；日程和冲突已更新。';refresh();}catch(error){container.querySelector('#activity-error').textContent=error.message;}});
   container.querySelectorAll('[data-edit-activity]').forEach(button=>button.onclick=()=>open(activities.find(item=>item.id===button.dataset.editActivity)));
   container.querySelectorAll('[data-agenda-course]').forEach(button=>button.onclick=()=>showCourseDetail(courses[Number(button.dataset.agendaCourse)]));
-  container.querySelectorAll('[data-agenda-date]').forEach(button=>button.onclick=()=>{selectedDate=button.dataset.agendaDate;displayedMonth=selectedDate.slice(0,7);refresh();});
-  for(const [id,direction]of [['agenda-prev',-1],['agenda-next',1]])container.querySelector(`#${id}`).onclick=()=>{if(compactWeek)selectedDate=addDate(selectedDate,direction*7);else{const value=new Date(`${displayedMonth}-01T12:00`);value.setMonth(value.getMonth()+direction);selectedDate=localDate(value);}displayedMonth=selectedDate.slice(0,7);refresh();};
-  container.querySelector('#agenda-today').onclick=()=>{selectedDate=getTodayStr();displayedMonth=selectedDate.slice(0,7);refresh();};
+  container.querySelectorAll('[data-agenda-date]').forEach(button=>button.onclick=()=>{selectedDate=button.dataset.agendaDate;displayedMonth=selectedDate.slice(0,7);followsToday=selectedDate===getTodayStr();refresh();});
+  for(const [id,direction]of [['agenda-prev',-1],['agenda-next',1]])container.querySelector(`#${id}`).onclick=()=>{followsToday=false;if(compactWeek)selectedDate=addDate(selectedDate,direction*7);else{const value=new Date(`${displayedMonth}-01T12:00`);value.setMonth(value.getMonth()+direction);selectedDate=localDate(value);}displayedMonth=selectedDate.slice(0,7);refresh();};
+  container.querySelector('#agenda-today').onclick=()=>{followsToday=true;selectedDate=getTodayStr();displayedMonth=selectedDate.slice(0,7);refresh();};
   container.querySelector('#agenda-collapse').onclick=()=>{compactWeek=!compactWeek;refresh();};
   container.querySelector('#agenda-backup').onclick=()=>exportAgenda();
   container.querySelector('#agenda-restore').onchange=async event=>{
@@ -127,7 +130,7 @@ export function renderAgenda(container,state,dm) {
   const onStorage=event=>{if(!dialog.open&&(!event.key||['course-dashboard-agenda-v1','course-dashboard-personal-items-v1','course-dashboard-class-updates-v1'].includes(event.key)))refresh();};
   window.addEventListener('storage',onStorage);
   let lastDate=getTodayStr();
-  const onTick=()=>{if(lastDate!==getTodayStr()){lastDate=getTodayStr();if(!dialog.open)refresh();}};
+  const onTick=()=>{if(lastDate!==getTodayStr()&&!dialog.open){lastDate=getTodayStr();refresh();}};
   document.addEventListener('app:tick',onTick);
   agendaCleanup=()=>{window.removeEventListener('storage',onStorage);document.removeEventListener('app:tick',onTick);if(dialog.open)dialog.close();};
   return cleanupAgenda;
