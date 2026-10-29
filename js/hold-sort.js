@@ -1,4 +1,4 @@
-import { reducedMotion } from './motion.js?v=20261029-3';
+import { reducedMotion } from './motion.js?v=20261029-5';
 
 const moveAnimations = new WeakMap();
 // Animate existing nodes only. The DOM order changes immediately for keyboard and reading order.

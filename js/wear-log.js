@@ -1,8 +1,8 @@
-import { reconcileRows } from './ui-list.js?v=20261029-3';
-import { CATEGORIES } from './daily-store.js?v=20261029-3';
-import { WEAR_SLOTS, WEAR_FEEDBACK, wearDate } from './wear-model.js?v=20261029-3';
-import { saveActualWear, changeWearRecord, samePieces } from './wear-store.js?v=20261029-3';
-import { escapeText as esc } from './tasks-store.js?v=20261029-3';
+import { reconcileRows } from './ui-list.js?v=20261029-5';
+import { CATEGORIES } from './daily-store.js?v=20261029-5';
+import { WEAR_SLOTS, WEAR_FEEDBACK, wearDate } from './wear-model.js?v=20261029-5';
+import { saveActualWear, changeWearRecord, samePieces } from './wear-store.js?v=20261029-5';
+import { escapeText as esc } from './tasks-store.js?v=20261029-5';
 
 const names=pieces=>pieces.map(piece=>piece.name).join(' ＋ ');
 export function mountWearLog(root,{getData,getDate=()=>wearDate(new Date()),onSaved,guard}) {

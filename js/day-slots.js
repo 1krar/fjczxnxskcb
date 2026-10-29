@@ -1,4 +1,4 @@
-import { getSectionTime, seasonForDate } from './time.js?v=20261029-3';
+import { getSectionTime, seasonForDate } from './time.js?v=20261029-5';
 
 export const SCHOOL_BLOCKS = [
   { id: 'morning', label: '上午', first: 1, last: 4 },
@@ -49,9 +49,11 @@ export function getDaySlots({ date, courses = [], sectionTimes = {}, seasonRule 
       return range && section >= range.start && section <= range.end;
     });
     const reason = coverageReason || (!timeKnown ? '该日期作息待确认' : !matched.length && unknownCourses.length ? '有课程节次待确认' : '');
+    const realCourses=matched.filter(course=>course.source!=='evening-study'),study=matched.find(course=>course.source==='evening-study');
+    const studyState=study?.studyStatus==='excused'?'excused':study?.studyStatus==='other'?'arranged':'study';
     return { section, block: block.id, start: timeKnown ? start : null, end: timeKnown ? end : null,
       startTime: timeKnown ? time.start : '', endTime: timeKnown ? time.end : '', courses: matched,
-      state: reason ? 'unknown' : matched.length ? 'occupied' : 'unassigned', reason };
+      state: reason ? 'unknown' : realCourses.length ? 'occupied' : study ? studyState : 'unassigned', reason };
   });
   const unassigned = [];
   for (const period of periods) {

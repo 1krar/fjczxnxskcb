@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
-import { getUpcomingCourseGroups,courseKey } from '../js/day-plan.js';
-import { courseListCount, courseContinuation, renderUpcomingCourses, renderUnassignedHint } from '../js/home-courses.js';
+import { getUpcomingCourseGroups,courseKey,getTodayState,getCourseSummary } from '../js/day-plan.js';
+import { courseListCount, courseContinuation, renderUpcomingCourses, renderUnassignedHint,activeDayCourses,academicCourses } from '../js/home-courses.js';
 import { getDaySlots } from '../js/day-slots.js';
+import { applyEveningStudy } from '../js/study-model.js';
 process.env.TZ='Asia/Shanghai';
 const at=time=>new Date(`2026-10-23T${time}:00+08:00`);
 const segment=(kind,start,end,section)=>({kind,start:at(start),end:at(end),startTime:start,endTime:end,section,nextSection:section});
@@ -66,4 +67,30 @@ assert.equal(renderUnassignedHint(getDaySlots({...slotOptions,seasonRule:{}}),at
 assert.equal(renderUnassignedHint(slots,new Date('2026-10-24T08:00:00+08:00')),'','yesterday gaps are not carried over to a new date');
 assert.equal(renderUnassignedHint(null,at('10:00')),'');
 assert.ok(!renderUpcomingCourses([first,third],at('08:20'),state).includes('course-gap-note'),'the single status hint replaces duplicated gap notes in the course list');
+const planned=applyEveningStudy(courses,'2026-10-23',{...slotOptions,studyData:{schemaVersion:1,profiles:{}},className:'test'});
+const study=planned.find(course=>course.source==='evening-study');
+assert.ok(study);
+assert.equal(courseListCount(planned,at('08:20')),'2次课 · 4小节 · 晚自习','evening study is presented separately from academic course counts');
+assert.equal(getCourseSummary(academicCourses(planned)).sessionCount,3);
+assert.equal(getTodayState(activeDayCourses(planned),at('19:30')).currentCourse,study);
+assert.match(renderUpcomingCourses(planned,at('08:20'),state),/调整晚自习安排.*#\/study\?date=2026-10-23|#\/study\?date=2026-10-23.*调整晚自习安排/);
+assert.match(courseContinuation(study,study.segments[0],at('19:30')),/20:15继续第10小节.*21:00本时段结束/);
+const absent={...study,studyStatus:'excused',studyAttendance:false,studyLabel:'已请假',studyArrangementTitle:'社团集合',studyNote:'已按要求登记'};
+const absentPlan=[...courses,absent];
+assert.equal(getTodayState(activeDayCourses(absentPlan),at('19:30')).state,'DAY_FINISHED','an excused study session never becomes a live class countdown');
+const absentHTML=renderUpcomingCourses(absentPlan,at('19:30'),state);
+assert.equal(courseListCount(absentPlan,at('19:30')),'晚自习已请假');
+assert.match(absentHTML,/study-absence-row.*晚自习 · 已请假 · 社团集合/);
+assert.ok(!absentHTML.includes('course-segment-list'),'excused study does not display active lesson segments');
+const activity={...study,studyStatus:'other',studyAttendance:false,courseName:'社团活动<不执行>',studyLabel:'另有安排'};
+const activityPlan=[...courses,activity];
+assert.equal(getTodayState(activeDayCourses(activityPlan),at('19:30')).currentCourse,activity,'a real personal arrangement remains in the evening timeline');
+assert.match(renderUpcomingCourses(activityPlan,at('14:30'),state),/社团活动&lt;不执行&gt;/);
+assert.equal(courseListCount(activityPlan,at('14:30')),'1项晚间安排');
+for(const [row,expected]of [[study,'study'],[absent,'excused'],[activity,'arranged']]){
+  const studySlots=getDaySlots({...slotOptions,courses:[...courses,row]});
+  assert.equal(studySlots.periods[8].state,expected);
+  assert.equal(studySlots.periods[9].state,expected);
+  assert.ok(studySlots.unassigned.every(group=>group.endSection<9),'study, excused and personal arrangements never look like unassigned evening periods');
+}
 console.log('Compact courses: occurrence grouping, focus uniqueness, small-lesson boundaries, unknown timing, counts, history, collapse, details and escaped text passed.');

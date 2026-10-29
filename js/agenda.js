@@ -1,10 +1,12 @@
-import { getTodayStr, localDate, getDayName } from './time.js?v=20261029-3';
-import { escapeText as esc, itemsForScope, itemTimeLabel } from './tasks-store.js?v=20261029-3';
-import { readDailyData } from './daily-store.js?v=20261029-3';
-import { readAgenda, scopedActivities, saveActivity, exportAgenda, mergeAgenda, validateAgenda, validateActivity, downloadFile } from './agenda-store.js?v=20261029-3';
-import { at, addDate, clock, activityInterval, activityOnDate, checkActivity, buildReminders, marketReminders, tradingDay, exportCalendarEvents } from './agenda-model.js?v=20261029-3';
-import { showCourseDetail } from './app.js?v=20261029-3';
-import { segmentMarkup } from './course-segments.js?v=20261029-3';
+import { getTodayStr, localDate, getDayName } from './time.js?v=20261029-5';
+import { escapeText as esc, itemsForScope, itemTimeLabel } from './tasks-store.js?v=20261029-5';
+import { readDailyData } from './daily-store.js?v=20261029-5';
+import { readAgenda, scopedActivities, saveActivity, exportAgenda, mergeAgenda, validateAgenda, validateActivity, downloadFile } from './agenda-store.js?v=20261029-5';
+import { at, addDate, clock, activityInterval, activityOnDate, checkActivity, buildReminders, marketReminders, tradingDay, exportCalendarEvents } from './agenda-model.js?v=20261029-5';
+import { showCourseDetail } from './app.js?v=20261029-5';
+import { segmentMarkup } from './course-segments.js?v=20261029-5';
+import { studyCalendarContext } from './study-calendar.js?v=20261029-5';
+import { rawStudyData, STUDY_KEY, STUDY_STATUS_LABELS } from './study-store.js?v=20261029-5';
 
 let selectedDate = getTodayStr();
 let displayedMonth = selectedDate.slice(0,7);
@@ -16,7 +18,7 @@ let agendaCleanup = null;
 export function cleanupAgenda() { agendaCleanup?.(); agendaCleanup=null; }
 export function plannerContext(state, dm, date = getTodayStr()) {
   const data = readAgenda(), scope = { semester: dm.getSemesterInfo().semester, className: state.currentClass };
-  return { date, data, scope, prefs: data.reminders, courses: dm.getCourses(state.currentClass), activities: scopedActivities(scope,data), tasks: itemsForScope(scope).filter(item=>item.reminderMode!=='persistent'), profile: readDailyData().profile };
+  return { date, data, scope, prefs: data.reminders, ...studyCalendarContext(dm,state.currentClass), activities: scopedActivities(scope,data), tasks: itemsForScope(scope).filter(item=>item.reminderMode!=='persistent'), profile: readDailyData().profile };
 }
 function monthDates(month) {
   const first = new Date(`${month}-01T12:00:00`), start = new Date(first);
@@ -35,8 +37,9 @@ export function renderAgenda(container,state,dm) {
   let context;
   try { context=plannerContext(state,dm,selectedDate); }
   catch(error) {
-    container.innerHTML=`<section class="agenda-panel"><h1>日程资料需要检查</h1><p role="alert">${esc(error.message)}</p><button type="button" class="btn" id="agenda-raw">下载日程原始数据</button></section>`;
-    container.querySelector('#agenda-raw').onclick=()=>exportAgenda(true); return;
+    const studyError=/晚自习/.test(error.message);
+    container.innerHTML=`<section class="agenda-panel"><h1>日程资料需要检查</h1><p role="alert">${esc(error.message)}</p><button type="button" class="btn" id="agenda-raw">下载${studyError?'晚自习':'日程'}原始数据</button>${studyError?'<a class="daily-link" href="#/study">检查晚自习资料 →</a>':''}</section>`;
+    container.querySelector('#agenda-raw').onclick=()=>studyError?downloadFile(rawStudyData(),'晚自习-原始资料.json'):exportAgenda(true); return;
   }
   const {courses,activities,tasks,prefs,profile}=context;
   const dateCourses=courses.filter(course=>course.date===selectedDate);
@@ -46,7 +49,12 @@ export function renderAgenda(container,state,dm) {
   const dayRows=[];
   const checked=new Map();
   for(const item of activities.filter(item=>item.status!=='cancelled'))checked.set(item.id,checkActivity(item,courses,activities));
-  for(const course of dateCourses)dayRows.push({time:course.startTime||'待定',sort:course.startDateTime?+course.startDateTime:Infinity,html:`<article class="agenda-item"><div class="agenda-time">${esc(course.startTime||'待定')}<small>${esc(course.endTime)}</small></div><div class="agenda-content"><button type="button" class="agenda-course" data-agenda-course="${esc(courses.indexOf(course))}">${esc(course.courseName)}<span>课程详情 →</span></button><p>${esc(course.location||'教室待核对')}</p>${segmentMarkup(course)}</div></article>`});
+  for(const course of dateCourses) {
+    const study=course.source==='evening-study';
+    const linked=study&&course.studyStatus==='other'&&course.studyActivityId&&dateActivities.some(item=>item.id===course.studyActivityId);
+    const content=study?`<div class="agenda-title-line"><strong>${linked?'晚自习：另有安排 · 已关联活动':esc(course.courseName)}</strong><span class="agenda-tag">${esc(STUDY_STATUS_LABELS[course.studyStatus]||course.studyLabel)}</span></div>${linked?'':`<p>${esc(course.location||'地点未填写')}${course.studyStatus==='excused'?' · 个人确认记录':''}</p>${course.studyArrangementTitle&&course.studyArrangementTitle!==course.courseName?`<p>${esc(course.studyArrangementTitle)}</p>`:''}${course.studyNote?`<p>${esc(course.studyNote)}</p>`:''}${course.studyAttendance?segmentMarkup(course):''}`}<a class="agenda-text-button" href="#/study?date=${course.date}">管理当晚安排 →</a>`:`<button type="button" class="agenda-course" data-agenda-course="${esc(courses.indexOf(course))}">${esc(course.courseName)}<span>课程详情 →</span></button><p>${esc(course.location||'教室待核对')}</p>${segmentMarkup(course)}`;
+    dayRows.push({time:course.startTime||'待定',sort:course.startDateTime?+course.startDateTime:Infinity,html:`<article class="agenda-item"><div class="agenda-time">${esc(course.startTime||'待定')}<small>${esc(course.endTime)}</small></div><div class="agenda-content">${content}</div></article>`});
+  }
   for(const item of dateActivities) {
     const interval=activityInterval(item);
     const time=item.date<selectedDate?'跨天':item.startTime||'待定';
@@ -64,15 +72,15 @@ export function renderAgenda(container,state,dm) {
   const dates=compactWeek?Array.from({length:7},(_,index)=>addDate(weekStart,index)):monthDays;
   container.innerHTML=`<section class="agenda-page"><header class="agenda-heading"><div><h1>日程</h1><p>把课程、活动和提前准备放在同一天看。</p></div><button type="button" class="btn btn-primary" id="agenda-add">＋记活动</button></header>
     <nav class="agenda-view-switch" aria-label="课表视图"><a href="#/schedule">周课表</a><a href="#/agenda" aria-current="page">日历与日程</a><a href="#/reminders">提醒设置</a></nav>
-    <p class="agenda-notice" role="status">${esc(notice)}</p>
+    <p class="agenda-notice" role="status">${esc([notice,context.studyNotice].filter(Boolean).join(' '))}</p>
     <div class="agenda-layout"><div><section class="agenda-panel agenda-calendar" aria-label="选择日程日期"><div class="agenda-month-heading"><button type="button" class="agenda-icon-button" id="agenda-prev" aria-label="${compactWeek?'上一周':'上个月'}">‹</button><h2>${esc(compactWeek?selectedDate.slice(0,7):displayedMonth).replace('-',' 年 ')} 月</h2><button type="button" class="agenda-icon-button" id="agenda-next" aria-label="${compactWeek?'下一周':'下个月'}">›</button></div><div class="agenda-calendar-tools"><button type="button" class="agenda-text-button" id="agenda-today">回到今天</button><button type="button" class="agenda-text-button" id="agenda-collapse">${compactWeek?'展开月历':'收为一周'}</button></div>
     <div class="agenda-week-labels" aria-hidden="true">${['一','二','三','四','五','六','日'].map(day=>`<span>${day}</span>`).join('')}</div><div class="agenda-date-grid" role="group" aria-label="日期">${dates.map(date=>{
-      const hasCourses=courses.some(item=>item.date===date),active=activities.filter(item=>item.status!=='cancelled'&&activityOnDate(item,date)),due=tasks.some(item=>!item.deletedAt&&!item.completedAt&&item.dueDate===date)||activities.some(item=>item.status!=='cancelled'&&item.registrationDate===date);
+      const hasCourses=courses.some(item=>item.date===date&&item.source!=='evening-study'),hasStudy=courses.some(item=>item.date===date&&item.source==='evening-study'),active=activities.filter(item=>item.status!=='cancelled'&&activityOnDate(item,date)),due=tasks.some(item=>!item.deletedAt&&!item.completedAt&&item.dueDate===date)||activities.some(item=>item.status!=='cancelled'&&item.registrationDate===date);
       const risk=active.some(item=>checked.get(item.id)?.length);
-      return `<button type="button" data-agenda-date="${date}" aria-pressed="${date===selectedDate}" ${date===getTodayStr()?'aria-current="date"':''} aria-label="${date}${hasCourses?'，有课':''}${active.length?`，${active.length}项活动`:''}${due?'，有日期事项':''}${risk?'，需核对':''}" class="agenda-date ${date.slice(0,7)!==displayedMonth?'other-month':''}"><span>${Number(date.slice(8))}</span><span class="agenda-date-marks" aria-hidden="true">${hasCourses||active.length||due?'<i></i>':''}${risk?'<b>!</b>':''}</span></button>`;
+      return `<button type="button" data-agenda-date="${date}" aria-pressed="${date===selectedDate}" ${date===getTodayStr()?'aria-current="date"':''} aria-label="${date}${hasCourses?'，有课':''}${hasStudy?'，有晚自习记录':''}${active.length?`，${active.length}项活动`:''}${due?'，有日期事项':''}${risk?'，需核对':''}" class="agenda-date ${date.slice(0,7)!==displayedMonth?'other-month':''}"><span>${Number(date.slice(8))}</span><span class="agenda-date-marks" aria-hidden="true">${hasCourses||hasStudy||active.length||due?'<i></i>':''}${risk?'<b>!</b>':''}</span></button>`;
     }).join('')}</div><div class="agenda-legend"><span>● 有安排</span><span>! 需核对</span></div></section>
     ${pendingActivities.length+pendingTasks.length?`<details class="agenda-panel agenda-pending"><summary>待核对日期 ${pendingActivities.length+pendingTasks.length} 条</summary>${pendingActivities.slice(0,15).map(item=>`<button type="button" class="agenda-pending-item" data-edit-activity="${esc(item.id)}">${esc(item.title)}<span>补充日期 →</span></button>`).join('')}${pendingTasks.slice(0,10).map(item=>`<a class="agenda-pending-item" href="#/tasks">${esc(item.text)}<span>到待办核对 →</span></a>`).join('')}</details>`:''}</div>
-    <section class="agenda-panel agenda-day" aria-label="所选日期安排"><header class="agenda-day-heading"><div><h2>${Number(selectedDate.slice(5,7))} 月 ${Number(selectedDate.slice(8))} 日 · 星期${getDayName(selectedDate)}</h2><p>${dateCourses.length} 次课 · ${dateActivities.length} 项活动 · ${dateTasks.length} 项日期事项</p></div><button type="button" class="agenda-text-button" id="agenda-export-ics">导出这天日历</button></header><div class="agenda-items">${dayRows.map(row=>row.html).join('')||'<p class="agenda-empty">这一天还没有记录安排，可以先记下活动或通知。课表无课不代表没有其他事情。</p>'}</div>${dateReminders.length?`<details class="agenda-day-reminders"><summary>这天的提前提醒（${dateReminders.length} 条）</summary>${reminderRows}</details>`:''}${prefs.market&&tradingDay(selectedDate)==='unknown'?'<p class="agenda-muted">这一天的交易日历尚未核对，未生成大A提醒。</p>':''}<p class="agenda-muted">核对依据：当前班级课表与本机已记录活动。截止和提醒时点不占用全天。</p></section></div>
+    <section class="agenda-panel agenda-day" aria-label="所选日期安排"><header class="agenda-day-heading"><div><h2>${Number(selectedDate.slice(5,7))} 月 ${Number(selectedDate.slice(8))} 日 · 星期${getDayName(selectedDate)}</h2><p>${dateCourses.filter(course=>course.source!=='evening-study').length} 次课 · ${dateActivities.length} 项活动 · ${dateTasks.length} 项日期事项${dateCourses.some(course=>course.source==='evening-study')?' · 晚自习记录':''}</p></div><button type="button" class="agenda-text-button" id="agenda-export-ics">导出这天日历</button></header><div class="agenda-items">${dayRows.map(row=>row.html).join('')||'<p class="agenda-empty">这一天还没有记录安排，可以先记下活动或通知。课表无课不代表没有其他事情。</p>'}</div>${dateReminders.length?`<details class="agenda-day-reminders"><summary>这天的提前提醒（${dateReminders.length} 条）</summary>${reminderRows}</details>`:''}${prefs.market&&tradingDay(selectedDate)==='unknown'?'<p class="agenda-muted">这一天的交易日历尚未核对，未生成大A提醒。</p>':''}<p class="agenda-muted">核对依据：当前班级课表、晚自习个人安排与本机已记录活动。截止和提醒时点不占用全天。</p></section></div>
     <details class="agenda-panel agenda-archive"><summary>全部活动与取消记录（${archive.length}）</summary>${archive.map(item=>`<div class="agenda-record"><div><strong>${esc(item.title)}</strong><p>${esc(item.date||'日期待核对')} · ${activityLabel(item)}</p></div><button type="button" class="agenda-text-button" data-edit-activity="${esc(item.id)}">查看 / 修改</button></div>`).join('')||'<p class="agenda-muted">还没有活动记录。</p>'}</details>
     <details class="agenda-panel agenda-backup"><summary>日程保存与备份</summary><p class="agenda-muted">活动和提醒设置保存在当前浏览器。与课表导入、个人待办和衣橱分别备份；本地与在线网站各自保存。</p><div class="agenda-actions"><button type="button" class="btn" id="agenda-backup">导出日程备份</button><label class="btn agenda-file-label">恢复日程备份<input type="file" id="agenda-restore" accept="application/json,.json" hidden></label></div><div id="agenda-import-preview" data-refresh-block role="status"></div></details>
     <dialog class="capture-dialog activity-dialog" id="activity-dialog" aria-labelledby="activity-title"><form id="activity-form"><div class="capture-heading"><div><h2 id="activity-title">记活动</h2><p>先保存通知，时间不清楚可以留作候选。</p></div><button type="button" class="capture-close" aria-label="关闭活动">×</button></div>
@@ -117,7 +125,7 @@ export function renderAgenda(container,state,dm) {
     catch(error){preview.textContent=error.message;}finally{event.target.value='';}
   };
   container.querySelector('#agenda-export-ics').onclick=()=>{
-    const rows=dateCourses.filter(c=>c.startDateTime&&c.endDateTime).map(c=>({key:`course:${c.date}:${c.startSection}:${c.courseName}:${c.location}`,title:c.courseName,start:c.startDateTime,end:c.endDateTime,location:c.location,detail:c.segments.map(part=>`${part.startTime}—${part.endTime} ${part.kind==='break'?'课间':`第${part.section}节`}`).join('\n')}));
+    const rows=dateCourses.filter(c=>c.startDateTime&&c.endDateTime).map(c=>({key:`course:${c.date}:${c.startSection}:${c.courseName}:${c.location}`,source:c.source,studyAttendance:c.studyAttendance,title:c.courseName,start:c.startDateTime,end:c.endDateTime,location:c.location,detail:[c.studyNote,c.segments.map(part=>`${part.startTime}—${part.endTime} ${part.kind==='break'?'课间':`第${part.section}节`}`).join('\n')].filter(Boolean).join('\n')}));
     for(const item of dateActivities.filter(item=>item.status==='confirmed')){const interval=activityInterval(item);rows.push({key:`activity:${item.id}`,title:item.title,...interval,location:item.location,detail:item.checkInTime?`${item.checkInTime}签到`:''});}
     const reminders=buildReminders(context);
     for(const item of marketReminders(selectedDate,dateCourses,prefs))rows.push({...item,end:new Date(Math.max(+item.end,+item.start+60000))});
@@ -127,11 +135,15 @@ export function renderAgenda(container,state,dm) {
     downloadFile(exportCalendarEvents(rows.map(row=>({...row,key:prefix+row.key})),reminders.map(item=>({...item,key:prefix+item.key}))),`日程-${selectedDate}.ics`,'text/calendar;charset=utf-8');
     container.querySelector('.agenda-notice').textContent='已导出。导入手机系统日历后，请检查提醒权限和提前时间；网页改动后需重新导出更新。';
   };
-  const onStorage=event=>{if(!dialog.open&&(!event.key||['course-dashboard-agenda-v1','course-dashboard-personal-items-v1','course-dashboard-class-updates-v1'].includes(event.key)))refresh();};
+  const onStorage=event=>{if(!dialog.open&&(!event.key||['course-dashboard-agenda-v1','course-dashboard-personal-items-v1','course-dashboard-class-updates-v1',STUDY_KEY].includes(event.key)))refresh();};
   window.addEventListener('storage',onStorage);
+  let studyRefreshPending=false,disposed=false;
+  const onStudyChanged=()=>{if(dialog.open)studyRefreshPending=true;else refresh();};
+  const studyDialogClosed=()=>{if(studyRefreshPending)queueMicrotask(()=>{if(!disposed)refresh();});};
+  window.addEventListener('study:changed',onStudyChanged);dialog.addEventListener('close',studyDialogClosed);
   let lastDate=getTodayStr();
   const onTick=()=>{if(lastDate!==getTodayStr()&&!dialog.open){lastDate=getTodayStr();refresh();}};
   document.addEventListener('app:tick',onTick);
-  agendaCleanup=()=>{window.removeEventListener('storage',onStorage);document.removeEventListener('app:tick',onTick);if(dialog.open)dialog.close();};
+  agendaCleanup=()=>{disposed=true;window.removeEventListener('study:changed',onStudyChanged);dialog.removeEventListener('close',studyDialogClosed);window.removeEventListener('storage',onStorage);document.removeEventListener('app:tick',onTick);if(dialog.open)dialog.close();};
   return cleanupAgenda;
 }

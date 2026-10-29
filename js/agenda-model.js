@@ -1,8 +1,9 @@
-import { localDate, getCoursePhase } from './time.js?v=20261029-3';
+import { localDate, getCoursePhase } from './time.js?v=20261029-5';
 
 export const MARKET_CALENDAR = { from: '2026-01-01', through: '2026-12-31', checkedAt: '2026-10-20',
   source: 'https://www.sse.com.cn/disclosure/announcement/general/c/c_20251222_10802507.shtml' };
 const CLOSED = [['01-01','01-03'],['02-15','02-23'],['04-04','04-06'],['05-01','05-05'],['06-19','06-21'],['09-25','09-27'],['10-01','10-07']];
+const attending = course => course.studyAttendance !== false;
 export function tradingDay(date) {
   if (date < MARKET_CALENDAR.from || date > MARKET_CALENDAR.through) return 'unknown';
   const day = new Date(`${date}T12:00:00+08:00`).getUTCDay();
@@ -16,6 +17,7 @@ export function activityInterval(item) { return { start: at(item.date, item.star
 export function activityOnDate(item, date) { return item.date && item.date <= date && (item.endDate || item.date) >= date; }
 
 export function checkActivity(item, courses, activities = []) {
+  courses=courses.filter(attending);
   const issues = []; const { start, end } = activityInterval(item);
   const issue = (type, text) => issues.push({ type, text });
   if (!start || !end) { issue('unknown', '缺少日期或起止时间，补齐后才能核对冲突'); return issues; }
@@ -53,6 +55,7 @@ export function checkActivity(item, courses, activities = []) {
 }
 
 export function courseContext(courses, time) {
+  courses=courses.filter(attending);
   const course=courses.find(course=>course.startDateTime&&time>=course.startDateTime&&time<course.endDateTime);
   if(!course)return '课表未排课';
   const phase=getCoursePhase(course,time);
@@ -60,6 +63,7 @@ export function courseContext(courses, time) {
     `「${course.courseName}」${phase.segment?`第${phase.segment.section}节`:'上课区间'}`;
 }
 export function preferEarlierBreak(target, courses, lead, maxEarly, preferBreak) {
+  courses=courses.filter(attending);
   const fixed=new Date(+target-lead*60000);
   if(!preferBreak||!courses.some(course=>getCoursePhase(course,fixed).kind==='lesson'))return fixed;
   const options=courses.flatMap(course=>course.segments||[]).filter(part=>part.kind==='break')
@@ -83,14 +87,16 @@ export function marketReminders(date,courses,prefs) {
 }
 export function buildReminders({ date, courses, activities, tasks, prefs, profile = {} }) {
   if(!prefs.enabled)return [];
+  courses=courses.filter(attending);
   const reminders=marketReminders(date,courses.filter(c=>c.date===date),prefs);
   const dailyCourses=courses.filter(c=>c.date===date&&c.startDateTime).sort((a,b)=>a.startDateTime-b.startDateTime);
   for(const course of dailyCourses) {
     const travel=profile.destinationKeyword&&course.location.includes(profile.destinationKeyword)?profile.travelMinutes||0:0;
     const breakfast=course===dailyCourses[0]&&course.startDateTime.getHours()<11?(profile.breakfastBuyMinutes||0)+(profile.breakfastMode==='sit'?profile.breakfastEatMinutes||0:0):0;
     const lead=prefs.courseLead+travel+breakfast;
-    reminders.push({key:`course:${course.date}:${course.startSection}:${course.courseName}:${course.location}`,type:'course',title:`准备去上「${course.courseName}」`,start:course.startDateTime,
-      remindAt:new Date(+course.startDateTime-lead*60000),expires:course.startDateTime,detail:`${course.startTime} 开始 · ${course.location||'教室待核对'} · 提前 ${lead} 分钟（准备 ${prefs.courseLead}${travel?`＋通勤 ${travel}`:''}${breakfast?`＋早餐 ${breakfast}`:''}）`});
+    const study=course.source==='evening-study';
+    reminders.push({key:`course:${course.date}:${course.startSection}:${course.courseName}:${course.location}`,type:study?'study':'course',studyDate:study?course.date:undefined,title:study?`准备参加晚自习${course.studyStatus==='pending'?'（请假待确认）':''}`:`准备去上「${course.courseName}」`,start:course.startDateTime,
+      remindAt:new Date(+course.startDateTime-lead*60000),expires:course.startDateTime,detail:`${course.startTime} 开始 · ${course.location||(study?'地点未填写':'教室待核对')} · 提前 ${lead} 分钟（准备 ${prefs.courseLead}${travel?`＋通勤 ${travel}`:''}${breakfast?`＋早餐 ${breakfast}`:''}）${study&&course.studyNote?` · ${course.studyNote}`:''}`});
   }
   for(const item of activities.filter(item=>item.status==='confirmed')) {
     const { start }=activityInterval(item);if(!start)continue;
@@ -118,7 +124,7 @@ function icsEscape(value) { return String(value||'').replace(/\\/g,'\\\\').repla
 const utcStamp=date=>date.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
 export function exportCalendarEvents(rows,reminders=[],now=new Date()) {
   const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Course Dashboard//Student Agenda//ZH','CALSCALE:GREGORIAN'];
-  for(const row of rows.filter(row=>row.dateOnly||row.start&&row.end&&row.end>row.start)) {
+  for(const row of rows.filter(row=>attending(row)&&(row.dateOnly||row.start&&row.end&&row.end>row.start))) {
     lines.push('BEGIN:VEVENT',`UID:${icsEscape(row.key)}@course-dashboard`,`DTSTAMP:${utcStamp(now)}`);
     if(row.dateOnly)lines.push(`DTSTART;VALUE=DATE:${row.dateOnly.replace(/-/g,'')}`,`DTEND;VALUE=DATE:${addDate(row.dateOnly).replace(/-/g,'')}`,'TRANSP:TRANSPARENT');
     else lines.push(`DTSTART:${utcStamp(row.start)}`,`DTEND:${utcStamp(row.end)}`);

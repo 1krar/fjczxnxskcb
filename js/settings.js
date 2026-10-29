@@ -1,5 +1,5 @@
-import { getSettings, saveSettings } from './storage.js?v=20261029-3';
-import { selectClass } from './app.js?v=20261029-3';
+import { getSettings, saveSettings } from './storage.js?v=20261029-5';
+import { selectClass } from './app.js?v=20261029-5';
 
 export function renderSettings(container, state, dm) {
   const settings = getSettings();
@@ -12,6 +12,7 @@ export function renderSettings(container, state, dm) {
       <section><h2>日常准备</h2>
         <a href="#/wardrobe"><span>小衣橱<span>选明天穿搭，记录实穿与洗晒</span></span><span aria-hidden="true">›</span></a>
         <a href="#/agenda"><span>日历与活动<span>查看每天安排，检查时间冲突</span></span><span aria-hidden="true">›</span></a>
+        <a href="#/study"><span>晚自习与特殊安排<span>九、十节，按天记录活动和请假</span></span><span aria-hidden="true">›</span></a>
       </section>
       <section><h2>课程与提醒</h2>
         <a href="#/reminders"><span>提前提醒与大 A<span>出门准备、课程区间与提醒时间</span></span><span aria-hidden="true">›</span></a>

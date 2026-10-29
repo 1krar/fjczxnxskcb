@@ -1,6 +1,6 @@
-import { CATEGORIES } from './daily-store.js?v=20261029-3';
-import { getTodayState } from './day-plan.js?v=20261029-3';
-import { weatherDay, weatherFacts, weatherIntervals } from './weather-model.js?v=20261029-3';
+import { CATEGORIES } from './daily-store.js?v=20261029-5';
+import { getTodayState } from './day-plan.js?v=20261029-5';
+import { weatherDay, weatherFacts, weatherIntervals } from './weather-model.js?v=20261029-5';
 
 export const shortAdvice = value => typeof value === 'string' && [...value.trim()].length >= 5 && [...value.trim()].length <= 48 && !/[\r\n]/.test(value.trim());
 const shortLabel = (value, length = 10) => {
@@ -164,11 +164,20 @@ export function departurePlan(course, profile, previous = null) {
     basis: '出发时刻来自你的时间预算，未核验实时位置和路况；未设置的排队时间需另留。' };
 }
 
-export function buildAdvice({ now, courses, tomorrowCourses, items, data, futureCourses = [], activities = [], weather = null }) {
+export function buildAdvice({ now, courses, tomorrowCourses, items, data, futureCourses = [], activities = [], weather = null, studyCourses = [], tomorrowStudyCourses = [] }) {
+  const eveningStudy=rows=>rows.filter(course=>course.source==='evening-study'&&course.studyAttendance!==false&&['normal','pending'].includes(course.studyStatus));
+  studyCourses=eveningStudy([...studyCourses,...courses]);
+  tomorrowStudyCourses=eveningStudy([...tomorrowStudyCourses,...tomorrowCourses]);
+  courses=courses.filter(course=>course.source!=='evening-study');
+  tomorrowCourses=tomorrowCourses.filter(course=>course.source!=='evening-study');
   const today = localDate(now);
   const tomorrow = nextDate(today);
   const pool = [];
   const add = (id, priority, lines, basis, href) => pool.push({ id, priority, lines, basis, href });
+  const nearStudy=studyCourses.find(course=>course.endDateTime>now&&+course.startDateTime-+now<=2*3600000);
+  if(nearStudy)add(`study:${nearStudy.date}`,nearStudy.startDateTime>now?75:35,
+    nearStudy.studyStatus==='pending'?['晚自习请假还待确认，先按参加留出时间。']:nearStudy.startDateTime>now?['今晚还有晚自习，出门前把要用的东西带好。']:['晚自习这段时间，可以先做一件最想完成的小事。'],
+    `来自你设置的晚自习个人规则：${nearStudy.date} ${nearStudy.startTime}—${nearStudy.endTime}；${nearStudy.studyStatus==='pending'?'记录为请假待确认，暂按参加准备。':'记录为正常参加。'}`,'#/study?date='+nearStudy.date);
   const weatherDate=now.getHours()>=18?tomorrow:today;
   const forecast=weatherDay(weather,weatherDate,{now,from:now.getHours()>=18?'07:00':`${String(now.getHours()).padStart(2,'0')}:00`,to:'23:00'});
   if(forecast?.status==='fresh'&&forecast.rainProbability>=40)add('weather:rain',60,[`${weatherDate===today?'接下来':'明天'}部分时段有降雨可能，带把伞更从容。`],`${forecast.location}区域预报，${forecast.from}—${forecast.to}降雨概率最高${forecast.rainProbability}%；不代表必然下雨。`,'#/wardrobe');
@@ -270,15 +279,20 @@ export function dailySourceId(kind, value) {
 }
 
 // Only this bounded summary is sent for daily prose, never the complete stores.
-export function dailyFacts({ now, courses, tomorrowCourses, items, activities = [], weather = null }) {
+export function dailyFacts({ now, courses, tomorrowCourses, items, activities = [], weather = null, studyCourses = [], tomorrowStudyCourses = [], studyNotice = '' }) {
   const today = localDate(now), tomorrow = nextDate(today);
-  const phase = getTodayState(courses, now);
+  const eveningStudy=rows=>rows.filter(course=>course.source==='evening-study'&&course.studyAttendance!==false&&['normal','pending'].includes(course.studyStatus));
+  studyCourses=eveningStudy([...studyCourses,...courses]);
+  tomorrowStudyCourses=eveningStudy([...tomorrowStudyCourses,...tomorrowCourses]);
+  courses=courses.filter(course=>course.source!=='evening-study');
+  tomorrowCourses=tomorrowCourses.filter(course=>course.source!=='evening-study');
+  const phase = getTodayState([...courses,...studyCourses].sort((a,b)=>(a.startDateTime||0)-(b.startDateTime||0)), now);
   const period = now.getHours() < 6 ? '夜间' : now.getHours() < 12 ? '上午' : now.getHours() < 18 ? '下午' : '晚上';
   const focus = phase.currentCourse || phase.nextCourse;
   const segment = phase.currentSegment;
   const facts = [{ id:'date', text:`今天是${today}；明天是${tomorrow}。` },
     { id:'clock', text:`请求时刻${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}；仅用于理解上下文，不在评论中复述当前时刻或倒计时。` },
-    { id:'context:v2', text:`现在是${period}，课程状态${phase.state}。${focus ? `当前或下一次课：${focus.courseName}，${focus.startTime}—${focus.endTime || ''}，${focus.location || '地点未记录'}。` : ''}${segment ? segment.kind === 'break' ? `目前在课间，${segment.endTime}继续第${segment.nextSection}小节。` : `当前第${segment.section}小节${segment.startTime}—${segment.endTime}。` : ''}`.slice(0,350) }];
+    { id:'context:v2', text:`${studyNotice?`${studyNotice} `:''}现在是${period}，${studyNotice?'已知课程':'课程与晚间安排'}状态${phase.state}。${focus ? `当前或下一项${focus.source==='evening-study'?'晚自习个人安排':'课程'}：${focus.courseName}，${focus.startTime}—${focus.endTime || ''}，${focus.location || '地点未记录'}。` : ''}${segment ? segment.kind === 'break' ? `目前在课间，${segment.endTime}继续第${segment.nextSection}小节。` : `当前第${segment.section}小节${segment.startTime}—${segment.endTime}。` : ''}`.slice(0,350) }];
   for (const [id, label, rows] of [['today','今天',courses],['tomorrow','明天',tomorrowCourses]]) {
     facts.push({ id:`courses:${id}`, text:`${label}课表有${rows.length}大节课。${rows.length ? `首课${rows[0].startTime}「${rows[0].courseName}」${rows[0].location || ''}。` : '未排课程，不代表没有私人安排。'}`.slice(0,350) });
     if (!rows.some(course => course.startTime < '18:00' && course.endTime > '12:00')) facts.push({ id:`afternoon:${id}`, text:`${label}下午课表无课；仍需考虑要记得、已确认活动和准备事项，未记录的安排未知。` });
@@ -287,7 +301,11 @@ export function dailyFacts({ now, courses, tomorrowCourses, items, activities = 
   const relevant = adviceItems(items, now).filter(item => item.dueDate && itemAt(item) >= +now && itemAt(item) <= +now+2*86400000 ||
     !item.dueDate && item.courseName && [courses,tomorrowCourses].flat().some(course => course.courseName === item.courseName));
   const remembered = relevant.slice(0,3).map(item => ({ id:dailySourceId('item', item.id), text:`要记得：${(item.title || item.text).slice(0,80)}。${item.timeRole === 'start' ? '开始' : item.timeRole === 'deadline' ? '截止' : '所设时间（含义未指定）'}：${item.dueDate || '日期未定'} ${item.dueTime || '时刻未定'}。${item.location ? `地点${item.location.slice(0,40)}；` : ''}${item.nextStep ? `用户准备动作${item.nextStep.slice(0,60)}；` : ''}${item.timeContext ? `相关区间${item.timeContext.slice(0,40)}；` : ''}${item.needsConfirmation ? '此记录标为待确认，不能把时间地点当成已核实；' : ''}仅知道尚未标记完成，不知道实际进度。`.slice(0,350) }));
-  const confirmed = activities.filter(item => item.status === 'confirmed' && [today,tomorrow].includes(item.date) && new Date(`${item.endDate || item.date}T${item.endTime || '23:59'}`) > now).sort((a,b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`)).slice(0,2).map(item => ({ id:dailySourceId('activity', item.id), text:`已确认参加：${item.title.slice(0,100)}，${item.date} ${item.startTime}—${item.endTime}，${item.location || '未设地点'}。`.slice(0,350) }));
+  const activityFacts=activities.filter(item=>item.status==='confirmed'&&[today,tomorrow].includes(item.date)&&new Date(`${item.endDate||item.date}T${item.endTime||'23:59'}`)>now)
+    .map(item=>({at:+new Date(`${item.date}T${item.startTime||'00:00'}`),id:dailySourceId('activity',item.id),text:`已确认参加：${item.title.slice(0,100)}，${item.date} ${item.startTime}—${item.endTime}，${item.location||'未设地点'}。`.slice(0,350)}));
+  const nearestStudy=[...studyCourses,...tomorrowStudyCourses].filter(course=>course.endDateTime>now).sort((a,b)=>a.startDateTime-b.startDateTime)[0];
+  if(nearestStudy)activityFacts.push({at:+nearestStudy.startDateTime,id:dailySourceId('activity',`evening-study:${nearestStudy.date}:${nearestStudy.studyStatus}`),text:`晚自习个人安排：${nearestStudy.date===today?'今天':'明天'}${nearestStudy.date} ${nearestStudy.startTime}—${nearestStudy.endTime}，第${nearestStudy.startSection}—${nearestStudy.endSection}节，${nearestStudy.location||'未设地点'}。${nearestStudy.studyStatus==='pending'?'请假待确认，仍按参加准备。':'按个人设置正常参加。'}晚自习不计入学术课程数。${nearestStudy.studyNote?`备注${nearestStudy.studyNote.slice(0,80)}。`:''}`.slice(0,350)});
+  const confirmed=activityFacts.sort((a,b)=>a.at-b.at).slice(0,2).map(({id,text})=>({id,text}));
   facts.splice(3,0,...remembered,...confirmed,...weatherFacts(weather,now));
   return facts.slice(0,12);
 }

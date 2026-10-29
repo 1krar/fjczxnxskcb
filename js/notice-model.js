@@ -1,6 +1,6 @@
-import { getSectionTime, seasonForDate } from './time.js?v=20261029-3';
-export { seasonForDate } from './time.js?v=20261029-3';
-import { NOTICE_VERSION, NOTICE_FIELDS, normalizeNoticeExtraction } from './notice-form.js?v=20261029-3';
+import { getSectionTime, seasonForDate } from './time.js?v=20261029-5';
+export { seasonForDate } from './time.js?v=20261029-5';
+import { NOTICE_VERSION, NOTICE_FIELDS, normalizeNoticeExtraction } from './notice-form.js?v=20261029-5';
 
 export function describeTimeContext(date,time,courses,sectionTimes,seasonRule) {
   if(!date||!time)return '';

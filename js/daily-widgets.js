@@ -1,23 +1,32 @@
-import { selectedWear } from './wear-store.js?v=20261029-3';
-import { notesForCourse } from './persistent-model.js?v=20261029-3';
-import { renderContextNotes } from './context-notes.js?v=20261029-3';
-import { readDailyData, saveDailyProfile, DAILY_KEY } from './daily-store.js?v=20261029-3';
-import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261029-3';
-import { buildAdvice, chooseAdvice, planOutfits, plannedOutfit, departurePlan, localDate, nextDate, dailyFacts, shortAdvice } from './daily-model.js?v=20261029-3';
-import { cachedWeather } from './weather-client.js?v=20261029-3';
-import { weatherSummary } from './weather-model.js?v=20261029-3';
-import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261029-3';
-import { aiEnabled, AI_KEY, DAILY_CACHE_KEY, cachedDaily, dailyIdentity, requestDaily, canRequestDaily, dailyWaitMessage } from './ai-client.js?v=20261029-3';
-import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261029-3';
-import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261029-3';
+import { selectedWear } from './wear-store.js?v=20261029-5';
+import { notesForCourse } from './persistent-model.js?v=20261029-5';
+import { renderContextNotes } from './context-notes.js?v=20261029-5';
+import { readDailyData, saveDailyProfile, DAILY_KEY } from './daily-store.js?v=20261029-5';
+import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261029-5';
+import { buildAdvice, chooseAdvice, planOutfits, plannedOutfit, departurePlan, localDate, nextDate, dailyFacts, shortAdvice } from './daily-model.js?v=20261029-5';
+import { cachedWeather } from './weather-client.js?v=20261029-5';
+import { weatherSummary } from './weather-model.js?v=20261029-5';
+import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261029-5';
+import { aiEnabled, AI_KEY, DAILY_CACHE_KEY, cachedDaily, dailyIdentity, requestDaily, canRequestDaily, dailyWaitMessage } from './ai-client.js?v=20261029-5';
+import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261029-5';
+import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261029-5';
+import { readStudyData, STUDY_KEY } from './study-store.js?v=20261029-5';
+import { applyEveningStudy } from './study-model.js?v=20261029-5';
 
 function getContext(state, dm, now) {
   const today = localDate(now);
   const tomorrow = nextDate(today);
-  return { now, today, tomorrow, courses: dm.getCoursesByDate(state.currentClass, today),
+  const context={ now, today, tomorrow, courses: dm.getCoursesByDate(state.currentClass, today),
     tomorrowCourses: dm.getCoursesByDate(state.currentClass, tomorrow),
     futureCourses: dm.getCourses(state.currentClass).filter(course => course.date >= tomorrow && course.date <= nextDate(tomorrow, 2)),
-    scope: { semester: dm.getSemesterInfo().semester, className: state.currentClass } };
+    scope: { semester: dm.getSemesterInfo().semester, className: state.currentClass },studyCourses:[],tomorrowStudyCourses:[],studyNotice:'' };
+  try {
+    const info=dm.getSemesterInfo(),options={className:state.currentClass,studyData:readStudyData(),sectionTimes:dm.getSectionTimes(),seasonRule:info.seasonRule,semesterInfo:info};
+    const attending=course=>course.source==='evening-study'&&course.studyAttendance!==false&&['normal','pending'].includes(course.studyStatus);
+    context.studyCourses=applyEveningStudy(context.courses,today,options).filter(attending);
+    context.tomorrowStudyCourses=applyEveningStudy(context.tomorrowCourses,tomorrow,options).filter(attending);
+  } catch { context.studyNotice='晚自习资料暂时无法读取，当前建议暂未纳入晚自习安排。'; }
+  return context;
 }
 
 export function mountDailyAssistant(container, state, dm) {
@@ -55,8 +64,8 @@ export function mountDailyAssistant(container, state, dm) {
     preparation.hidden = false;
     const weather=cachedWeather(data.profile.city);
     let items = [];
-    let note = '';
-    try { items = itemsForScope(context.scope); } catch { note = '个人事项暂时无法读取，本句未使用截止信息。'; }
+    let note = context.studyNotice;
+    try { items = itemsForScope(context.scope); } catch { note += ' 个人事项暂时无法读取，本句未使用截止信息。'; }
     let activities = [];
     try { activities = scopedActivities(context.scope); } catch { note += ' 日程暂时无法读取，本句未使用活动信息。'; }
     let visibility = { hidden:false };
@@ -97,6 +106,7 @@ export function mountDailyAssistant(container, state, dm) {
     const preparingToday = now.getHours() < 6;
     const date = preparingToday ? context.today : context.tomorrow;
     const courses = preparingToday ? context.courses : context.tomorrowCourses;
+    const prepStudy=(preparingToday?context.studyCourses:context.tomorrowStudyCourses)[0];
     const future = dm.getCourses(state.currentClass).filter(course => course.date > date && course.date <= nextDate(date, 2));
     const plan = planOutfits(data,date,courses,future,weather,now);
     const fit = plan.daily;
@@ -108,7 +118,9 @@ export function mountDailyAssistant(container, state, dm) {
     const prepNotes=[...new Map(courses.flatMap(course=>notesForCourse(items,course,{now,view:'prepare'})).map(item=>[item.id,item])).values()];
     const departure = departurePlan(courses[0], data.profile);
     update(preparation, `<summary><span class="preparation-title">${preparingToday ? '今日出门准备' : '明日准备'}</span><span class="preparation-summary">${plan.weather?esc(weatherSummary(plan.weather)):date.slice(5)+' · 物品与穿衣'}<span class="course-list-chevron" aria-hidden="true"></span></span>${first?`<span class="preparation-fit-line">${first.pieces.map(item=>esc(item.name)).join(' ＋ ')}${plan.sportNeeded?' · 另看运动准备':''}</span>`:''}</summary>
-      <div class="preparation-body">${!courses.length ? '<p class="daily-muted">这天课表上无课，个人安排可以在待办里查看。</p>' : ''}
+      <div class="preparation-body">${!courses.length ? `<p class="daily-muted">这天课表上无课${prepStudy?'，晚上另有晚自习安排。':'，其他个人安排可以在日历里查看。'}</p>` : ''}
+      ${prepStudy?`<p class="daily-muted">晚自习 ${esc(prepStudy.startTime)}—${esc(prepStudy.endTime)}${prepStudy.location?' · '+esc(prepStudy.location):''}${prepStudy.studyStatus==='pending'?' · 请假待确认，暂按参加准备':''} <a href="#/study?date=${date}">查看安排</a></p>`:''}
+      ${context.studyNotice?`<p class="daily-small">${esc(context.studyNotice)} <a href="#/study">查看晚自习资料</a></p>`:''}
       ${departure ? `<p class="daily-muted">${esc(departure.text)}</p><p class="daily-small">${esc(departure.basis)}</p>` : ''}
       ${renderContextNotes(prepNotes,'prepare')}
       ${due.length ? `<div class="preparation-items"><h2>已记下的事项</h2>${due.slice(0, 3).map(item => `<a href="#/tasks"><span>${esc(item.text)}</span><span class="daily-small">${esc(dateLabel(item, context.today))}</span></a>`).join('')}${due.length > 3 ? `<a class="daily-link" href="#/tasks">查看全部${due.length}条 →</a>` : ''}</div>` : ''}
@@ -139,7 +151,7 @@ export function mountDailyAssistant(container, state, dm) {
   const cleanupSwipe = setupSwipeDismiss(advice, () => visibilityAction('today'));
   const changed = () => render();
   const resumed = () => { if (!document.hidden) render(); };
-  const storage = event => { if ([DAILY_KEY, AGENDA_KEY, AI_KEY, DAILY_CACHE_KEY, ADVICE_VISIBILITY_KEY, 'course-dashboard-personal-items-v1', null].includes(event.key)) render(); };
+  const storage = event => { if ([DAILY_KEY, AGENDA_KEY, STUDY_KEY, AI_KEY, DAILY_CACHE_KEY, ADVICE_VISIBILITY_KEY, 'course-dashboard-personal-items-v1', null].includes(event.key)) render(); };
   const tick = event => {
     const now = event.detail?.now || new Date();
     const minute = Math.floor(+now / 60000);
@@ -151,6 +163,7 @@ export function mountDailyAssistant(container, state, dm) {
   window.addEventListener('daily:changed', changed);
   window.addEventListener('personal-items:changed', changed);
   window.addEventListener('agenda:changed', changed);
+  window.addEventListener('study:changed', changed);
   window.addEventListener('ai:changed', changed);
   window.addEventListener('online', changed);
   window.addEventListener('daily-ai:changed', changed);
@@ -166,6 +179,7 @@ export function mountDailyAssistant(container, state, dm) {
     window.removeEventListener('daily:changed', changed);
     window.removeEventListener('personal-items:changed', changed);
     window.removeEventListener('agenda:changed', changed);
+    window.removeEventListener('study:changed', changed);
     window.removeEventListener('ai:changed', changed);
     window.removeEventListener('online', changed);
     window.removeEventListener('daily-ai:changed', changed);

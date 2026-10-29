@@ -178,7 +178,7 @@ body:has(#view-today.active .today-page) #quick-capture { display: none; }
 .today-page .today-preparation .preparation-fit-line { flex: 1 0 100%; font-size: 0.75rem; font-weight: 400; color: var(--color-text-secondary); line-height: 1.8; overflow-wrap: anywhere; }
 
 /* Course and item content share one ordered region on every screen size. */
-.home-modules { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.home-modules { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .today-page .home-module { min-width: 0; margin: 0; padding: 4px 0 0; border: 0; border-top: 1px solid var(--color-border-light); border-radius: 0; background: transparent; box-shadow: none; }
 .home-module-heading { display: flex; align-items: center; justify-content: space-between; gap: 4px; min-width: 0; }
 .home-module-heading h2 { flex: 1; min-width: 0; margin: 0; font-size: 0.8125rem; line-height: 1.7; font-weight: 500; }
@@ -202,7 +202,7 @@ body:has(#view-today.active .today-page) #quick-capture { display: none; }
 .today-page .home-personal-time > strong { font-size: 1.0625rem; }
 .today-page .home-personal-fact { gap: 6px; }
 .today-page .home-personal-content { gap: 3px; }
-.today-page .personal-home-empty { padding: 0 0 8px; margin: 0; }
+.today-page .personal-home-empty { display:none; }
 .today-page .home-order-more { justify-content: space-between; }
 .today-page .home-order-more .personal-view-all { margin: 0; font-size: 0.75rem; color: var(--color-text-secondary); }
 .status-continuation { margin: 0; color: var(--color-text-secondary); font-size: 0.75rem; line-height: 1.8; }
@@ -215,6 +215,7 @@ body:has(#view-today.active .today-page) #quick-capture { display: none; }
 .upcoming-content strong { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; font-size: 0.9375rem; line-height: 1.6; font-weight: 600; color: var(--color-text); overflow-wrap: anywhere; }
 .upcoming-location { margin-right: 10px; color: var(--color-text-secondary); overflow-wrap: anywhere; }
 .upcoming-sections { display: inline-block; font-size: 0.75rem; color: var(--color-text-secondary); }
+.upcoming-sections::before { content:'· '; }
 .upcoming-course[open] .upcoming-content strong { display: block; overflow: visible; }
 .upcoming-course[open] > summary > .course-list-chevron, .weather-strip[open] .weather-context > .course-list-chevron { transform: rotate(225deg); margin-bottom: 0; }
 .upcoming-detail { padding: 0 0 6px 62px; font-size: 0.8125rem; line-height: 1.8; color: var(--color-text-secondary); }
@@ -270,3 +271,10 @@ body:has(#view-today.active .today-page) #quick-capture { display: none; }
   .today-page .home-unassigned-hint { gap:4px 6px; }
   .home-unassigned-hint .home-unassigned-arrow { display:none; }
 }
+.upcoming-course.is-study > summary { padding-block:12px; }
+.upcoming-course.is-study .upcoming-content > strong { font-weight:500; }
+.study-absence-row { display:flex; align-items:center; flex-wrap:wrap; gap:4px 12px; min-height:44px; padding:10px 0; border-top:1px dashed var(--color-border); color:var(--color-text-secondary); font-size:.8125rem; line-height:1.6; text-decoration:none; }
+.study-absence-row > .mono { margin-left:auto; font-size:.75rem; }
+.study-absence-note { flex-basis:100%; font-size:.75rem; }
+.study-absence-row:focus-visible { outline:2px solid var(--color-primary); outline-offset:3px; }
+.status-study-note { margin:8px 0 0; color:var(--color-text-secondary); font-size:.8125rem; line-height:1.7; overflow-wrap:anywhere; }

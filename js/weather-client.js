@@ -1,4 +1,4 @@
-import { DEFAULT_WEATHER_LOCATION, forecastURL, geocodingURL, isDefaultWeatherCity, weatherCity, searchedLocation, normalizeWeather, validWeather, weatherStatus, WEATHER_TTL } from './weather-model.js?v=20261029-3';
+import { DEFAULT_WEATHER_LOCATION, forecastURL, geocodingURL, isDefaultWeatherCity, weatherCity, searchedLocation, normalizeWeather, validWeather, weatherStatus, WEATHER_TTL } from './weather-model.js?v=20261029-5';
 export const WEATHER_KEY = 'course-dashboard-weather-v1';
 const pending = new Map(), cooldown = new Map(), failed = new Set();
 const memory = new Map();

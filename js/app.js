@@ -1,24 +1,26 @@
-import { dataManager } from './data.js?v=20261029-3';
-import { getSettings, setSelectedClass } from './storage.js?v=20261029-3';
-import { getCurrentWeek, getTodayStr } from './time.js?v=20261029-3';
-import { renderDashboard, cleanupDashboard } from './dashboard.js?v=20261029-3';
-import { renderSchedule, cleanupSchedule } from './schedule.js?v=20261029-3';
-import { renderAnalytics, cleanupAnalytics } from './analytics.js?v=20261029-3';
-import { renderCompare, cleanupCompare } from './compare.js?v=20261029-3';
-import { renderData } from './data-page.js?v=20261029-3';
-import { applySavedUpdates } from './data-update.js?v=20261029-3';
-import { renderSettings } from './settings.js?v=20261029-3';
-import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js?v=20261029-3';
-import { renderWardrobe } from './wardrobe.js?v=20261029-3';
-import { renderAgenda, selectAgendaDate } from './agenda.js?v=20261029-3';
-import { setupReminders, renderReminderSettings } from './reminders.js?v=20261029-3';
-import { renderApiSettings } from './api-settings.js?v=20261029-3';
-import { segmentMarkup } from './course-segments.js?v=20261029-3';
-import { readAISettings } from './ai-client.js?v=20261029-3';
-import { startAISession } from './ai-session-client.js?v=20261029-3';
-import { createRefreshGate, trackEditors } from './refresh-guard.js?v=20261029-3';
-import { reducedMotion } from './motion.js?v=20261029-3';
-import { focusSelector } from './focus.js?v=20261029-3';
+import { dataManager } from './data.js?v=20261029-5';
+import { getSettings, setSelectedClass } from './storage.js?v=20261029-5';
+import { getCurrentWeek, getTodayStr } from './time.js?v=20261029-5';
+import { renderDashboard, cleanupDashboard } from './dashboard.js?v=20261029-5';
+import { renderSchedule, cleanupSchedule } from './schedule.js?v=20261029-5';
+import { renderAnalytics, cleanupAnalytics } from './analytics.js?v=20261029-5';
+import { renderCompare, cleanupCompare } from './compare.js?v=20261029-5';
+import { renderData } from './data-page.js?v=20261029-5';
+import { applySavedUpdates } from './data-update.js?v=20261029-5';
+import { renderSettings } from './settings.js?v=20261029-5';
+import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js?v=20261029-5';
+import { renderWardrobe } from './wardrobe.js?v=20261029-5';
+import { renderStudy } from './study.js?v=20261029-5';
+import { STUDY_KEY } from './study-store.js?v=20261029-5';
+import { renderAgenda, selectAgendaDate } from './agenda.js?v=20261029-5';
+import { setupReminders, renderReminderSettings } from './reminders.js?v=20261029-5';
+import { renderApiSettings } from './api-settings.js?v=20261029-5';
+import { segmentMarkup } from './course-segments.js?v=20261029-5';
+import { readAISettings } from './ai-client.js?v=20261029-5';
+import { startAISession } from './ai-session-client.js?v=20261029-5';
+import { createRefreshGate, trackEditors } from './refresh-guard.js?v=20261029-5';
+import { reducedMotion } from './motion.js?v=20261029-5';
+import { focusSelector } from './focus.js?v=20261029-5';
 
 const state = {
   currentClass: '',
@@ -47,6 +49,7 @@ const routes = {
   settings: { render: renderSettings, cleanup: null },
   tasks: { render: renderTasks, cleanup: null },
   wardrobe: { render: renderWardrobe, cleanup: null },
+  study: { render: renderStudy },
 };
 
 function $(id) { return document.getElementById(id); }
@@ -87,6 +90,8 @@ async function init() {
   setupNavigation();
   setupDetailOverlay();
   setupRoutineRefresh();
+  window.addEventListener('study:changed',()=>{if(state.route!=='study')requestPageRefresh('study');});
+  window.addEventListener('storage',event=>{if((event.key===STUDY_KEY||event.key===null)&&state.route!=='study')requestPageRefresh('study');});
   setupPersonalItems(state, dataManager, rerenderCurrentPage, closeDetailPanel, requestPageRefresh);
   setupReminders(state, dataManager);
   startClock();
@@ -253,14 +258,14 @@ function updateNavActiveState() {
   const desktopNav = $('main-nav-desktop');
   if (desktopNav) {
     desktopNav.querySelectorAll('.nav-item').forEach(item => {
-        item.classList.toggle('active', item.dataset.route === (route === 'agenda' ? 'schedule' : ['api','reminders'].includes(route) ? 'settings' : route));
+        item.classList.toggle('active', item.dataset.route === (route === 'agenda' ? 'schedule' : ['api','reminders','study'].includes(route) ? 'settings' : route));
     });
   }
   // Mobile
   const bottomNav = $('bottom-nav');
   if (bottomNav) {
     bottomNav.querySelectorAll('.bottom-nav-item').forEach(item => {
-      const mobileRoute = route === 'agenda' ? 'schedule' : ['wardrobe', 'analytics', 'compare', 'data','api','reminders'].includes(route) ? 'settings' : route;
+      const mobileRoute = route === 'agenda' ? 'schedule' : ['wardrobe', 'analytics', 'compare', 'data','api','reminders','study'].includes(route) ? 'settings' : route;
       item.classList.toggle('active', item.dataset.route === mobileRoute);
     });
   }
@@ -278,6 +283,7 @@ function setupDetailOverlay() {
 }
 
 export function showCourseDetail(course) {
+  if(course.source==='evening-study') { closeDetailPanel();location.hash=`#/study?date=${encodeURIComponent(course.date)}`;return; }
   const panel = $('detail-panel');
   const settings = state.settings;
   const teacher = course.teacher || '未提供';
@@ -444,8 +450,9 @@ function setupSheetDragGesture(panel) {
 }
 
 function handleRoute() {
-  const hash = location.hash.replace('#/', '') || 'today';
+  const [hash,query=''] = (location.hash.replace('#/', '') || 'today').split('?',2);
   const route = routes[hash] ? hash : 'today';
+  state.routeParams=new URLSearchParams(query);
   if (route === 'agenda' && state.route === 'today') selectAgendaDate(getTodayStr());
   state.route = route;
   refreshGate?.clear();

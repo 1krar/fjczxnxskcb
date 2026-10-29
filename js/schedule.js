@@ -1,10 +1,12 @@
-import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse, localDate, seasonForDate } from './time.js?v=20261029-3';
-import { segmentMarkup } from './course-segments.js?v=20261029-3';
-import { showCourseDetail } from './app.js?v=20261029-3';
-import { formatLocation } from './location.js?v=20261029-3';
-import { getDayWindow } from './day-plan.js?v=20261029-3';
-import { getDaySlots, courseSectionRange } from './day-slots.js?v=20261029-3';
-import { escapeText as esc } from './tasks-store.js?v=20261029-3';
+import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse, localDate, seasonForDate } from './time.js?v=20261029-5';
+import { segmentMarkup } from './course-segments.js?v=20261029-5';
+import { showCourseDetail } from './app.js?v=20261029-5';
+import { formatLocation } from './location.js?v=20261029-5';
+import { getDayWindow } from './day-plan.js?v=20261029-5';
+import { getDaySlots, courseSectionRange } from './day-slots.js?v=20261029-5';
+import { escapeText as esc } from './tasks-store.js?v=20261029-5';
+import { readStudyData, STUDY_STATUS_LABELS } from './study-store.js?v=20261029-5';
+import { applyEveningStudy } from './study-model.js?v=20261029-5';
 
 let tickHandler = null;
 let scheduleState = { week: 1, selectedDay: 1, searchOpen: false };
@@ -62,11 +64,12 @@ function detectConflicts(coursesByDay) {
 }
 
 function slotStrip(model, now) {
-  const labels = { occupied: '有课', unassigned: '未排课', unknown: '待确认' };
+  const labels = { occupied: '有课', unassigned: '未排课', unknown: '待确认',study:'晚自习',arranged:'其他安排',excused:'晚自习已请假' };
   return `<section class="day-slots" aria-label="当天节次分布"><div class="day-slots-caption"><span>节次分布</span><span class="day-slots-legend"><i class="is-occupied" aria-hidden="true"></i>有课 <i class="is-unassigned" aria-hidden="true"></i>未排课${model.periods.some(period => period.state === 'unknown') ? ' · ? 待确认' : ''}</span></div><div class="day-slots-blocks">${model.blocks.map(block => `<div class="day-slots-block"><span class="day-slots-label">${block.label}</span><div class="day-slots-periods">${model.periods.filter(period => period.block === block.id).map(period => {
     const current = period.start && now >= period.start && now < period.end;
     const description = `第${period.section}节 ${period.startTime ? `${period.startTime}—${period.endTime} ` : ''}${labels[period.state]}${period.courses.length ? `：${period.courses.map(course => course.courseName).join('、')}` : ''}${period.reason ? `，${period.reason}` : ''}`;
-    return `<span class="day-slot is-${period.state}${current ? ' is-current' : ''}" title="${esc(description)}" aria-label="${esc(description)}"${period.start ? ` data-school-start="${+period.start}" data-school-end="${+period.end}"` : ''}${current ? ' aria-current="time"' : ''}>${period.section}${period.state === 'unknown' ? '<small>?</small>' : ''}</span>`;
+    const mark={unknown:'?',study:'自',arranged:'另',excused:'假'}[period.state];
+    return `<span class="day-slot is-${period.state}${current ? ' is-current' : ''}" title="${esc(description)}" aria-label="${esc(description)}"${period.start ? ` data-school-start="${+period.start}" data-school-end="${+period.end}"` : ''}${current ? ' aria-current="time"' : ''}>${period.section}${mark?`<small>${mark}</small>`:''}</span>`;
   }).join('')}</div></div>`).join('')}</div>${model.reason ? `<p class="day-slots-note">${esc(model.reason)}；待确认时段暂不判断是否未排课。</p>` : '<p class="day-slots-note">依据当前导入课表；个人活动请看日历。</p>'}</section>`;
 }
 
@@ -161,6 +164,16 @@ function getCurrentTimePosition(sectionTimes, season, now) {
 export function renderSchedule(container, state, dm) {
   const info = dm.getSemesterInfo();
   const sectionTimes = dm.getSectionTimes();
+  let studyData=null;try{studyData=readStudyData();}catch{/* Original course data stays readable. */}
+  const studyCourseCache=new Map();
+  function coursesOnDay(week,day){
+    const key=`${week}:${day}`;
+    if(!studyCourseCache.has(key)){
+      const original=dm.getCoursesByWeekday(state.currentClass,week,day),date=getWeekDates(week,info.semesterStart)[day-1];
+      studyCourseCache.set(key,studyData?applyEveningStudy(original,date,{sectionTimes,seasonRule:info.seasonRule,semesterInfo:info,studyData,className:state.currentClass}):original);
+    }
+    return studyCourseCache.get(key);
+  }
   scheduleState.week = state.scheduleFollowToday !== false ? Math.max(info.firstWeek, Math.min(info.lastWeek, getCurrentWeek(info.semesterStart))) : state.scheduleWeek || Math.max(info.firstWeek, Math.min(info.lastWeek, getCurrentWeek(info.semesterStart)));
 
   const currentWeek = Math.max(1, getCurrentWeek(info.semesterStart));
@@ -189,7 +202,7 @@ export function renderSchedule(container, state, dm) {
     // Common data
     const coursesByDay = {};
     for (let d = 1; d <= 7; d++) {
-      coursesByDay[d] = dm.getCoursesByWeekday(state.currentClass, week, d);
+      coursesByDay[d] = coursesOnDay(week, d);
     }
     const conflicts = detectConflicts(coursesByDay);
     const weekStats = getWeekStats(dm, state.currentClass, week);
@@ -264,7 +277,7 @@ export function renderSchedule(container, state, dm) {
         allWeekCourses.push(c);
       }
     }
-    const nextCourse = isCurrentWeek ? getNextCourse(allWeekCourses, now) : null;
+    const nextCourse = isCurrentWeek ? getNextCourse(allWeekCourses.filter(course=>course.studyStatus!=='excused'), now) : null;
 
     const timePos = isCurrentWeek ? getCurrentTimePosition(sectionTimes, season, now) : { visible: false };
     const todayCol = (() => {
@@ -299,12 +312,14 @@ export function renderSchedule(container, state, dm) {
         if (course) {
           const range = courseSectionRange(course);
           const span = range.end - range.start + 1;
-          const cState = getCourseState(course, now);
+          const cState = course.studyStatus==='excused'?'excused':getCourseState(course, now);
           const isNext = nextCourse && course === nextCourse && cState === 'before';
           const hasConflict = conflicts.some(c => c.day === d && c.courses.includes(course));
           const hue = getCourseColor(course.courseName);
 
           let cardClass = 'sch-course';
+          if(course.source==='evening-study')cardClass+=' is-study';
+          if(course.studyStatus==='excused')cardClass+=' is-excused';
           if (cState === 'finished') cardClass += ' finished';
           if (cState === 'in_progress') cardClass += ' in-progress';
           if (isNext) cardClass += ' next';
@@ -313,7 +328,9 @@ export function renderSchedule(container, state, dm) {
           gridHTML += `<div class="${cardClass}" style="grid-row:${s + 1} / span ${span};grid-column:${d + 1};--course-hue:${hue}deg;" data-course-id="${d}-${s}">
             <div class="sch-course-bar"></div>
             <div class="sch-course-body">
-              <button type="button" class="sch-course-name" aria-label="查看课程详情：${esc(course.courseName)}">${esc(course.courseName)}</button>
+              <button type="button" class="sch-course-name" aria-label="${course.source==='evening-study'?'调整晚自习安排':'查看课程详情'}：${esc(course.courseName)}">${esc(course.courseName)}</button>
+              ${course.source==='evening-study'?`<div class="study-row-status">${esc(STUDY_STATUS_LABELS[course.studyStatus]||course.studyLabel)}${course.studyArrangementTitle&&course.studyStatus!=='other'?` · ${esc(course.studyArrangementTitle)}`:''}</div>`:''}
+              ${course.studyNote?`<div class="sch-course-loc">${esc(course.studyNote)}</div>`:''}
               ${course.location ? `<div class="sch-course-loc">${formatLocation(course.location, state.settings.showFullLocation)}</div>` : ''}
               ${state.settings.showTeacher && course.teacher ? `<div class="sch-course-teacher">${course.teacher}</div>` : ''}
               <div class="sch-course-sec mono">第${range.start}-${range.end}节</div>
@@ -367,7 +384,7 @@ export function renderSchedule(container, state, dm) {
         allWeekCourses.push(c);
       }
     }
-    const nextCourse = isCurrentWeek ? getNextCourse(allWeekCourses, now) : null;
+    const nextCourse = isCurrentWeek ? getNextCourse(allWeekCourses.filter(course=>course.studyStatus!=='excused'), now) : null;
 
     let html = `
       <div class="m-sch-header">
@@ -419,6 +436,7 @@ export function renderSchedule(container, state, dm) {
         <span class="m-day-title">${fullDayNames[selectedDay - 1]}</span>
         <span class="m-day-title-date mono">${dayDateStr.slice(5)}</span>
         ${isDayToday ? '<span class="m-day-today-badge">今天</span>' : '<button type="button" class="daily-text-button" id="week-today">回到今天</button>'}
+        <a class="study-day-edit" href="#/study?date=${esc(dayDateStr)}">晚自习安排</a>
       </div>`;
 
     html += slotStrip(daySlots, now);
@@ -437,11 +455,13 @@ export function renderSchedule(container, state, dm) {
         const i = entry.index;
         const c = dayCourses[i];
         const sectionRange = courseSectionRange(c);
-        const cState = sectionRange ? getCourseState(c, now) : 'unknown';
+        const cState = c.studyStatus==='excused'?'excused':sectionRange ? getCourseState(c, now) : 'unknown';
         const isNext = nextCourse && c === nextCourse && cState === 'before';
         const hue = getCourseColor(c.courseName);
 
         let itemClass = 'm-agenda-item';
+        if(c.source==='evening-study')itemClass+=' is-study';
+        if(c.studyStatus==='excused')itemClass+=' is-excused';
         if (cState === 'finished') itemClass += ' finished';
         if (cState === 'in_progress') itemClass += ' in-progress';
         if (isNext) itemClass += ' next';
@@ -454,16 +474,17 @@ export function renderSchedule(container, state, dm) {
             </div>
             <div class="m-ag-bar"></div>
             <div class="m-ag-body">
-              ${cState === 'in_progress' ? '<div class="m-ag-now-tag">正在上课</div>' : ''}
+              ${cState === 'in_progress' ? `<div class="m-ag-now-tag">${c.source==='evening-study'?(c.studyStatus==='other'?'晚间安排':'正在晚自习'):'正在上课'}</div>` : ''}
               ${cState === 'break' ? '<div class="m-ag-break-tag">大课内课间</div>' : ''}
-              ${isNext && cState === 'before' ? '<div class="m-ag-next-tag">下一次课</div>' : ''}
-              <button type="button" class="m-ag-name" aria-label="查看课程详情：${esc(c.courseName)}">${esc(c.courseName)}</button>
+              ${isNext && cState === 'before' ? `<div class="m-ag-next-tag">${c.source==='evening-study'?'下一项':'下一次课'}</div>` : ''}
+              <button type="button" class="m-ag-name" aria-label="${c.source==='evening-study'?'调整晚自习安排':'查看课程详情'}：${esc(c.courseName)}">${esc(c.courseName)}</button>
+              ${c.source==='evening-study'?`<p class="study-row-status">${esc(STUDY_STATUS_LABELS[c.studyStatus]||c.studyLabel)}${c.studyArrangementTitle&&c.studyStatus!=='other'?` · ${esc(c.studyArrangementTitle)}`:''}${c.studyNote?` · ${esc(c.studyNote)}`:''}</p>`:''}
               <div class="m-ag-meta">
                 ${c.location ? `<span class="m-ag-loc">${formatLocation(c.location, state.settings.showFullLocation)}</span>` : ''}
                 ${state.settings.showTeacher && c.teacher ? `<span class="m-ag-teacher">${c.teacher}</span>` : ''}
               </div>
               <div class="m-ag-sec mono">${sectionRange ? `第${sectionRange.start}-${sectionRange.end}节` : '原记录节次待确认'}</div>
-              ${sectionRange ? segmentMarkup(c) : ''}
+              ${sectionRange&&c.studyStatus!=='excused' ? segmentMarkup(c) : ''}
             </div>
           </div>`;
 
@@ -509,7 +530,7 @@ export function renderSchedule(container, state, dm) {
           </div>
         </div>
 
-        <p class="sch-window-note">无课统计范围：周一至周五 08:00—21:00，未扣除吃饭、通勤和个人安排。</p>
+        <p class="sch-window-note">课程统计不含晚自习；无课统计范围为周一至周五08:00—21:00，未扣除吃饭、通勤和个人安排。</p>
         <div class="sch-load">
           <div class="sch-load-label">本周课程负荷</div>
           <div class="sch-load-bars">
@@ -601,20 +622,20 @@ export function renderSchedule(container, state, dm) {
     // Collect ALL week courses to compute ONE nextCourse
     const allWeekCourses = [];
     for (let d = 1; d <= 7; d++) {
-      const dayCs = dm.getCoursesByWeekday(state.currentClass, scheduleState.week, d);
+      const dayCs = coursesOnDay(scheduleState.week, d);
       for (const c of dayCs) allWeekCourses.push(c);
     }
-    const nextCourse = getNextCourse(allWeekCourses, now);
+    const nextCourse = getNextCourse(allWeekCourses.filter(course=>course.studyStatus!=='excused'), now);
 
     // Desktop course cards
     container.querySelectorAll('.sch-course').forEach(card => {
       if (!card.dataset.courseId) return;
       const [day, section] = card.dataset.courseId.split('-').map(Number);
-      const courses = dm.getCoursesByWeekday(state.currentClass, scheduleState.week, day);
+      const courses = coursesOnDay(scheduleState.week, day);
       const c = courses.find(course => courseSectionRange(course)?.start === section);
       if (!c) return;
 
-      const cState = getCourseState(c, now);
+      const cState = c.studyStatus==='excused'?'excused':getCourseState(c, now);
       const isNext = nextCourse && c === nextCourse && cState === 'before';
 
       card.classList.remove('finished', 'in-progress', 'next');
@@ -627,11 +648,11 @@ export function renderSchedule(container, state, dm) {
     container.querySelectorAll('.m-agenda-item').forEach(item => {
       if (item.dataset.courseIdx == null) return;
       const idx = parseInt(item.dataset.courseIdx);
-      const dayCourses = dm.getCoursesByWeekday(state.currentClass, scheduleState.week, scheduleState.selectedDay);
+      const dayCourses = coursesOnDay(scheduleState.week, scheduleState.selectedDay);
       const c = dayCourses[idx];
       if (!c) return;
 
-      const cState = courseSectionRange(c) ? getCourseState(c, now) : 'unknown';
+      const cState = c.studyStatus==='excused'?'excused':courseSectionRange(c) ? getCourseState(c, now) : 'unknown';
       const isNext = nextCourse && c === nextCourse && cState === 'before';
 
       item.classList.remove('finished', 'in-progress', 'next');
@@ -646,13 +667,13 @@ export function renderSchedule(container, state, dm) {
       const nextTag = item.querySelector('.m-ag-next-tag');
       if (cState === 'in_progress' && !nowTag) {
         const body = item.querySelector('.m-ag-body');
-        if (body) body.insertAdjacentHTML('afterbegin', '<div class="m-ag-now-tag">正在上课</div>');
+        if (body) body.insertAdjacentHTML('afterbegin', `<div class="m-ag-now-tag">${c.source==='evening-study'?(c.studyStatus==='other'?'晚间安排':'正在晚自习'):'正在上课'}</div>`);
       } else if (cState !== 'in_progress' && nowTag) {
         nowTag.remove();
       }
       if (isNext && !nextTag) {
         const body = item.querySelector('.m-ag-body');
-        if (body) body.insertAdjacentHTML('afterbegin', '<div class="m-ag-next-tag">下一次课</div>');
+        if (body) body.insertAdjacentHTML('afterbegin', `<div class="m-ag-next-tag">${c.source==='evening-study'?'下一项':'下一次课'}</div>`);
       } else if (!isNext && nextTag) {
         nextTag.remove();
       }
@@ -747,14 +768,14 @@ export function renderSchedule(container, state, dm) {
     container.querySelectorAll('[data-unknown-course]').forEach(button => {
       button.addEventListener('click', () => {
         const [day, index] = button.dataset.unknownCourse.split('-').map(Number);
-        const course = dm.getCoursesByWeekday(state.currentClass, scheduleState.week, day)[index];
+        const course = coursesOnDay(scheduleState.week, day)[index];
         if (course) showCourseDetail(course);
       });
     });
     container.querySelectorAll('.sch-course').forEach(card => {
       card.addEventListener('click', () => {
         const [day, section] = card.dataset.courseId.split('-').map(Number);
-        const courses = dm.getCoursesByWeekday(state.currentClass, scheduleState.week, day);
+        const courses = coursesOnDay(scheduleState.week, day);
         const course = courses.find(c => courseSectionRange(c)?.start === section);
         if (course) showCourseDetail(course);
       });
@@ -767,7 +788,7 @@ export function renderSchedule(container, state, dm) {
         item.addEventListener('click', event => {
           if (event.target.closest('.course-segments-details')) return;
           const idx = parseInt(item.dataset.courseIdx);
-          const dayCourses = dm.getCoursesByWeekday(state.currentClass, scheduleState.week, scheduleState.selectedDay);
+          const dayCourses = coursesOnDay(scheduleState.week, scheduleState.selectedDay);
           if (dayCourses[idx]) showCourseDetail(dayCourses[idx]);
         });
       });

@@ -3,6 +3,7 @@ import { dailyFacts, buildAdvice, shortAdvice, dailySourceId } from '../js/daily
 import { dailyIdentity } from '../js/ai-client.js';
 import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from '../js/daily-visibility.js';
 import { DEFAULT_PROFILE } from '../js/daily-store.js';
+import { applyEveningStudy } from '../js/study-model.js';
 
 const records = new Map();
 let fail = false;
@@ -37,6 +38,36 @@ assert.ok(pool[0].lines.every(shortAdvice));
 assert.match(pool[0].lines.join(''),/截止/);
 assert.ok(!pool.some(row=>row.id==='afternoon'),'no carefree afternoon assertion over a recorded afternoon obligation');
 assert.ok(!buildAdvice({...input,data,items:[item('past','2026-10-21','14:00')]}).some(row=>row.id.startsWith('item:')),'past start times do not become repeated overdue nags');
+
+const studyDate='2026-10-29',studyTime=time=>new Date(`${studyDate}T${time}:00`),studyClass='示例班级';
+const studyOptions={className:studyClass,studyData:{schemaVersion:1,profiles:{}},sectionTimes:{winter:{9:{start:'19:20',end:'20:05'},10:{start:'20:15',end:'21:00'}}},seasonRule:{winter:'10-01_to_05-31'}};
+const study=applyEveningStudy([],studyDate,studyOptions)[0];
+const endedCourse={date:studyDate,courseName:'真实课程',startTime:'16:00',endTime:'17:40',startDateTime:studyTime('16:00'),endDateTime:studyTime('17:40'),startSection:7,endSection:8};
+const studyInput={now:studyTime('17:40'),courses:[endedCourse],tomorrowCourses:[],studyCourses:[study],tomorrowStudyCourses:[],items:[],activities:[],data};
+facts=dailyFacts(studyInput);
+assert.doesNotMatch(facts.find(f=>f.id==='context:v2').text,/DAY_FINISHED/,'17:40 cannot declare the day finished while 19:20 study remains');
+assert.match(facts.find(f=>f.id==='context:v2').text,/晚自习个人安排/);
+assert.match(facts.find(f=>f.id==='courses:today').text,/有1大节课/,'study never inflates academic course count');
+const studyFactId=dailySourceId('activity',`evening-study:${studyDate}:normal`);
+assert.match(facts.find(f=>f.id===studyFactId).text,/个人安排.*19:20—21:00/);
+assert.equal(facts.filter(f=>/晚自习个人安排/.test(f.text)).length,2,'one context and one optional nearest event fact, not a full recurring schedule');
+assert.ok(buildAdvice(studyInput).some(row=>row.id===`study:${studyDate}`));
+assert.ok(!buildAdvice({...studyInput,now:studyTime('14:00')}).some(row=>row.id===`study:${studyDate}`),'study suggestion enters only near its time window');
+assert.ok(dailyFacts({...studyInput,courses:[endedCourse,study],studyCourses:[]}).find(f=>f.id==='courses:today').text.includes('有1大节课'),'merged input remains count-safe');
+for(const status of ['other','excused']) {
+  const special={...study,studyStatus:status,studyAttendance:false,courseName:status==='other'?'社团活动':'晚自习已请假'};
+  const specialFacts=dailyFacts({...studyInput,studyCourses:[special]});
+  assert.match(specialFacts.find(f=>f.id==='context:v2').text,/DAY_FINISHED/,'nonattendance record is not a class or committed study period');
+  assert.ok(!specialFacts.some(f=>f.text.startsWith('晚自习个人安排：')));
+  assert.ok(!buildAdvice({...studyInput,studyCourses:[special]}).some(row=>row.id===`study:${studyDate}`));
+}
+facts=dailyFacts({...studyInput,studyCourses:[{...study,studyStatus:'pending'}]});
+assert.match(facts.find(f=>f.id===dailySourceId('activity',`evening-study:${studyDate}:pending`)).text,/请假待确认，仍按参加准备/);
+const busyStudyFacts=dailyFacts({...studyInput,items:[item('a',studyDate,'18:00'),item('b',studyDate,'18:30'),item('c',studyDate,'19:00')]});
+assert.ok(busyStudyFacts.length<=12&&busyStudyFacts.every(f=>f.text.length<=350));
+const unavailable=dailyFacts({...studyInput,studyCourses:[],studyNotice:'晚自习资料暂时无法读取，当前建议暂未纳入晚自习安排。'});
+assert.match(unavailable.find(f=>f.id==='context:v2').text,/暂未纳入晚自习安排.*已知课程状态/,'unavailable study stays explicit while raw-course facts remain usable');
+assert.match(unavailable.find(f=>f.id==='courses:today').text,/有1大节课/);
 
 assert.equal(adviceVisibility(scope,'2026-10-21').hidden,false);
 changeAdviceVisibility(scope,'2026-10-21','today');

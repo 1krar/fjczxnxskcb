@@ -1291,6 +1291,17 @@
 .sch-cell-marker { position:absolute; inset:0; display:grid; place-items:center; color:var(--color-border); font-size:0.75rem; pointer-events:none; }
 .sch-cell.is-unknown .sch-cell-marker { color:var(--color-text-secondary); }
 .sch-cell.is-unassigned { background:var(--color-bg); }
+.day-slot:is(.is-study,.is-arranged) { background:var(--color-surface-subtle); border-style:dashed; color:var(--color-text); }
+.day-slot.is-excused { border-style:dashed; color:var(--color-text-secondary); }
+.sch-course.is-study { background:var(--color-surface-subtle); box-shadow:none; }
+.sch-course.is-study .sch-course-bar, .m-agenda-item.is-study .m-ag-bar { background:var(--color-text-secondary); }
+.sch-course.is-study .sch-course-name, .m-agenda-item.is-study .m-ag-name { font-weight:500; }
+.sch-course.is-excused, .m-agenda-item.is-excused { background:transparent; border:1px dashed var(--color-border); }
+.sch-course.is-excused .sch-course-bar, .m-agenda-item.is-excused .m-ag-bar { visibility:hidden; }
+.study-row-status { margin:4px 0; color:var(--color-text-secondary); font-size:.75rem; line-height:1.6; overflow-wrap:anywhere; }
+.study-day-edit { display:inline-flex; align-items:center; min-height:44px; margin-left:auto; color:var(--color-primary-dark); font-size:.75rem; text-decoration:none; }
+.m-agenda-item.is-study { padding-block:14px; }
+.study-day-edit:focus-visible { outline:2px solid var(--color-primary); outline-offset:2px; }
 .sch-unknown-courses { display:flex; flex-wrap:wrap; gap:8px 14px; margin:12px 0; align-items:center; font-size:0.75rem; color:var(--color-text-secondary); }
 @media (max-width:360px) {
   .day-slots-blocks { gap:8px; }

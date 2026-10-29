@@ -1,18 +1,18 @@
-import { reconcileRows } from './ui-list.js?v=20261029-3';
-import { markFormSaved } from './refresh-guard.js?v=20261029-3';
-import { reducedMotion } from './motion.js?v=20261029-3';
-import { mountWearLog } from './wear-log.js?v=20261029-3';
-import { visibleWearCandidates, wearUsageIndex } from './wear-model.js?v=20261029-3';
-import { saveWearSelection, selectedWear } from './wear-store.js?v=20261029-3';
+import { reconcileRows } from './ui-list.js?v=20261029-5';
+import { markFormSaved } from './refresh-guard.js?v=20261029-5';
+import { reducedMotion } from './motion.js?v=20261029-5';
+import { mountWearLog } from './wear-log.js?v=20261029-5';
+import { visibleWearCandidates, wearUsageIndex } from './wear-model.js?v=20261029-5';
+import { saveWearSelection, selectedWear } from './wear-store.js?v=20261029-5';
 import { CATEGORIES, COLORS, CLOTHING_STATES, DEFAULT_PROFILE, DAILY_KEY, readDailyData, rawDailyData, emptyDailyData,
-  validateDailyData, addGarments, editGarment, changeGarmentState, setArchived, saveOutfit, saveRunPlan, saveDailyProfile, mergeDailyBackup } from './daily-store.js?v=20261029-3';
-import { localDate, nextDate, planOutfits, isAvailable, runningSuitable } from './daily-model.js?v=20261029-3';
-import { cachedWeather, refreshWeather } from './weather-client.js?v=20261029-3';
-import { weatherSummary } from './weather-model.js?v=20261029-3';
-import { wardrobeDate, setWardrobeDate, wardrobeDateLabel } from './wardrobe-view.js?v=20261029-3';
-import { aiEnabled, callAI } from './ai-client.js?v=20261029-3';
-import { outfitAIInput, applyOutfitChoice } from './outfit-ai.js?v=20261029-3';
-import { escapeText as esc, validDate } from './tasks-store.js?v=20261029-3';
+  validateDailyData, addGarments, editGarment, changeGarmentState, setArchived, saveOutfit, saveRunPlan, saveDailyProfile, mergeDailyBackup } from './daily-store.js?v=20261029-5';
+import { localDate, nextDate, planOutfits, isAvailable, runningSuitable } from './daily-model.js?v=20261029-5';
+import { cachedWeather, refreshWeather } from './weather-client.js?v=20261029-5';
+import { weatherSummary } from './weather-model.js?v=20261029-5';
+import { wardrobeDate, setWardrobeDate, wardrobeDateLabel } from './wardrobe-view.js?v=20261029-5';
+import { aiEnabled, callAI } from './ai-client.js?v=20261029-5';
+import { outfitAIInput, applyOutfitChoice } from './outfit-ai.js?v=20261029-5';
+import { escapeText as esc, validDate } from './tasks-store.js?v=20261029-5';
 
 const optionHTML = (values, selected) => Object.entries(values).map(([value, label]) => `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(label)}</option>`).join('');
 const numberField = (label, name, value, max = 180) => `<label>${label}<input name="${name}" type="number" min="0" max="${max}" value="${value}"></label>`;

@@ -1,8 +1,8 @@
-import { escapeText as esc } from './tasks-store.js?v=20261029-3';
-import { getTodayStr, localDate } from './time.js?v=20261029-3';
-import { readAgenda, saveReminderPrefs, MARKET_GROUPS } from './agenda-store.js?v=20261029-3';
-import { plannerContext } from './agenda.js?v=20261029-3';
-import { buildReminders, clock, MARKET_CALENDAR } from './agenda-model.js?v=20261029-3';
+import { escapeText as esc } from './tasks-store.js?v=20261029-5';
+import { getTodayStr, localDate } from './time.js?v=20261029-5';
+import { readAgenda, saveReminderPrefs, MARKET_GROUPS } from './agenda-store.js?v=20261029-5';
+import { plannerContext } from './agenda.js?v=20261029-5';
+import { buildReminders, clock, MARKET_CALENDAR } from './agenda-model.js?v=20261029-5';
 
 const DELIVERY_KEY='course-dashboard-reminder-delivery-v1';
 let setup=false;
@@ -33,9 +33,9 @@ export function setupReminders(state,dm) {
       if(key===signature)return;signature=key;
       const expanded=tray.dataset.currentId===id?tray.querySelector('details')?.open:+current.start-+now<=3600000;
       tray.dataset.currentId=id;
-      tray.innerHTML=`<details class="reminder-disclosure"${expanded?' open':''}><summary><span class="agenda-tag">提前准备${active.length>1?` · 另有${active.length-1}条`:''}</span><strong>${esc(current.title)}</strong></summary><div class="reminder-copy"><p>${esc(current.detail)}</p></div><div class="reminder-actions"><button type="button" data-reminder-action="done">已处理</button><button type="button" data-reminder-action="snooze">5分钟后</button><button type="button" data-reminder-action="skip">跳过本次</button><a href="${current.type==='task'?'#/tasks':'#/agenda'}">${current.type==='task'?'查看事项':'看日程'}</a></div></details>`;
+      tray.innerHTML=`<details class="reminder-disclosure"${expanded?' open':''}><summary><span class="agenda-tag">提前准备${active.length>1?` · 另有${active.length-1}条`:''}</span><strong>${esc(current.title)}</strong></summary><div class="reminder-copy"><p>${esc(current.detail)}</p></div><div class="reminder-actions"><button type="button" data-reminder-action="done">已处理</button><button type="button" data-reminder-action="snooze">5分钟后</button><button type="button" data-reminder-action="skip">跳过本次</button><a href="${current.type==='task'?'#/tasks':current.type==='study'?`#/study?date=${current.studyDate}`:'#/agenda'}">${current.type==='task'?'查看事项':current.type==='study'?'看晚自习安排':'看日程'}</a></div></details>`;
     } catch(error) {
-      current=null;signature='';tray.hidden=false;tray.innerHTML=`<p role="status">提前提醒暂不可用：${esc(error.message)}</p><a href="#/agenda">检查日程资料</a>`;
+      current=null;signature='';tray.hidden=false;tray.innerHTML=`<p role="status">提前提醒暂不可用：${esc(error.message)}</p><a href="${/晚自习/.test(error.message)?'#/study':'#/agenda'}">检查${/晚自习/.test(error.message)?'晚自习':'日程'}资料</a>`;
     }
   }
   tray.addEventListener('click',event=>{
@@ -50,15 +50,15 @@ export function setupReminders(state,dm) {
   });
   document.addEventListener('app:tick',event=>update(false,event.detail?.now||new Date()));
   document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')update(true);});
-  for(const event of ['agenda:changed','courses:changed','personal-items:changed','daily:changed','storage','hashchange'])window.addEventListener(event,()=>update(true));
+  for(const event of ['agenda:changed','courses:changed','personal-items:changed','daily:changed','study:changed','storage','hashchange'])window.addEventListener(event,()=>update(true));
   update(true);
 }
 
 export function renderReminderSettings(container,state,dm) {
-  let prefs;
-  try { prefs=readAgenda().reminders; }
-  catch(error){container.innerHTML=`<p role="alert">${esc(error.message)}</p><a href="#/agenda">检查日程资料 →</a>`;return;}
-  const context=plannerContext(state,dm),today=getTodayStr();
+  let prefs,context;
+  try { prefs=readAgenda().reminders;context=plannerContext(state,dm); }
+  catch(error){container.innerHTML=`<p role="alert">${esc(error.message)}</p><a href="${/晚自习/.test(error.message)?'#/study':'#/agenda'}">检查相关资料 →</a>`;return;}
+  const today=getTodayStr();
   const preview=buildReminders({...context,date:today}).filter(item=>item.expires>new Date());
   container.innerHTML=`<section class="agenda-page"><header class="agenda-heading"><div><h1>提前提醒</h1><p>课程、活动、作业和大A节点各自预留准备时间。</p></div><a class="btn" href="#/agenda">看日程</a></header>
   <form class="agenda-panel agenda-settings" id="reminder-settings"><label class="agenda-check"><input type="checkbox" name="enabled" ${prefs.enabled?'checked':''}>开启页面内提前提醒</label>

@@ -1,5 +1,5 @@
-import { readDailyData, writeDailyData } from './daily-store.js?v=20261029-3';
-import { wearKey, wearDate } from './wear-model.js?v=20261029-3';
+import { readDailyData, writeDailyData } from './daily-store.js?v=20261029-5';
+import { wearKey, wearDate } from './wear-model.js?v=20261029-5';
 
 const snapshot=item=>({id:item.id,name:item.name,category:item.category,color:item.color});
 const samePieces=(a,b)=>JSON.stringify(a.map(piece=>piece.id).sort())===JSON.stringify(b.map(piece=>piece.id).sort());
