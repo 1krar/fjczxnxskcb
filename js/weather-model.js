@@ -1,11 +1,12 @@
 export const DEFAULT_WEATHER_LOCATION = Object.freeze({ name:'福州仓山附近', latitude:26.04, longitude:119.30 });
 export const WEATHER_TTL = 30 * 60000;
 export const WEATHER_MAX_AGE = 6 * 3600000;
+export const WEATHER_FORECAST_DAYS = 7;
 export const weatherCity = value => String(value || '').trim().slice(0,60);
 export const isDefaultWeatherCity = value => !weatherCity(value) || /^(福州|福州市)?(仓山|仓山区|仓山附近)$/.test(weatherCity(value));
 export function forecastURL(location) {
   const url = new URL('https://api.open-meteo.com/v1/forecast');
-  url.search = new URLSearchParams({ latitude:String(location.latitude), longitude:String(location.longitude), timezone:'Asia/Shanghai', forecast_days:'3',
+  url.search = new URLSearchParams({ latitude:String(location.latitude), longitude:String(location.longitude), timezone:'Asia/Shanghai', forecast_days:String(WEATHER_FORECAST_DAYS),
     hourly:'temperature_2m,apparent_temperature,precipitation_probability,precipitation,relative_humidity_2m,wind_speed_10m,weather_code', wind_speed_unit:'kmh', temperature_unit:'celsius' });
   return url.href;
 }
@@ -22,7 +23,7 @@ const bounds = { temperature:[-70,65], feelsLike:[-90,85], rainProbability:[0,10
 const validHour = time => typeof time === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:00$/.test(time) && Number.isFinite(Date.parse(time+':00+08:00')) && new Date(Date.parse(time+':00+08:00')+8*3600000).toISOString().slice(0,16) === time;
 export function normalizeWeather(raw,location,now=new Date()) {
   const hourly = raw?.hourly, units = raw?.hourly_units;
-  if (raw?.timezone !== 'Asia/Shanghai' || !Array.isArray(hourly?.time) || hourly.time.length < 1 || hourly.time.length > 96 ||
+  if (raw?.timezone !== 'Asia/Shanghai' || !Array.isArray(hourly?.time) || hourly.time.length < 1 || hourly.time.length > WEATHER_FORECAST_DAYS * 24 ||
     units?.temperature_2m !== '°C' || units.apparent_temperature !== '°C' || units.wind_speed_10m !== 'km/h' || units.precipitation_probability !== '%' || units.relative_humidity_2m !== '%' || units.precipitation !== 'mm') throw Error('天气数据的时区或单位不符，未使用这份预报。');
   const fields = ['temperature_2m','apparent_temperature','precipitation_probability','precipitation','relative_humidity_2m','wind_speed_10m','weather_code'];
   if (fields.some(key => !Array.isArray(hourly[key]) || hourly[key].length !== hourly.time.length)) throw Error('天气数据不完整，未使用这份预报。');
@@ -40,7 +41,7 @@ export function normalizeWeather(raw,location,now=new Date()) {
 export function validWeather(value) {
   return value?.version === 1 && value.source === 'Open-Meteo' && value.timezone === 'Asia/Shanghai' && Number.isFinite(Date.parse(value.fetchedAt)) &&
     typeof value.location?.name === 'string' && value.location.name.length > 0 && value.location.name.length <= 80 && number(value.location.latitude,-90,90) !== null && number(value.location.longitude,-180,180) !== null &&
-    Array.isArray(value.hours) && value.hours.length > 0 && value.hours.length <= 96 && value.hours.some(row=>row?.temperature !== null) && value.hours.every((row,i) =>
+    Array.isArray(value.hours) && value.hours.length > 0 && value.hours.length <= WEATHER_FORECAST_DAYS * 24 && value.hours.some(row=>row?.temperature !== null) && value.hours.every((row,i) =>
       row && validHour(row.time) && (!i || row.time > value.hours[i-1].time) && Object.entries(bounds).every(([key,[min,max]])=>row[key] === null || number(row[key],min,max) !== null));
 }
 export function weatherStatus(weather,now=new Date()) {

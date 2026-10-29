@@ -1,4 +1,4 @@
-import { validDate } from './tasks-store.js?v=20261029-5';
+import { validDate } from './tasks-store.js?v=20261030-1';
 
 export const STUDY_KEY = 'course-dashboard-evening-study-v1';
 export const STUDY_STATUS_LABELS = Object.freeze({normal:'正常参加',other:'另有安排',pending:'请假待确认',excused:'已请假（个人确认）'});

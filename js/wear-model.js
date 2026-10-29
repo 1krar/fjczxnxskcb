@@ -31,11 +31,21 @@ export function validateWearLog(value,garments) {
   if(!actualPieces.length&&(value.actualTime||value.rating!==null||value.feedback.length||value.comment))error();
   const actualUndoneAt=value.actualUndoneAt??'',planCancelledAt=value.planCancelledAt??'';
   if(actualUndoneAt!==''&&!stamp(actualUndoneAt)||planCancelledAt!==''&&!stamp(planCancelledAt)||!actualPieces.length&&actualUndoneAt||!selectedPieces.length&&planCancelledAt)error();
+  // Optional receipts keep older backups readable and let undo restore only the
+  // automatic laundry state that still belongs to this confirmation.
+  const laundryIds=value.laundryIds??[],changes=value.laundryChanges??[];
+  if(!Array.isArray(laundryIds)||laundryIds.length>12||new Set(laundryIds).size!==laundryIds.length||laundryIds.some(id=>!actualPieces.some(piece=>piece.id===id))||!Array.isArray(changes)||changes.length>12||new Set(changes.map(change=>change?.garmentId)).size!==changes.length)error();
+  const laundryChanges=changes.map(change=>{
+    if(!change||!laundryIds.includes(change.garmentId)||!['ready','rewear'].includes(change.fromState)||!text(change.fromExpectedDate,10)||change.fromExpectedDate&&!validDay(change.fromExpectedDate)||!text(change.eventId,100)||!change.eventId||!stamp(change.at))error();
+    const undoneAt=change.undoneAt??'',undoEventId=change.undoEventId??'';
+    if(undoneAt!==''&&!stamp(undoneAt)||!text(undoEventId,100)||Boolean(undoneAt)!==Boolean(undoEventId))error();
+    return {garmentId:change.garmentId,fromState:change.fromState,fromExpectedDate:change.fromExpectedDate,eventId:change.eventId,at:change.at,undoneAt,undoEventId};
+  });
   if(!stamp(value.createdAt)||!stamp(value.updatedAt)||value.deletedAt!==''&&!stamp(value.deletedAt))error();
   const context=value.context;
   if(!context||!text(context.weatherText,500)||!text(context.preference,300)||!Array.isArray(context.courses)||context.courses.length>20||context.courses.some(name=>!text(name,300)))error();
   return {id:value.id,date:value.date,slot:value.slot,selectedPieces,selectedAt:value.selectedAt,candidateId:value.candidateId,candidates,
-    actualPieces,actualTime:value.actualTime,confirmedAt:value.confirmedAt,actualUndoneAt,planCancelledAt,rating:value.rating,feedback:[...value.feedback],comment:value.comment,
+    actualPieces,actualTime:value.actualTime,confirmedAt:value.confirmedAt,actualUndoneAt,planCancelledAt,laundryIds:[...laundryIds],laundryChanges,rating:value.rating,feedback:[...value.feedback],comment:value.comment,
     context:{weatherText:context.weatherText,preference:context.preference,courses:[...context.courses]},createdAt:value.createdAt,updatedAt:value.updatedAt,deletedAt:value.deletedAt};
 }
 export function validateGarmentEvent(value,garments) {

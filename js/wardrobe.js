@@ -1,18 +1,18 @@
-import { reconcileRows } from './ui-list.js?v=20261029-5';
-import { markFormSaved } from './refresh-guard.js?v=20261029-5';
-import { reducedMotion } from './motion.js?v=20261029-5';
-import { mountWearLog } from './wear-log.js?v=20261029-5';
-import { visibleWearCandidates, wearUsageIndex } from './wear-model.js?v=20261029-5';
-import { saveWearSelection, selectedWear } from './wear-store.js?v=20261029-5';
+import { reconcileRows } from './ui-list.js?v=20261030-1';
+import { markFormSaved } from './refresh-guard.js?v=20261030-1';
+import { reducedMotion } from './motion.js?v=20261030-1';
+import { mountWearLog } from './wear-log.js?v=20261030-1';
+import { visibleWearCandidates, wearUsageIndex } from './wear-model.js?v=20261030-1';
+import { saveWearSelection, selectedWear } from './wear-store.js?v=20261030-1';
 import { CATEGORIES, COLORS, CLOTHING_STATES, DEFAULT_PROFILE, DAILY_KEY, readDailyData, rawDailyData, emptyDailyData,
-  validateDailyData, addGarments, editGarment, changeGarmentState, setArchived, saveOutfit, saveRunPlan, saveDailyProfile, mergeDailyBackup } from './daily-store.js?v=20261029-5';
-import { localDate, nextDate, planOutfits, isAvailable, runningSuitable } from './daily-model.js?v=20261029-5';
-import { cachedWeather, refreshWeather } from './weather-client.js?v=20261029-5';
-import { weatherSummary } from './weather-model.js?v=20261029-5';
-import { wardrobeDate, setWardrobeDate, wardrobeDateLabel } from './wardrobe-view.js?v=20261029-5';
-import { aiEnabled, callAI } from './ai-client.js?v=20261029-5';
-import { outfitAIInput, applyOutfitChoice } from './outfit-ai.js?v=20261029-5';
-import { escapeText as esc, validDate } from './tasks-store.js?v=20261029-5';
+  validateDailyData, addGarments, editGarment, changeGarmentState, changeOutfitState, setArchived, saveOutfit, saveRunPlan, saveDailyProfile, mergeDailyBackup } from './daily-store.js?v=20261030-1';
+import { localDate, nextDate, planOutfits, isAvailable, runningSuitable } from './daily-model.js?v=20261030-1';
+import { cachedWeather, refreshWeather } from './weather-client.js?v=20261030-1';
+import { weatherSummary } from './weather-model.js?v=20261030-1';
+import { wardrobeDate, setWardrobeDate, wardrobeDateLabel } from './wardrobe-view.js?v=20261030-1';
+import { aiEnabled, callAI } from './ai-client.js?v=20261030-1';
+import { outfitAIInput, applyOutfitChoice } from './outfit-ai.js?v=20261030-1';
+import { escapeText as esc, validDate } from './tasks-store.js?v=20261030-1';
 
 const optionHTML = (values, selected) => Object.entries(values).map(([value, label]) => `<option value="${esc(value)}"${value === selected ? ' selected' : ''}>${esc(label)}</option>`).join('');
 const numberField = (label, name, value, max = 180) => `<label>${label}<input name="${name}" type="number" min="0" max="${max}" value="${value}"></label>`;
@@ -34,8 +34,8 @@ function profileForm(profile) {
       <div class="wardrobe-fields">${numberField('买早餐与排队额外留几分钟', 'breakfastBuyMinutes', profile.breakfastBuyMinutes)}${numberField('坐下用餐时间（分钟）', 'breakfastEatMinutes', profile.breakfastEatMinutes)}</div>
       <p class="daily-small">路上吃可与通勤重合，购餐等待仍另计；0表示未计入该项，不代表不需要时间。</p></details>
     <details><summary>运动与洗晒习惯</summary><label class="daily-check-row"><input type="checkbox" name="peNeedsShorts"${profile.peNeedsShorts ? ' checked' : ''}> 我的体育课需要短裤</label>
-      <div class="wardrobe-fields">${numberField('通常攒几天一起洗（0表示不提示间隔）', 'laundryEveryDays', profile.laundryEveryDays, 30)}${numberField('晾晒后预计几天收衣', 'dryAfterDays', profile.dryAfterDays, 14)}</div>
-      <p class="daily-small">收衣日只是预计，不会自动把晾晒中的衣服标为可穿。衣物是否继续穿，由你调整。</p></details>
+      <div class="wardrobe-fields">${numberField('通常攒几天一起洗（0为未设置，预留按2日估算）', 'laundryEveryDays', profile.laundryEveryDays, 30)}${numberField('晾晒后预计几天收衣', 'dryAfterDays', profile.dryAfterDays, 14)}</div>
+      <p class="daily-small">确认今天实穿时，上衣和下装默认加入待洗，可逐件调整。收衣日只是预计，干透后再确认可穿。</p></details>
     <button type="submit" class="btn btn-primary">保存生活偏好</button></form>`;
 }
 
@@ -65,7 +65,7 @@ export function renderWardrobe(container, state, dm) {
         <div id="wardrobe-recommendation"></div></section>
       <section class="wardrobe-card" id="wardrobe-wear" data-wardrobe-panel="record" hidden></section>
       <section class="wardrobe-card" id="wardrobe-inventory" data-wardrobe-panel="closet" hidden><div class="daily-heading"><h2>我的衣物</h2><button type="button" class="daily-text-button" data-open-add>＋ 录衣物</button><select id="garment-filter" aria-label="筛选衣物状态">${optionHTML({ all: '全部状态', ...CLOTHING_STATES }, 'all')}</select></div>
-        <div class="wardrobe-laundry"><div class="daily-heading"><label class="daily-check-row"><input id="select-all-garments" type="checkbox"> 选择当前列表</label><span id="garment-selection-count" class="daily-small">未选择</span></div>
+        <div class="wardrobe-laundry"><label class="outfit-laundry-select">按常用搭配选择<select id="laundry-outfit"><option value="">选一套，一起更新洗晒</option></select></label><p class="daily-small" id="laundry-outfit-hint">选中后可逐件取消；鞋、外套和腰带按实际情况决定。</p><div class="daily-heading"><label class="daily-check-row"><input id="select-all-garments" type="checkbox"> 选择当前列表</label><span id="garment-selection-count" class="daily-small">未选择</span></div>
           <div id="garment-selection-actions" hidden><div class="wardrobe-bulk-actions"><button class="btn" data-bulk-state="dirty" type="button">移到待洗</button><button class="btn" data-bulk-state="washing" type="button">开始洗</button><button class="btn" data-bulk-state="drying" type="button">已经晾晒</button><button class="btn" data-bulk-state="ready" type="button">收好可穿</button></div>
           <label class="wardrobe-dry-date">预计收衣日（仅用于晾晒提示）<input id="dry-expected-date" type="date" min="2000-01-01" max="2100-12-31" value="${nextDate(localDate(new Date()), data.profile.dryAfterDays)}"></label></div></div>
         <div id="garment-list"></div></section>
@@ -121,27 +121,44 @@ export function renderWardrobe(container, state, dm) {
     $('#select-all-garments').checked = Boolean(rows.length && count === rows.length);
     $('#select-all-garments').indeterminate = count > 0 && count < rows.length;
   }
+  function selectLaundryOutfit(id) {
+    const outfit=data.outfits.find(item=>item.id===id&&!item.deletedAt);
+    if(!outfit)return;
+    $('#garment-filter').value='all';
+    refreshLists();showPanel('closet');
+    const ids=new Set(outfit.garmentIds);
+    container.querySelectorAll('[data-garment-select]').forEach(input=>input.checked=ids.has(input.value));
+    $('#laundry-outfit').value=id;selectedCount();
+    feedback(`已选「${outfit.name}」中的${selectedIds().length}件；确认勾选后再更新状态`);
+    $('#wardrobe-inventory').scrollIntoView({block:'start',behavior:reducedMotion()?'auto':'smooth'});
+    $('#laundry-outfit').focus({preventScroll:true});
+  }
   function refreshRecommendation() {
     if(disposed)return;
     const openAlternates=new Set([...container.querySelectorAll('.outfit-alternates[open]')].map(node=>node.dataset.purpose));
-    const methodOpen=$('.outfit-method')?.open, conditionalOpen=$('.outfit-conditional')?.open;
+    const methodOpen=$('.outfit-method')?.open, conditionalOpen=$('.outfit-conditional')?.open, planningOpen=$('.outfit-planning-details')?.open;
+    const openScores=new Set([...container.querySelectorAll('.outfit-score-details[open]')].map(node=>node.dataset.scoreId));
     shownCandidates.clear();
     const preference = $('#outfit-ai-preference')?.value || '';
     const typing=document.activeElement?.id==='outfit-ai-preference', cursor=typing?document.activeElement.selectionStart:null;
     syncDate();
     const courses = dm.getCoursesByDate(state.currentClass, selectedDate);
-    const future = dm.getCourses(state.currentClass).filter(course => course.date > selectedDate && course.date <= nextDate(selectedDate, 2));
+    const future = dm.getCourses(state.currentClass).filter(course => course.date > selectedDate && course.date <= nextDate(selectedDate, 7));
     const plan = planOutfits(data, selectedDate, courses, future, cachedWeather(data.profile.city));
     latestPlan = plan;
     const fit = plan.sport || plan.daily;
     const candidateHTML = (recommendation,purpose,label) => {
       const signature=JSON.stringify(outfitAIInput(plan,purpose,'',data.profile));
       const ai=aiChoices[purpose]?.signature===signature?aiChoices[purpose]:null;
-      const sets=visibleWearCandidates(recommendation,ai?.set),chosen=selectedWear(data,selectedDate,purpose);
+      const visible=visibleWearCandidates(recommendation,ai?.set);
+      const byScore=(a,b)=>(b.score||0)-(a.score||0)||a.id.localeCompare(b.id);
+      const sets=ai&&visible.length?[visible[0],...visible.slice(1).sort(byScore)]:visible.sort(byScore),chosen=selectedWear(data,selectedDate,purpose);
       shownCandidates.set(purpose,sets);
       const suggestion=(set,index)=>{
-        const explanation=ai&&!index?ai.explanation:set.reasons.filter(reason=>reason!=='按可穿单品组合'&&!/^参考\d{2}:\d{2}—/.test(reason)).join('；');
-        return `<article class="wardrobe-suggestion">${index?`<h4>备选 ${index}</h4>`:ai?'<h4>AI 选择</h4>':''}${chainHTML(set.pieces)}${explanation?`<p class="daily-muted">${esc(explanation)}</p>`:''}<button type="button" class="btn${index?'':' btn-primary'}" data-select-outfit="${purpose}" data-candidate-index="${index}" aria-pressed="${!!chosen&&!chosen.planCancelledAt&&chosen.candidateId===set.id}">${chosen&&!chosen.planCancelledAt&&chosen.candidateId===set.id?'已选作计划':'选这套'}</button></article>`;
+        const explanation=ai&&!index?ai.explanation:(set.scoreReasons||set.reasons.filter(reason=>reason!=='按可穿单品组合'&&!/^参考\d{2}:\d{2}—/.test(reason))).slice(0,2).join('；');
+        const score=Number.isFinite(set.score)&&set.scoreBreakdown?.length?`<span class="outfit-score">推荐分 <strong>${Math.round(set.score)}</strong></span>`:'';
+        const scoreId=purpose+':'+set.id;
+        return `<article class="wardrobe-suggestion"><div class="outfit-score-heading"><h4>${index?`备选 ${index}`:ai?'AI 选择':'推荐搭配'}</h4>${score}</div>${chainHTML(set.pieces)}${explanation?`<p class="daily-muted">${esc(explanation)}</p>`:''}${set.scoreBreakdown?.length?`<details class="outfit-score-details" data-score-id="${esc(scoreId)}"${openScores.has(scoreId)?' open':''}><summary>评分依据</summary><p class="daily-small">按冷暖、活动、预留、轮换与偏好综合比较；是参考排序，不是适合概率。</p><dl>${set.scoreBreakdown.map(row=>`<div><dt>${esc(row.label)} <span>${Math.round(row.score)}/${Math.round(row.max)}</span></dt><dd>${esc(row.reason)}</dd></div>`).join('')}</dl></details>`:''}<button type="button" class="btn${index?'':' btn-primary'}" data-select-outfit="${purpose}" data-candidate-index="${index}" aria-pressed="${!!chosen&&!chosen.planCancelledAt&&chosen.candidateId===set.id}">${chosen&&!chosen.planCancelledAt&&chosen.candidateId===set.id?'已选作计划':'选这套'}</button></article>`;
       };
       return `<section class="outfit-purpose">${plan.separate?`<h3>${label}</h3>`:''}
         ${purpose==='sport'?`<p class="outfit-sport-weather">${esc(recommendation.weatherNote)} · ${esc(recommendation.weather?weatherSummary(recommendation.weather):'暂无该时段预报，未纳入天气')}</p>`:''}
@@ -154,11 +171,13 @@ export function renderWardrobe(container, state, dm) {
     const weather=plan.weather, dateLabel=wardrobeDateLabel(selectedDate,localDate(new Date()));
     const updateTime=weather?new Date(weather.fetchedAt).toLocaleTimeString('zh-CN',{timeZone:'Asia/Shanghai',hour:'2-digit',minute:'2-digit'}):'';
     $('#wardrobe-recommendation').innerHTML = `<div class="outfit-weather"><div><p class="outfit-weather-label">${esc(weather?.location||data.profile.city||'福州仓山附近')} · ${esc(dateLabel.split(' · ')[0])}预报</p><p class="outfit-weather-range">${weather?`${Math.round(weather.min)}—${Math.round(weather.max)}<span>°C</span>`:'暂无可用预报'}</p><p class="outfit-weather-detail">${esc(weather?`${weather.feelsMin===null?'':`体感 ${Math.round(weather.feelsMin)}—${Math.round(weather.feelsMax)}°C · `}${weather.rainProbability===null?'降雨概率未知':`降雨概率最高 ${Math.round(weather.rainProbability)}%`}`:'先按活动与衣物状态选，天气尚未纳入')}</p></div><button type="button" class="daily-text-button" data-outfit-weather${weatherBusy?' disabled':''}>${weatherBusy?'更新中…':'更新天气'}</button><p class="outfit-weather-meta">${esc(weather?`${weather.from}—${weather.to} · ${updateTime}获取${weather.status==='stale'?' · 旧预报':''}`:`${selectedDate}暂无可用天气，不使用其他日期替代`)}</p>${weatherMessage?`<p class="outfit-weather-message" role="status">${esc(weatherMessage)}</p>`:''}</div>
+      ${plan.planning?.weatherComparison?`<p class="outfit-weather-comparison">${esc(plan.planning.weatherComparison.text)}</p>`:''}
       <p class="daily-muted">${courses.length ? `${courses.length} 次课` : '课表上无课'}${fit.pe ? ` · 体育课${fit.requireShorts ? '需短裤' : ''}` : ''}${fit.run ? ' · 已安排校园跑' : ''}</p>
+      ${plan.planning?.reservations?.length?`<p class="outfit-reservation">${esc(plan.planning.reservations[0].text)}</p>`:''}
       ${data.garments.some(item=>!item.deletedAt)?candidateHTML(plan.daily,'daily',plan.separate?'日常穿搭':'这天的穿搭')+(plan.sport?candidateHTML(plan.sport,'sport','运动准备 · 可课前换上'):''):'<p class="daily-muted">先录几件常穿衣服，就能参考活动、天气与洗晒状态选搭配。</p>'}
       ${plan.conditional.length?`<details class="outfit-conditional"${conditionalOpen?' open':''}><summary>干透后可用的备选 · ${plan.conditional.length}套</summary><p class="daily-small">这些单品仍在晾晒。预计收衣日不代表已经干透，可在衣物列表确认“收好可穿”。</p>${plan.conditional.map(set=>`<article><h4>${set.purpose}备选</h4>${chainHTML(set.pieces)}<p class="daily-small">待确认：${set.pieces.filter(item=>set.conditionalIds.includes(item.id)).map(item=>esc(item.name)).join('、')}</p></article>`).join('')}</details>`:''}
       ${!data.garments.some(item => !item.deletedAt) ? '<a href="#/wardrobe" class="daily-link" data-open-add>先录几件常穿衣服 →</a>' : ''}
-      ${fit.futureShortDays && data.profile.peNeedsShorts ? `<p class="daily-small">随后两天有${fit.futureShortDays}天体育课，目前确认可穿且适合运动的短裤${fit.readyShorts}条，记得结合洗晒安排轮换。</p>` : ''}
+      ${planningHTML(plan.planning,planningOpen)}
       <details class="outfit-method"${methodOpen?' open':''}><summary>搭配提示与 AI 偏好</summary>${[...new Set([...plan.daily.notes,...(plan.sport?.notes||[])])].map(note=>`<p class="daily-small">${esc(note)}</p>`).join('')}<p class="daily-small">${esc(plan.weather?`${plan.weather.location} · ${selectedDate.slice(5)} ${plan.weather.from}—${plan.weather.to}`:'所选日期暂无可用预报')}</p>
       <label>这次想怎么穿（可选）<input id="outfit-ai-preference"${preferenceDirty?' data-preserve-draft':''} maxlength="300" value="${esc(preference)}" placeholder="例如想穿牛仔裤，配色清爽一些"></label>
       <p class="daily-small">AI 只在点击时调用，从已确认可穿的候选中选择；<a href="#/api">配置 AI</a>。${esc(plan.changeNote)}</p>
@@ -169,8 +188,15 @@ export function renderWardrobe(container, state, dm) {
   function chainHTML(pieces) {
     return `<div class="outfit-chain">${pieces.map(item => `<span class="outfit-piece"><small>${esc(CATEGORIES[item.category]?.label||'单品')}</small><strong>${esc(item.name)}</strong></span>`).join('')}</div>`;
   }
+  function planningHTML(planning,open=false) {
+    const days=planning?.days?.filter(day=>day.date>selectedDate)||[];
+    if(!days.length)return '';
+    const today=localDate(new Date());
+    return `<details class="outfit-planning-details"${open?' open':''}><summary>接下来几天 · 天气与运动安排</summary><p class="daily-small">${esc(planning.laundryAssumption||'按洗晒习惯估算预留，实际干透后再确认可穿。')}</p><div class="outfit-forecast-days">${days.map(day=>`<div class="outfit-forecast-day"><div><strong>${esc(wardrobeDateLabel(day.date,today).replace('所选日期 · ',''))}</strong><span>${day.weather?`${Math.round(day.weather.min)}—${Math.round(day.weather.max)}°C${day.weather.status==='stale'?' · 旧预报':''}`:'暂无该日预报'}${day.pe?' · 体育课':''}</span></div><label class="outfit-run-check">校园跑<select data-future-run="${esc(day.date)}" aria-label="${esc(day.date)}校园跑"><option value="" disabled${!data.plans.some(row=>row.date===day.date)?' selected':''}>未核对</option><option value="run"${day.run?' selected':''}>计划跑</option><option value="no"${!day.run&&data.plans.some(row=>row.date===day.date)?' selected':''}>这天不跑</option></select></label></div>`).join('')}</div><p class="daily-small">${esc(planning.runCheck?.text||'校园跑只按你记录的日期安排；穿过运动服不会自动认定参加了跑步。')}</p>${planning.reservations?.slice(1).map(row=>`<p class="daily-small">${esc(row.text)}</p>`).join('')||''}</details>`;
+  }
   function refreshLists() {
     const kept = new Set(selectedIds());
+    const selectedOutfit=$('#laundry-outfit').value;
     const openGarments = new Set([...container.querySelectorAll('[data-garment-detail][open]')].map(node=>node.dataset.garmentDetail));
     const activeCount=data.garments.filter(item=>!item.deletedAt).length;
     $('.wardrobe-page').classList.toggle('is-empty-wardrobe', !activeCount && !corrupt);
@@ -194,6 +220,10 @@ export function renderWardrobe(container, state, dm) {
         <div class="garment-actions"><label>状态<select data-item-state="${esc(item.id)}">${optionHTML(CLOTHING_STATES, item.state)}</select></label><button type="button" class="daily-text-button" data-edit-garment="${esc(item.id)}">调整衣物</button><button type="button" class="daily-text-button" data-archive-garment="${esc(item.id)}">收起</button></div></details></div></article>`;
     }).join('') : '<p class="daily-muted">这个状态下没有衣物，可以换个筛选查看。</p>';
     reconcileRows($('#garment-list'),garmentMarkup,'data-garment-id');
+    $('#laundry-outfit').innerHTML='<option value="">选一套，一起更新洗晒</option>'+data.outfits.filter(item=>!item.deletedAt).map(outfit=>`<option value="${esc(outfit.id)}">${esc(outfit.name)}</option>`).join('');
+    $('#laundry-outfit').value=selectedOutfit;
+    $('#laundry-outfit').disabled=!data.outfits.some(item=>!item.deletedAt);
+    $('#laundry-outfit-hint').textContent=data.outfits.some(item=>!item.deletedAt)?'选中后可逐件取消；鞋、外套和腰带按实际情况决定。':'先在“常用搭配”连接一套，之后可一起洗晒；也可直接勾选单品。';
     selectedCount();
     const picked = new Set([...container.querySelectorAll('[name=outfitGarment]:checked')].map(input => input.value));
     const active = data.garments.filter(item => !item.deletedAt);
@@ -202,7 +232,7 @@ export function renderWardrobe(container, state, dm) {
     $('#outfit-list').innerHTML = data.outfits.filter(item => !item.deletedAt).map(outfit => {
       const pieces = outfit.garmentIds.map(id => data.garments.find(item => item.id === id));
       const ready = pieces.every(item => isAvailable(item));
-      return `<article class="saved-outfit"><div class="daily-heading"><h3>${esc(outfit.name)}</h3><button type="button" class="daily-text-button" data-archive-outfit="${esc(outfit.id)}">收起</button></div>${chainHTML(pieces)}<p class="daily-small">${ready ? '这套单品目前都已确认可穿' : '部分单品待洗、晾晒或已收起，推荐时会避开'}</p></article>`;
+      return `<article class="saved-outfit"><div class="daily-heading"><h3>${esc(outfit.name)}</h3><button type="button" class="daily-text-button" data-archive-outfit="${esc(outfit.id)}">收起</button></div>${chainHTML(pieces)}<p class="daily-small">${ready ? '这套单品目前都已确认可穿' : '部分单品待洗、晾晒或已收起，推荐时会避开'}</p><button type="button" class="daily-text-button" data-laundry-outfit="${esc(outfit.id)}">整套选择洗晒 →</button></article>`;
     }).join('') || '<p class="daily-muted">常搭的衣服连起来，以后会优先参考。</p>';
     $('#wardrobe-archive-list').innerHTML = [
       ...data.garments.filter(item => item.deletedAt).map(item => `<div class="archive-row"><span>${esc(item.name)}</span><button class="btn" type="button" data-restore-garment="${esc(item.id)}">恢复衣物</button></div>`),
@@ -215,11 +245,13 @@ export function renderWardrobe(container, state, dm) {
     const focused = document.activeElement;
     const focusId = focused?.dataset.itemState || focused?.dataset.editGarment;
     const quickFocus=focused?.dataset.nextGarment;
+    const runFocus=focused?.dataset.futureRun;
     const oldCity=data.profile.city;
     data = readDailyData(); corrupt = false; refreshLists(); if (message) feedback(message);
     if(oldCity!==data.profile.city)updateWeather();
     if (focusId) [...container.querySelectorAll('[data-item-state]')].find(input => input.dataset.itemState === focusId)?.focus({ preventScroll: true });
     if (quickFocus) [...container.querySelectorAll('[data-next-garment]')].find(button=>button.dataset.nextGarment===quickFocus)?.focus({preventScroll:true});
+    if (runFocus) [...container.querySelectorAll('[data-future-run]')].find(input=>input.dataset.futureRun===runFocus)?.focus({preventScroll:true});
   }
   function addPanel(category) {
     const group = CATEGORIES[category].group;
@@ -235,10 +267,14 @@ export function renderWardrobe(container, state, dm) {
         else if (!target.checked) panel?.remove();
       } else if (target.id === 'plan-run') {
         guard(); saveRunPlan(selectedDate,target.checked); markFormSaved($('#run-plan-form')); reload('这天的校园跑安排已保存');
-      } else if (target.id === 'garment-filter') refreshLists();
+      } else if (target.dataset.futureRun) {
+        guard();saveRunPlan(target.dataset.futureRun,target.value==='run');reload('校园跑日期已更新，推荐会重新考虑运动衣物预留');
+      } else if (target.id === 'laundry-outfit') {
+        if(target.value)selectLaundryOutfit(target.value);
+      } else if (target.id === 'garment-filter') {$('#laundry-outfit').value='';refreshLists();}
       else if (target.id === 'select-all-garments') {
-        container.querySelectorAll('[data-garment-select]').forEach(input => input.checked = target.checked); selectedCount();
-      } else if (target.matches('[data-garment-select]')) selectedCount();
+        container.querySelectorAll('[data-garment-select]').forEach(input => input.checked = target.checked); $('#laundry-outfit').value='';selectedCount();
+      } else if (target.matches('[data-garment-select]')) {$('#laundry-outfit').value='';selectedCount();}
       else if (target.name === 'outfitGarment' && target.checked) container.querySelectorAll(`[name=outfitGarment][data-group="${target.dataset.group}"]`).forEach(input => { if (input !== target) input.checked = false; });
       else if (target.id === 'outfit-date') {
         if (!validDate(target.value)) throw new Error('请选择有效日期'); selectedDate = target.value;
@@ -287,7 +323,8 @@ export function renderWardrobe(container, state, dm) {
       }
       else if (button.matches('[data-open-add]')) { event.preventDefault(); showPanel('closet');$('#add-garments').open = true; $('#add-garments').scrollIntoView({ behavior: reducedMotion()?'auto':'smooth' }); }
       else if(button.dataset.nextGarment){guard();changeGarmentState([button.dataset.nextGarment],button.dataset.nextState,$('#dry-expected-date').value);reload('衣物已更新；如需改回，可在“详情与调整”选择状态');}
-      else if (button.dataset.bulkState) { guard(); changeGarmentState(selectedIds(), button.dataset.bulkState, $('#dry-expected-date').value); reload('所选衣物状态已更新'); }
+      else if(button.dataset.laundryOutfit)selectLaundryOutfit(button.dataset.laundryOutfit);
+      else if (button.dataset.bulkState) { guard();const outfitId=$('#laundry-outfit').value;if(outfitId)changeOutfitState(outfitId,button.dataset.bulkState,$('#dry-expected-date').value,selectedIds());else changeGarmentState(selectedIds(), button.dataset.bulkState, $('#dry-expected-date').value); reload('所选衣物状态已更新'); }
       else if (button.dataset.editGarment) {
         guard(); const item = data.garments.find(item => item.id === button.dataset.editGarment);
         const form = $('#garment-edit-form'); form.dataset.id = item.id;

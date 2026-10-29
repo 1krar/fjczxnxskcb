@@ -1,4 +1,4 @@
-import { normalizeNoteRule, isPersistent, noteDate } from './persistent-model.js?v=20261029-5';
+import { normalizeNoteRule, isPersistent, noteDate } from './persistent-model.js?v=20261030-1';
 const KEY = 'course-dashboard-personal-items-v1';
 export const KINDS = { task: '作业 / 待办', exam: '考试', bring: '带物品', change: '课程变更', note: '随手记' };
 export const SOURCES = { oral: '课堂口头', qq: 'QQ 群', other: '其他' };

@@ -1,10 +1,10 @@
-import { readStudyData, studyProfile, saveStudySettings, saveStudyOverride, removeStudyOverride, rawStudyData } from './study-store.js?v=20261029-5';
-import { applyEveningStudy, describeEveningStudy } from './study-model.js?v=20261029-5';
-import { scopedActivities, readAgenda } from './agenda-store.js?v=20261029-5';
-import { getTodayStr, getDayName } from './time.js?v=20261029-5';
-import { addDate, activityOnDate } from './agenda-model.js?v=20261029-5';
-import { escapeText as esc, validDate } from './tasks-store.js?v=20261029-5';
-import { markFormSaved } from './refresh-guard.js?v=20261029-5';
+import { readStudyData, studyProfile, saveStudySettings, saveStudyOverride, removeStudyOverride, rawStudyData } from './study-store.js?v=20261030-1';
+import { applyEveningStudy, describeEveningStudy } from './study-model.js?v=20261030-1';
+import { scopedActivities, readAgenda } from './agenda-store.js?v=20261030-1';
+import { getTodayStr, getDayName } from './time.js?v=20261030-1';
+import { addDate, activityOnDate } from './agenda-model.js?v=20261030-1';
+import { escapeText as esc, validDate } from './tasks-store.js?v=20261030-1';
+import { markFormSaved } from './refresh-guard.js?v=20261030-1';
 
 const statuses={normal:'正常参加',other:'有其他安排',pending:'请假待确认',excused:'已请假'};
 const drafts=new Map();

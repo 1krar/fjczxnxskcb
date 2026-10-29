@@ -1,6 +1,6 @@
-import { applyEveningStudy } from './study-model.js?v=20261029-5';
-import { readStudyData } from './study-store.js?v=20261029-5';
-import { validDate } from './tasks-store.js?v=20261029-5';
+import { applyEveningStudy } from './study-model.js?v=20261030-1';
+import { readStudyData } from './study-store.js?v=20261030-1';
+import { validDate } from './tasks-store.js?v=20261030-1';
 
 // Bound recurrence to the imported semester, so day/month views and reminder
 // checks see the same personal evening arrangement without editing source data.

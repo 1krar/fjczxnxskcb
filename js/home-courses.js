@@ -1,9 +1,9 @@
-import { notesForCourse } from './persistent-model.js?v=20261029-5';
-import { renderContextNotes } from './context-notes.js?v=20261029-5';
-import { getUpcomingCourseGroups, courseKey } from './day-plan.js?v=20261029-5';
-import { localDate } from './time.js?v=20261029-5';
-import { escapeText as esc } from './tasks-store.js?v=20261029-5';
-import { formatLocation } from './location.js?v=20261029-5';
+import { notesForCourse } from './persistent-model.js?v=20261030-1';
+import { renderContextNotes } from './context-notes.js?v=20261030-1';
+import { getUpcomingCourseGroups, courseKey } from './day-plan.js?v=20261030-1';
+import { localDate } from './time.js?v=20261030-1';
+import { escapeText as esc } from './tasks-store.js?v=20261030-1';
+import { formatLocation } from './location.js?v=20261030-1';
 
 export const activeDayCourses=courses=>courses.filter(course=>course.source!=='evening-study'||course.studyStatus!=='excused');
 export const academicCourses=courses=>courses.filter(course=>course.source!=='evening-study');

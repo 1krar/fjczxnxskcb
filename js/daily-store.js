@@ -1,5 +1,5 @@
-import { validateWearLog, validateGarmentEvent } from './wear-model.js?v=20261029-5';
-import { validDate } from './tasks-store.js?v=20261029-5';
+import { validateWearLog, validateGarmentEvent } from './wear-model.js?v=20261030-1';
+import { validDate } from './tasks-store.js?v=20261030-1';
 
 export const DAILY_KEY = 'course-dashboard-daily-v1';
 export const CATEGORIES = {
@@ -150,16 +150,36 @@ export function editGarment(id, fields) {
   Object.assign(item, partial, { updatedAt: new Date().toISOString() });
   return write(data);
 }
-export function changeGarmentState(ids, state, expectedDate = '') {
-  const data = readDailyData();
+// Mutate one in-memory transaction so a wear confirmation and its laundry changes
+// are validated and written together, rather than leaving a half-saved record.
+export function applyGarmentState(data, ids, state, expectedDate = '', now = new Date().toISOString()) {
   member(state, Object.keys(CLOTHING_STATES), '洗晒状态');
   if (!Array.isArray(ids) || !ids.length || new Set(ids).size !== ids.length || ids.some(id => !data.garments.some(item => item.id === id && !item.deletedAt))) throw new Error('请先选择仍在衣橱中的衣物');
-  const now = new Date().toISOString();
+  if (state === 'drying' && expectedDate && !validDate(expectedDate)) throw new Error('预计收衣日期无效');
   if (ids.some(id => { const old = data.garments.find(item => item.id === id).state; return state === 'washing' && old !== 'washing' || state === 'drying' && old !== 'washing' && old !== 'drying'; })) data.lastLaundryAt = now;
+  const events = [];
   for (const item of data.garments) if (ids.includes(item.id)) {
-    if(item.state!==state)data.garmentEvents.push({id:crypto.randomUUID(),garmentId:item.id,state,at:now});
+    if(item.state!==state) {
+      const event = {id:crypto.randomUUID(),garmentId:item.id,state,at:now};
+      data.garmentEvents.push(event); events.push(event);
+    }
     Object.assign(item, { state, stateAt: now, expectedDate: state === 'drying' ? expectedDate : '', updatedAt: now });
   }
+  return events;
+}
+export function changeGarmentState(ids, state, expectedDate = '') {
+  const data = readDailyData();
+  applyGarmentState(data, ids, state, expectedDate);
+  return write(data);
+}
+export function changeOutfitState(outfitId, state, expectedDate = '', garmentIds = undefined) {
+  const data = readDailyData();
+  const outfit = data.outfits.find(item => item.id === outfitId && !item.deletedAt);
+  if (!outfit) throw new Error('这套搭配已不存在或已收起，请刷新后重试');
+  const activeIds = outfit.garmentIds.filter(id => data.garments.some(item => item.id === id && !item.deletedAt));
+  const ids = garmentIds === undefined ? activeIds : garmentIds;
+  if (!Array.isArray(ids) || ids.some(id => !activeIds.includes(id))) throw new Error('请选择这套搭配中仍在衣橱的单品');
+  applyGarmentState(data, ids, state, expectedDate);
   return write(data);
 }
 export function setArchived(type, id, archived) {

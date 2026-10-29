@@ -1,24 +1,24 @@
-import { selectedWear } from './wear-store.js?v=20261029-5';
-import { notesForCourse } from './persistent-model.js?v=20261029-5';
-import { renderContextNotes } from './context-notes.js?v=20261029-5';
-import { readDailyData, saveDailyProfile, DAILY_KEY } from './daily-store.js?v=20261029-5';
-import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261029-5';
-import { buildAdvice, chooseAdvice, planOutfits, plannedOutfit, departurePlan, localDate, nextDate, dailyFacts, shortAdvice } from './daily-model.js?v=20261029-5';
-import { cachedWeather } from './weather-client.js?v=20261029-5';
-import { weatherSummary } from './weather-model.js?v=20261029-5';
-import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261029-5';
-import { aiEnabled, AI_KEY, DAILY_CACHE_KEY, cachedDaily, dailyIdentity, requestDaily, canRequestDaily, dailyWaitMessage } from './ai-client.js?v=20261029-5';
-import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261029-5';
-import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261029-5';
-import { readStudyData, STUDY_KEY } from './study-store.js?v=20261029-5';
-import { applyEveningStudy } from './study-model.js?v=20261029-5';
+import { selectedWear } from './wear-store.js?v=20261030-1';
+import { notesForCourse } from './persistent-model.js?v=20261030-1';
+import { renderContextNotes } from './context-notes.js?v=20261030-1';
+import { readDailyData, saveDailyProfile, DAILY_KEY } from './daily-store.js?v=20261030-1';
+import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261030-1';
+import { buildAdvice, chooseAdvice, planOutfits, plannedOutfit, departurePlan, localDate, nextDate, dailyFacts, shortAdvice } from './daily-model.js?v=20261030-1';
+import { cachedWeather } from './weather-client.js?v=20261030-1';
+import { weatherSummary } from './weather-model.js?v=20261030-1';
+import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261030-1';
+import { aiEnabled, AI_KEY, DAILY_CACHE_KEY, cachedDaily, dailyIdentity, requestDaily, canRequestDaily, dailyWaitMessage } from './ai-client.js?v=20261030-1';
+import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261030-1';
+import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261030-1';
+import { readStudyData, STUDY_KEY } from './study-store.js?v=20261030-1';
+import { applyEveningStudy } from './study-model.js?v=20261030-1';
 
 function getContext(state, dm, now) {
   const today = localDate(now);
   const tomorrow = nextDate(today);
   const context={ now, today, tomorrow, courses: dm.getCoursesByDate(state.currentClass, today),
     tomorrowCourses: dm.getCoursesByDate(state.currentClass, tomorrow),
-    futureCourses: dm.getCourses(state.currentClass).filter(course => course.date >= tomorrow && course.date <= nextDate(tomorrow, 2)),
+    futureCourses: dm.getCourses(state.currentClass).filter(course => course.date >= tomorrow && course.date <= nextDate(tomorrow, 7)),
     scope: { semester: dm.getSemesterInfo().semester, className: state.currentClass },studyCourses:[],tomorrowStudyCourses:[],studyNotice:'' };
   try {
     const info=dm.getSemesterInfo(),options={className:state.currentClass,studyData:readStudyData(),sectionTimes:dm.getSectionTimes(),seasonRule:info.seasonRule,semesterInfo:info};
@@ -107,7 +107,7 @@ export function mountDailyAssistant(container, state, dm) {
     const date = preparingToday ? context.today : context.tomorrow;
     const courses = preparingToday ? context.courses : context.tomorrowCourses;
     const prepStudy=(preparingToday?context.studyCourses:context.tomorrowStudyCourses)[0];
-    const future = dm.getCourses(state.currentClass).filter(course => course.date > date && course.date <= nextDate(date, 2));
+    const future = dm.getCourses(state.currentClass).filter(course => course.date > date && course.date <= nextDate(date, 7));
     const plan = planOutfits(data,date,courses,future,weather,now);
     const fit = plan.daily;
     const selected=selectedWear(data,date,'daily');

@@ -1,4 +1,4 @@
-import { getSectionTime, seasonForDate } from './time.js?v=20261029-5';
+import { getSectionTime, seasonForDate } from './time.js?v=20261030-1';
 
 export const SCHOOL_BLOCKS = [
   { id: 'morning', label: '上午', first: 1, last: 4 },

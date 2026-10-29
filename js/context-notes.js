@@ -1,5 +1,5 @@
-import { escapeText as esc, readItems, updateItemState } from './tasks-store.js?v=20261029-5';
-import { noteRuleLabel } from './persistent-model.js?v=20261029-5';
+import { escapeText as esc, readItems, updateItemState } from './tasks-store.js?v=20261030-1';
+import { noteRuleLabel } from './persistent-model.js?v=20261030-1';
 
 export function renderContextNotes(items,key='context') {
   if(!items.length)return '';

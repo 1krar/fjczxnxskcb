@@ -1,5 +1,5 @@
-import { animateReorder } from './hold-sort.js?v=20261029-5';
-import { reducedMotion } from './motion.js?v=20261029-5';
+import { animateReorder } from './hold-sort.js?v=20261030-1';
+import { reducedMotion } from './motion.js?v=20261030-1';
 
 function departure(node, box) {
   if (!node.animate || !box.width || !box.height || box.bottom<0 || box.top>innerHeight) return;

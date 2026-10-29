@@ -220,3 +220,33 @@ body:has(#view-wardrobe.active) #quick-capture { display: none; }
 .wardrobe-card .garment-quick-action .garment-detail { flex:1; min-width:140px; padding-left:0; }
 .garment-quick-action:has(details[open]) { display:block; }
 @media(max-width:360px) { .wardrobe-tabs button { font-size:.8125rem; } .wardrobe-plan-controls > label { flex-basis:100%; } }
+
+/* Show the choice first; make its tradeoffs and the coming days available on demand. */
+.outfit-score-heading { display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap; }
+.outfit-score { font-size:.75rem; color:var(--color-text-secondary); white-space:nowrap; }
+.outfit-score strong { font-size:1rem; color:var(--color-text); font-variant-numeric:tabular-nums; margin-left:4px; }
+.wardrobe-card .outfit-score-details { margin:0 0 8px; padding:0; border:0; }
+.wardrobe-card .outfit-score-details > summary { font-size:.75rem; font-weight:400; color:var(--color-text-secondary); }
+.outfit-score-details dl { margin:0 0 12px; padding:0; }
+.outfit-score-details dl > div { padding:8px 0; border-top:1px solid var(--color-border-light); }
+.outfit-score-details dt { display:flex; justify-content:space-between; gap:12px; font-size:.8125rem; color:var(--color-text); }
+.outfit-score-details dt > span { font-variant-numeric:tabular-nums; }
+.outfit-score-details dd { margin:2px 0 0; color:var(--color-text-secondary); font-size:.75rem; line-height:1.7; overflow-wrap:anywhere; }
+.outfit-weather-comparison, .outfit-reservation { font-size:.8125rem; line-height:1.7; overflow-wrap:anywhere; margin:8px 0; color:var(--color-text); }
+.outfit-reservation { padding-left:8px; border-left:2px solid var(--color-primary-300); }
+.wardrobe-card .outfit-planning-details { margin-bottom:0; }
+.wardrobe-card .outfit-planning-details > summary { color:var(--color-text-secondary); font-size:.8125rem; font-weight:400; }
+.outfit-forecast-day { display:flex; justify-content:space-between; flex-wrap:wrap; gap:4px 12px; padding:8px 0; border-top:1px solid var(--color-border-light); align-items:center; }
+.outfit-forecast-day > div { flex:1; min-width:150px; display:grid; gap:2px; }
+.outfit-forecast-day strong { font-size:.8125rem; line-height:1.7; font-weight:500; overflow-wrap:anywhere; }
+.outfit-forecast-day span { color:var(--color-text-secondary); font-size:.75rem; line-height:1.7; }
+.outfit-forecast-day .outfit-run-check { display:flex; align-items:center; gap:8px; color:var(--color-text-secondary); font-size:.75rem; }
+.outfit-run-check > select { width:auto; min-width:100px; font-size:.8125rem; padding:8px; }
+.outfit-laundry-select { margin-bottom:4px; }
+#wardrobe-inventory { scroll-margin-top:76px; }
+.wear-laundry-picker { margin-top:12px; padding:12px; border:1px solid var(--color-border); border-radius:10px; min-width:0; }
+.wear-laundry-picker legend { font-size:.8125rem; color:var(--color-text-secondary); }
+.wear-dialog .wear-laundry-toggle, .wear-dialog [data-wear-laundry-pieces] label { display:flex; align-items:center; gap:8px; min-height:44px; font-size:.875rem; font-weight:400; }
+.wear-laundry-toggle input, [data-wear-laundry-pieces] input { flex:none; width:18px; height:18px; }
+[data-wear-laundry-pieces] label > span { min-width:0; overflow-wrap:anywhere; }
+.wear-laundry-picker > .daily-small { margin:4px 0; }

@@ -1,12 +1,12 @@
-import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse, localDate, seasonForDate } from './time.js?v=20261029-5';
-import { segmentMarkup } from './course-segments.js?v=20261029-5';
-import { showCourseDetail } from './app.js?v=20261029-5';
-import { formatLocation } from './location.js?v=20261029-5';
-import { getDayWindow } from './day-plan.js?v=20261029-5';
-import { getDaySlots, courseSectionRange } from './day-slots.js?v=20261029-5';
-import { escapeText as esc } from './tasks-store.js?v=20261029-5';
-import { readStudyData, STUDY_STATUS_LABELS } from './study-store.js?v=20261029-5';
-import { applyEveningStudy } from './study-model.js?v=20261029-5';
+import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse, localDate, seasonForDate } from './time.js?v=20261030-1';
+import { segmentMarkup } from './course-segments.js?v=20261030-1';
+import { showCourseDetail } from './app.js?v=20261030-1';
+import { formatLocation } from './location.js?v=20261030-1';
+import { getDayWindow } from './day-plan.js?v=20261030-1';
+import { getDaySlots, courseSectionRange } from './day-slots.js?v=20261030-1';
+import { escapeText as esc } from './tasks-store.js?v=20261030-1';
+import { readStudyData, STUDY_STATUS_LABELS } from './study-store.js?v=20261030-1';
+import { applyEveningStudy } from './study-model.js?v=20261030-1';
 
 let tickHandler = null;
 let scheduleState = { week: 1, selectedDay: 1, searchOpen: false };

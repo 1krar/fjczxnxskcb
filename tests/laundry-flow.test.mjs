@@ -1,0 +1,81 @@
+import assert from 'node:assert/strict';
+import { emptyDailyData, writeDailyData, readDailyData, addGarments, saveOutfit, changeOutfitState, changeGarmentState, DAILY_KEY, mergeDailyBackup } from '../js/daily-store.js';
+import { saveActualWear, changeWearRecord, defaultWearLaundryIds } from '../js/wear-store.js';
+
+process.env.TZ='Asia/Shanghai';
+const RealDate=Date;let clock=+new RealDate('2026-10-29T20:00:00+08:00');
+globalThis.Date=class extends RealDate { constructor(...args){super(...(args.length?args:[clock]));} static now(){return clock;} };
+const memory=new Map();let fail=false,writes=0;
+globalThis.localStorage={getItem:key=>memory.get(key)??null,setItem:(key,value)=>{if(fail)throw Error('quota');memory.set(key,value);writes++;}};
+globalThis.window=new EventTarget();let changes=0;window.addEventListener('daily:changed',()=>changes++);
+function reset() {
+  clock=+new RealDate('2026-10-29T20:00:00+08:00');writeDailyData(emptyDailyData());
+  addGarments(['tshirt','sportshorts','jacket','trainers','belt'].map(category=>({category,quantity:1,color:'black',state:'ready',warmth:'medium',needsBelt:'no'})));
+  const data=readDailyData();return Object.fromEntries(data.garments.map(item=>[item.category,item.id]));
+}
+const state=id=>readDailyData().garments.find(item=>item.id===id).state;
+const tick=()=>clock+=1000;
+const actual=(ids,more={})=>saveActualWear({date:'2026-10-29',slot:'daily',garmentIds:ids,...more});
+let ids=reset();
+assert.deepEqual(defaultWearLaundryIds(readDailyData(),Object.values(ids)),[ids.tshirt,ids.sportshorts]);
+let beforeWrites=writes,beforeChanges=changes;
+actual(Object.values(ids));
+assert.equal(writes-beforeWrites,1,'actual confirmation and laundry states commit atomically');
+assert.equal(changes-beforeChanges,1,'one successful transaction dispatches one change');
+assert.equal(state(ids.tshirt),'dirty');assert.equal(state(ids.sportshorts),'dirty');
+for(const category of ['jacket','trainers','belt'])assert.equal(state(ids[category]),'ready','outerwear, shoes and belt are not automatically washed');
+const first=readDailyData();assert.equal(first.garmentEvents.length,2);
+tick();actual(Object.values(ids),{rating:5});assert.equal(readDailyData().garmentEvents.length,2,'rating edit does not duplicate waiting-to-wash history');
+tick();changeWearRecord('wear:2026-10-29:daily','undoActual');
+assert.equal(state(ids.tshirt),'ready');assert.equal(state(ids.sportshorts),'ready');
+tick();changeWearRecord('wear:2026-10-29:daily','restoreActual');assert.equal(state(ids.tshirt),'dirty');
+tick();changeGarmentState([ids.tshirt],'washing');tick();changeGarmentState([ids.tshirt],'drying','2026-10-30');tick();changeGarmentState([ids.tshirt],'ready');
+const afterWashEvents=readDailyData().garmentEvents.length;
+tick();actual(Object.values(ids),{rating:4});assert.equal(state(ids.tshirt),'ready','score edits after washing cannot dirty clean clothes again');
+assert.equal(readDailyData().garmentEvents.length,afterWashEvents);
+tick();changeWearRecord('wear:2026-10-29:daily','undoActual');assert.equal(state(ids.tshirt),'ready','undo does not overwrite a newer laundry state');
+assert.equal(state(ids.sportshorts),'ready','untouched automatic changes can still be undone');
+tick();changeGarmentState([ids.sportshorts],'washing');
+tick();changeWearRecord('wear:2026-10-29:daily','restoreActual');assert.equal(state(ids.sportshorts),'washing','restoring history cannot overwrite later washing');
+
+ids=reset();actual([ids.tshirt,ids.sportshorts],{laundryGarmentIds:[]});assert.equal(state(ids.tshirt),'ready','explicitly opting out preserves state');
+tick();actual([ids.tshirt,ids.jacket],{laundryGarmentIds:[ids.jacket]});assert.equal(state(ids.jacket),'dirty','explicit outerwear selection is supported');assert.equal(state(ids.tshirt),'ready');
+tick();actual([ids.tshirt,ids.jacket],{laundryGarmentIds:[]});assert.equal(state(ids.jacket),'ready','removing an untouched automatic selection restores its prior state');
+assert.throws(()=>actual([ids.tshirt],{laundryGarmentIds:[ids.sportshorts]}),/实际穿过/);
+assert.throws(()=>actual([ids.tshirt],{laundryGarmentIds:[ids.tshirt,ids.tshirt]}),/实际穿过/);
+
+ids=reset();saveActualWear({date:'2026-10-28',slot:'daily',garmentIds:[ids.tshirt],laundryGarmentIds:[ids.tshirt]});
+assert.equal(state(ids.tshirt),'ready','backfilling yesterday does not change current laundry');
+assert.equal(readDailyData().garmentEvents.length,0);
+tick();actual([ids.tshirt]);tick();saveActualWear({date:'2026-10-29',slot:'sport',garmentIds:[ids.tshirt]});
+tick();changeWearRecord('wear:2026-10-29:daily','undoActual');assert.equal(state(ids.tshirt),'dirty','a shared shirt stays dirty while another actual slot still needs washing');
+tick();changeWearRecord('wear:2026-10-29:sport','undoActual');assert.equal(state(ids.tshirt),'ready','the last shared-slot undo safely restores the owned state');
+tick();changeWearRecord('wear:2026-10-29:sport','restoreActual');assert.equal(state(ids.tshirt),'dirty','restoring the shared second slot restores its owned waiting state');
+tick();changeWearRecord('wear:2026-10-29:daily','undoActual');assert.equal(state(ids.tshirt),'dirty','an already-undone source cannot clear the restored shared actual slot');
+
+ids=reset();actual([ids.tshirt]);tick();changeGarmentState([ids.tshirt],'dirty');
+tick();changeWearRecord('wear:2026-10-29:daily','undoActual');assert.equal(state(ids.tshirt),'dirty','a later manual confirmation of the same state owns that decision');
+ids=reset();actual([ids.tshirt]);clock=+new RealDate('2026-10-30T09:00:00+08:00');
+changeWearRecord('wear:2026-10-29:daily','undoActual');assert.equal(state(ids.tshirt),'ready');
+tick();changeWearRecord('wear:2026-10-29:daily','restoreActual');assert.equal(state(ids.tshirt),'ready','restoring previous-day history never dirties current clothes');
+
+ids=reset();saveOutfit('整套运动',[ids.tshirt,ids.sportshorts,ids.trainers]);
+const outfit=readDailyData().outfits[0];beforeWrites=writes;
+changeOutfitState(outfit.id,'washing','',[ids.tshirt,ids.sportshorts]);
+assert.equal(writes-beforeWrites,1);assert.equal(state(ids.tshirt),'washing');assert.equal(state(ids.sportshorts),'washing');assert.equal(state(ids.trainers),'ready','batch subset lets shoes stay out of a wash');
+tick();changeOutfitState(outfit.id,'drying','2026-10-30',[ids.tshirt,ids.sportshorts]);
+assert.equal(readDailyData().garments.find(item=>item.id===ids.tshirt).expectedDate,'2026-10-30');
+tick();changeOutfitState(outfit.id,'ready');assert.equal(state(ids.trainers),'ready');
+const safe=memory.get(DAILY_KEY);
+assert.throws(()=>changeOutfitState(outfit.id,'dirty','',[ids.jacket]),/这套搭配/);assert.equal(memory.get(DAILY_KEY),safe);
+assert.throws(()=>changeOutfitState(outfit.id,'drying','2026-02-30'),/日期/);assert.equal(memory.get(DAILY_KEY),safe);
+assert.throws(()=>changeOutfitState(outfit.id,'washing','',[]),/选择/);assert.equal(memory.get(DAILY_KEY),safe);
+fail=true;assert.throws(()=>actual([ids.tshirt,ids.sportshorts]),/保存失败/);assert.equal(memory.get(DAILY_KEY),safe,'failed atomic save leaves both actual record and garment states unchanged');fail=false;
+tick();actual([ids.tshirt,ids.sportshorts]);
+const backup=readDailyData();mergeDailyBackup(backup);assert.deepEqual(readDailyData().wearLogs,backup.wearLogs,'backup round trip preserves safe undo receipts');
+const invalidReceipt=structuredClone(backup);invalidReceipt.wearLogs[0].laundryChanges[0].eventId='';
+const validRaw=memory.get(DAILY_KEY);assert.throws(()=>writeDailyData(invalidReceipt),/穿搭记录/);assert.equal(memory.get(DAILY_KEY),validRaw,'invalid undo receipts do not rewrite stored data');
+const legacy=structuredClone(backup);delete legacy.wearLogs[0].laundryIds;delete legacy.wearLogs[0].laundryChanges;
+assert.deepEqual(writeDailyData(legacy).wearLogs[0].laundryIds,[],'pre-feature actual records remain readable');
+const oldEventCount=readDailyData().garmentEvents.length;tick();actual([ids.tshirt,ids.sportshorts],{rating:3});assert.equal(readDailyData().garmentEvents.length,oldEventCount,'legacy score-only edit has no surprise laundry operation');
+console.log('Laundry flow: current-day defaults, explicit selection, atomic outfit batches, repeat edits, shared-slot safe undo, later-wash protection, past backfills, backups and failed-write preservation passed.');

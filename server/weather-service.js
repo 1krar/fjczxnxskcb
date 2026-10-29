@@ -14,7 +14,7 @@ export async function handleWeather(request,{fetcher=fetch,cache=globalThis.cach
   if (origin && origin !== url.origin || request.headers.get('Sec-Fetch-Site') === 'cross-site') return reply({error:'不支持跨站调用'},403);
   const city = weatherCity(url.searchParams.get('city'));
   if ((url.searchParams.get('city') || '').length > 60) return reply({error:'地区名称过长'},400);
-  const key = new Request(`${url.origin}/api/weather-cache?city=${encodeURIComponent(isDefaultWeatherCity(city)?'fuzhou-cangshan':city)}`);
+  const key = new Request(`${url.origin}/api/weather-cache?days=7&city=${encodeURIComponent(isDefaultWeatherCity(city)?'fuzhou-cangshan':city)}`);
   let old = null;
   try { const hit=await cache?.match(key); if(hit){const value=await hit.json();if(validWeather(value.weather))old=value.weather;} } catch { /* Optional cache failure must not prevent a forecast. */ }
   if (weatherStatus(old,now) === 'fresh') return reply({weather:old});

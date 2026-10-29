@@ -8,7 +8,13 @@ export function outfitAIInput(plan, purpose, preference = '', profile = {}) {
     requirements:{ shorts:fit.requireShorts, running:fit.run || fit.pe },
     weather:weather ? { date:weather.date, from:weather.from, to:weather.to, min:weather.min, max:weather.max, feelsMin:weather.feelsMin, feelsMax:weather.feelsMax, rainProbability:weather.rainProbability, status:weather.status } : null,
     weatherNote:fit.weatherNote||'',
-    candidates:fit.candidates.map((set,index)=>({ id:`set:${index}`, pieces:set.pieces.map(item=>({ id:item.id, name:item.name, category:item.category, color:item.color, warmth:item.warmth, preference:item.preference, wetWeather:item.wetWeather })), reasons:set.reasons })),
+    planning:plan.planning ? {
+      laundryAssumption:plan.planning.laundryAssumption,
+      laundryReturnDate:plan.planning.laundryReturnDate,
+      comparison:plan.planning.weatherComparison?.text || '',
+      reservations:plan.planning.reservations.slice(0,8).map(row=>row.text),
+    } : null,
+    candidates:fit.candidates.map((set,index)=>({ id:`set:${index}`, pieces:set.pieces.map(item=>({ id:item.id, name:item.name, category:item.category, color:item.color, warmth:item.warmth, preference:item.preference, wetWeather:item.wetWeather })), reasons:set.reasons, score:set.score, scoreReasons:set.scoreReasons||[] })),
   };
 }
 export function applyOutfitChoice(input, fit, result) {

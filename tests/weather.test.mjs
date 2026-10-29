@@ -27,6 +27,12 @@ assert.throws(()=>normalizeWeather({...raw,timezone:'UTC'},DEFAULT_WEATHER_LOCAT
 assert.throws(()=>normalizeWeather({...raw,hourly_units:{...raw.hourly_units,wind_speed_10m:'m/s'}},DEFAULT_WEATHER_LOCATION,now));
 assert.throws(()=>normalizeWeather(rawForecast('2026-10-18'),DEFAULT_WEATHER_LOCATION,now),/过期/);
 assert.equal(new URL(forecastURL(DEFAULT_WEATHER_LOCATION)).searchParams.get('timezone'),'Asia/Shanghai');
+assert.equal(new URL(forecastURL(DEFAULT_WEATHER_LOCATION)).searchParams.get('forecast_days'),'7');
+const week=normalizeWeather(rawForecast('2026-10-22',7),DEFAULT_WEATHER_LOCATION,now);
+assert.equal(week.hours.length,168);
+assert.ok(weatherDay(week,'2026-10-28',{now}),'seventh day is available for laundry planning');
+assert.equal(weatherDay(week,'2026-10-29',{now}),null,'no invented eighth forecast day');
+assert.throws(()=>normalizeWeather(rawForecast('2026-10-22',8),DEFAULT_WEATHER_LOCATION,now));
 const stored=new Map();const cache={async match(key){const v=stored.get(key.url);return v?Response.json(v):null;},async put(key,response){stored.set(key.url,await response.json());}};
 let calls=0;const fetcher=async(url)=>{calls++;assert.match(String(url),/^https:\/\/api.open-meteo.com\/v1\/forecast\?/);return Response.json(rawForecast());};
 const request=(extra='')=>new Request('https://test.pages.dev/api/weather'+extra);

@@ -1,7 +1,7 @@
-import { getCourseSegments, getSectionTime, seasonForDate, getWeekday } from './time.js?v=20261029-5';
-import { courseSectionRange } from './day-slots.js?v=20261029-5';
-import { studyProfile, STUDY_STATUS_LABELS } from './study-store.js?v=20261029-5';
-import { validDate } from './tasks-store.js?v=20261029-5';
+import { getCourseSegments, getSectionTime, seasonForDate, getWeekday } from './time.js?v=20261030-1';
+import { courseSectionRange } from './day-slots.js?v=20261030-1';
+import { studyProfile, STUDY_STATUS_LABELS } from './study-store.js?v=20261030-1';
+import { validDate } from './tasks-store.js?v=20261030-1';
 
 export { STUDY_STATUS_LABELS };
 const dayNumber = date => Date.parse(`${date}T00:00:00Z`)/86400000;

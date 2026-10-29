@@ -1,5 +1,5 @@
-import { getCurrentWeek, getWeekDates } from './time.js?v=20261029-5';
-import { showCourseDetail } from './app.js?v=20261029-5';
+import { getCurrentWeek, getWeekDates } from './time.js?v=20261030-1';
+import { showCourseDetail } from './app.js?v=20261030-1';
 
 let tickHandler = null;
 let compareState = { week: 1, classes: [null, null, null], activeTab: 'stats' };
