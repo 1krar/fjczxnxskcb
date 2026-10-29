@@ -1262,3 +1262,38 @@
 .sch-course-name, .m-ag-name { display:block; width:100%; padding:0; text-align:left; }
 .sch-course-name { display:-webkit-box; -webkit-line-clamp:2; font-size:0.875rem; line-height:1.4; max-height:2.8em; }
 .sch-section-time { font-size:0.6875rem; color:var(--color-text-secondary); }
+
+/* A quiet overview of actual teaching periods, without expanding every lesson. */
+.day-slots { margin:0 0 14px; padding:10px 0 12px; border-bottom:1px solid var(--color-border-light); }
+.day-slots-caption { display:flex; justify-content:space-between; gap:8px; align-items:center; margin-bottom:9px; font-size:0.75rem; color:var(--color-text-secondary); }
+.day-slots-legend { display:flex; align-items:center; gap:4px; font-size:0.6875rem; }
+.day-slots-legend i { display:inline-block; width:8px; height:8px; border:1px solid var(--color-border); border-radius:2px; }
+.day-slots-legend i.is-occupied { background:var(--color-primary); border-color:var(--color-primary); }
+.day-slots-blocks { display:grid; grid-template-columns:4fr 4fr 2fr; gap:10px; }
+.day-slots-block { min-width:0; }
+.day-slots-label { display:block; margin-bottom:5px; font-size:0.6875rem; color:var(--color-text-secondary); }
+.day-slots-periods { display:flex; gap:4px; }
+.day-slot { display:flex; justify-content:center; align-items:center; position:relative; flex:1; min-width:0; height:30px; border:1px solid var(--color-border); border-radius:5px; background:var(--color-surface); color:var(--color-text-secondary); font-size:0.75rem; font-variant-numeric:tabular-nums; }
+.day-slot.is-occupied { background:var(--color-primary-50); border-color:var(--color-primary-200, var(--color-primary)); color:var(--color-primary); font-weight:650; }
+.day-slot.is-unknown { border-style:dashed; }
+.day-slot small { margin-left:1px; font-size:0.5625rem; }
+.day-slot.is-current { outline:2px solid var(--color-primary); outline-offset:2px; }
+.day-slots-note { margin:9px 0 0; font-size:0.6875rem; line-height:1.5; color:var(--color-text-secondary); }
+.m-unassigned { display:flex; align-items:center; gap:12px; min-height:44px; padding:9px 12px; margin:4px -4px; border:1px dashed var(--color-border); border-radius:var(--radius-md); color:var(--color-text-secondary); font-size:0.75rem; }
+.m-unassigned > .mono { flex:0 0 auto; font-size:0.6875rem; }
+.m-unassigned > span:last-child { display:flex; align-items:center; flex-wrap:wrap; gap:4px 8px; }
+.m-unassigned small { font-size:0.6875rem; color:var(--color-primary); }
+.m-unassigned.is-current { border-color:var(--color-primary-200, var(--color-primary)); }
+.m-school-break { display:flex; align-items:center; justify-content:center; gap:8px; padding:10px 0; font-size:0.6875rem; color:var(--color-text-secondary); }
+.m-school-break::before, .m-school-break::after { content:''; height:1px; flex:1; background:var(--color-border-light); }
+.m-slots-empty { margin:2px 0 8px; font-size:0.8125rem; color:var(--color-text-secondary); }
+.sch-slots-legend { margin:0 0 8px; font-size:0.75rem; color:var(--color-text-secondary); }
+.sch-cell-marker { position:absolute; inset:0; display:grid; place-items:center; color:var(--color-border); font-size:0.75rem; pointer-events:none; }
+.sch-cell.is-unknown .sch-cell-marker { color:var(--color-text-secondary); }
+.sch-cell.is-unassigned { background:var(--color-bg); }
+.sch-unknown-courses { display:flex; flex-wrap:wrap; gap:8px 14px; margin:12px 0; align-items:center; font-size:0.75rem; color:var(--color-text-secondary); }
+@media (max-width:360px) {
+  .day-slots-blocks { gap:8px; }
+  .day-slots-periods { gap:3px; }
+  .m-unassigned { gap:8px; padding-inline:8px; }
+}

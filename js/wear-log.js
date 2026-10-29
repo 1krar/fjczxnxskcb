@@ -1,12 +1,12 @@
-import { reconcileRows } from './ui-list.js?v=20261024-2';
-import { CATEGORIES } from './daily-store.js?v=20261024-2';
-import { WEAR_SLOTS, WEAR_FEEDBACK, wearDate } from './wear-model.js?v=20261024-2';
-import { saveActualWear, changeWearRecord, samePieces } from './wear-store.js?v=20261024-2';
-import { escapeText as esc } from './tasks-store.js?v=20261024-2';
+import { reconcileRows } from './ui-list.js?v=20261029-3';
+import { CATEGORIES } from './daily-store.js?v=20261029-3';
+import { WEAR_SLOTS, WEAR_FEEDBACK, wearDate } from './wear-model.js?v=20261029-3';
+import { saveActualWear, changeWearRecord, samePieces } from './wear-store.js?v=20261029-3';
+import { escapeText as esc } from './tasks-store.js?v=20261029-3';
 
 const names=pieces=>pieces.map(piece=>piece.name).join(' ＋ ');
-export function mountWearLog(root,{getData,getDate,onSaved,guard}) {
-  root.innerHTML=`<div class="daily-heading"><h2>穿搭记录</h2><button type="button" class="daily-text-button" data-wear-new>记录 / 补记</button></div><p class="daily-small">选中只是计划，确认穿过才计数；日常和运动换装分开记。</p><p class="daily-feedback" data-wear-status role="status"></p><div data-wear-current></div><details class="wear-history"><summary>最近记录与已收起内容</summary><div data-wear-history></div><button type="button" class="daily-text-button" data-wear-more hidden>再显示10条</button></details>
+export function mountWearLog(root,{getData,getDate=()=>wearDate(new Date()),onSaved,guard}) {
+  root.innerHTML=`<div class="daily-heading"><h2>今天穿了什么</h2><button type="button" class="daily-text-button" data-wear-new>记录今天 / 补记</button></div><p class="daily-small"><span data-wear-date></span> · 穿过后再记，日常和运动换装分开记。</p><p class="daily-feedback" data-wear-status role="status"></p><div data-wear-current></div><details class="wear-history"><summary>最近记录与已收起内容</summary><div data-wear-history></div><button type="button" class="daily-text-button" data-wear-more hidden>再显示10条</button></details>
     <dialog class="capture-dialog wear-dialog" aria-labelledby="wear-dialog-title"><form data-wear-form>
       <div class="capture-heading"><div><h2 id="wear-dialog-title">记录实际穿搭</h2><p>勾选实际穿过的单品，记一部分也可以。</p></div><button type="button" class="capture-close" data-wear-close aria-label="关闭穿搭记录">×</button></div>
       <div class="wardrobe-fields"><label>穿着日期（必填）<input type="date" name="wearDate" required min="2000-01-01" max="${wearDate(new Date())}"></label><label>这次穿着<select name="wearSlot">${Object.entries(WEAR_SLOTS).map(([key,label])=>`<option value="${key}">${label}</option>`).join('')}</select></label></div>
@@ -26,8 +26,10 @@ export function mountWearLog(root,{getData,getDate,onSaved,guard}) {
     openRecordIds=new Set([...root.querySelectorAll('.wear-record-more[open]')].map(node=>node.closest('[data-wear-id]').dataset.wearId));
     const focused=document.activeElement, focusId=focused?.closest('[data-wear-id]')?.dataset.wearId;
     const focusAction=focused?.dataset.wearAction, focusEdit=focused?.hasAttribute('data-wear-edit'), focusSummary=focused?.matches('.wear-record-more > summary');
-    const data=getData(),date=getDate(),current=(data.wearLogs||[]).filter(row=>row.date===date&&!row.deletedAt&&(row.selectedPieces.length||row.actualPieces.length));
-    reconcileRows($('[data-wear-current]'),current.length?current.map(record).join(''):'<p class="daily-muted">这天还没记录。选好一套后留作计划，穿过再确认。</p>','data-wear-id');
+    const data=getData(),date=getDate(),today=wearDate(new Date()),current=(data.wearLogs||[]).filter(row=>row.date===date&&!row.deletedAt&&(row.selectedPieces.length||row.actualPieces.length));
+    const actualCount=current.filter(row=>row.actualPieces.length&&!row.actualUndoneAt).length;
+    $('[data-wear-date]').textContent=`${date===today?'今天 · ':''}${date}${actualCount?` · 已记${actualCount}次实穿`:''}`;
+    reconcileRows($('[data-wear-current]'),current.length?current.map(record).join(''):`<p class="daily-muted">${date===today?'今天':esc(date)}还没记实穿。穿过后记下，也可以补记以前的穿搭。</p>`,'data-wear-id');
     const history=[...(data.wearLogs||[])].filter(row=>row.date!==date||row.deletedAt).sort((a,b)=>b.date.localeCompare(a.date)||b.updatedAt.localeCompare(a.updatedAt));
     $('.wear-history > summary').textContent=`最近记录与已收起内容 · ${history.length}条`;
     reconcileRows($('[data-wear-history]'),history.slice(0,limit).map(record).join('')||'<p class="daily-small">还没有其他记录。</p>','data-wear-id');
@@ -56,7 +58,7 @@ export function mountWearLog(root,{getData,getDate,onSaved,guard}) {
   }
   function open(date=getDate(),slot='daily') {
     guard();const today=wearDate(new Date());if(date>today)date=today;
-    form.reset();form.elements.wearDate.value=date;form.elements.wearSlot.value=slot;fill(date,slot);dialog.showModal();form.elements.wearDate.focus();
+    form.elements.wearDate.max=today;form.reset();form.elements.wearDate.value=date;form.elements.wearSlot.value=slot;fill(date,slot);dialog.showModal();form.elements.wearDate.focus();
   }
   const click=event=>{
     const button=event.target.closest('button');if(!button||!root.contains(button))return;

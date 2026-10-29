@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createRefreshGate } from '../js/refresh-guard.js';
+import { createRefreshGate, trackEditors } from '../js/refresh-guard.js';
 
 let editing=true, refreshes=[], statuses=[], queue=[];
 const gate=createRefreshGate({canRefresh:()=>!editing,refresh:reasons=>refreshes.push(reasons),pending:value=>statuses.push(value),enqueue:task=>queue.push(task)});
@@ -17,4 +17,31 @@ gate.clear(); editing=false; gate.flush(); drain();
 assert.equal(refreshes.length,1,'an explicit route change cancels stale work');
 gate.request('resize'); drain();
 assert.deepEqual(refreshes.at(-1),['resize']);
-console.log('Deferred refresh editor, coalescing and navigation checks passed.');
+// Hiding a workspace preserves its draft but must not freeze another workspace's date.
+let panelHidden=false;
+const listeners=new Map();
+const form={isConnected:true,closest:selector=>selector==='[hidden]'?(panelHidden?{}:null):selector==='.page-view.active'?{}:null,getAttribute:()=>null};
+const control={isConnected:true,closest:selector=>selector==='form'?form:form.closest(selector),matches:()=>true};
+const draft={...control,value:'保留的偏好'};
+const preview={...control,hidden:false,childElementCount:1,textContent:'待确认导入'};
+let extra='';
+const doc={activeElement:null,addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:()=>{},querySelector:()=>null,
+  querySelectorAll:selector=>selector.endsWith(' form')?[form]:selector.includes('[data-preserve-draft]')&&extra==='draft'?[draft]:selector.includes('[data-refresh-block]')&&extra==='preview'?[preview]:[]};
+const editors=trackEditors(doc,()=>{});
+listeners.get('input')({target:control});
+assert.equal(editors.busy(),true,'visible dirty form blocks a refresh');
+panelHidden=true;
+assert.equal(editors.busy(),false,'hidden dirty form is preserved without blocking other workspaces');
+panelHidden=false;
+assert.equal(editors.busy(),true,'returning to the workspace restores draft protection');
+listeners.get('app:form-saved')({target:form});
+extra='draft';
+assert.equal(editors.busy(),true);
+panelHidden=true;
+assert.equal(editors.busy(),false,'hidden preference text is not an active editor');
+extra='preview';
+assert.equal(editors.busy(),false,'hidden import preview is not an active editor');
+panelHidden=false;
+assert.equal(editors.busy(),true,'visible pending import remains protected');
+editors.destroy();
+console.log('Deferred refresh: editor coalescing, navigation, hidden drafts and workspace protection passed.');

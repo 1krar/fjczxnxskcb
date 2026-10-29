@@ -1,15 +1,15 @@
-import { selectedWear } from './wear-store.js?v=20261024-2';
-import { notesForCourse } from './persistent-model.js?v=20261024-2';
-import { renderContextNotes } from './context-notes.js?v=20261024-2';
-import { readDailyData, saveDailyProfile, DAILY_KEY } from './daily-store.js?v=20261024-2';
-import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261024-2';
-import { buildAdvice, chooseAdvice, planOutfits, plannedOutfit, departurePlan, localDate, nextDate, dailyFacts, shortAdvice } from './daily-model.js?v=20261024-2';
-import { cachedWeather } from './weather-client.js?v=20261024-2';
-import { weatherSummary } from './weather-model.js?v=20261024-2';
-import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261024-2';
-import { aiEnabled, AI_KEY, DAILY_CACHE_KEY, cachedDaily, dailyIdentity, requestDaily, canRequestDaily, dailyWaitMessage } from './ai-client.js?v=20261024-2';
-import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261024-2';
-import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261024-2';
+import { selectedWear } from './wear-store.js?v=20261029-3';
+import { notesForCourse } from './persistent-model.js?v=20261029-3';
+import { renderContextNotes } from './context-notes.js?v=20261029-3';
+import { readDailyData, saveDailyProfile, DAILY_KEY } from './daily-store.js?v=20261029-3';
+import { itemsForScope, escapeText as esc, dateLabel } from './tasks-store.js?v=20261029-3';
+import { buildAdvice, chooseAdvice, planOutfits, plannedOutfit, departurePlan, localDate, nextDate, dailyFacts, shortAdvice } from './daily-model.js?v=20261029-3';
+import { cachedWeather } from './weather-client.js?v=20261029-3';
+import { weatherSummary } from './weather-model.js?v=20261029-3';
+import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261029-3';
+import { aiEnabled, AI_KEY, DAILY_CACHE_KEY, cachedDaily, dailyIdentity, requestDaily, canRequestDaily, dailyWaitMessage } from './ai-client.js?v=20261029-3';
+import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261029-3';
+import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261029-3';
 
 function getContext(state, dm, now) {
   const today = localDate(now);

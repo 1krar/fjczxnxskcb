@@ -27,7 +27,7 @@ export function markFormSaved(form) {
 export function trackEditors(doc, onSettled) {
   const dirty = new WeakSet();
   const activeSurface = node => node?.isConnected && (
-    node.closest('dialog') ? node.closest('dialog').open : !!node.closest('.page-view.active')
+    node.closest('dialog') ? node.closest('dialog').open : !node.closest('[hidden]') && !!node.closest('.page-view.active')
   );
   const change = event => {
     const control=event.target;
@@ -48,10 +48,10 @@ export function trackEditors(doc, onSettled) {
         if (activeSurface(form) && (dirty.has(form) || form.getAttribute('aria-busy')==='true')) return true;
       }
       for (const node of doc.querySelectorAll('.page-view.active [data-refresh-block]')) {
-        if (!node.hidden && (node.childElementCount || node.textContent.trim())) return true;
+        if (activeSurface(node) && !node.hidden && (node.childElementCount || node.textContent.trim())) return true;
       }
       for (const node of doc.querySelectorAll('.page-view.active [data-preserve-draft]')) {
-        if (node.value?.trim()) return true;
+        if (activeSurface(node) && node.value?.trim()) return true;
       }
       const focus=doc.activeElement;
       return !!(activeSurface(focus) && !focus.closest('[data-refresh-safe]') &&

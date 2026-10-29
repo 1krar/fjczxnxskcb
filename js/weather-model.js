@@ -53,12 +53,30 @@ export function weatherDay(weather,date,{now=new Date(),from='08:00',to='20:00'}
   const status = weatherStatus(weather,now);
   if (status === 'missing' || status === 'expired') return null;
   const rows = weather.hours.filter(row=>row.time.startsWith(date+'T') && row.time.slice(11)>=from && row.time.slice(11)<=to);
+  return summarizeDay(weather,date,rows,status,from,to);
+}
+function summarizeDay(weather,date,rows,status,from,to) {
   const values = key => rows.map(row=>row[key]).filter(value=>value!==null);
   if (!rows.length || !values('temperature').length) return null;
   const min = key => values(key).length ? Math.min(...values(key)) : null;
   const max = key => values(key).length ? Math.max(...values(key)) : null;
   return { date, from, to, status, location:weather.location.name, fetchedAt:weather.fetchedAt, rows,
     min:min('temperature'), max:max('temperature'), feelsMin:min('feelsLike'), feelsMax:max('feelsLike'), rainProbability:max('rainProbability'), wind:max('wind'), humidity:max('humidity') };
+}
+const clockMinutes = value => typeof value==='string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value) ? Number(value.slice(0,2))*60+Number(value.slice(3)) : null;
+// Hourly samples describe the hours overlapping a real activity window. Keep
+// disjoint classes separate so rain/cold in the free interval cannot decide PE clothes.
+export function weatherIntervals(weather,date,intervals,{now=new Date()}={}) {
+  const status=weatherStatus(weather,now);
+  if(status==='missing'||status==='expired'||!Array.isArray(intervals)||!intervals.length)return null;
+  const windows=intervals.map(row=>({from:row?.from,to:row?.to,start:clockMinutes(row?.from),end:clockMinutes(row?.to)}));
+  if(windows.some(row=>row.start===null||row.end===null||row.end<=row.start))return null;
+  windows.sort((a,b)=>a.start-b.start||a.end-b.end);
+  const rows=weather.hours.filter(row=>row.time.startsWith(date+'T')&&windows.some(window=>{
+    const start=clockMinutes(row.time.slice(11));return start<window.end&&start+60>window.start;
+  }));
+  const result=summarizeDay(weather,date,rows,status,windows[0].from,windows.reduce((last,row)=>row.end>last.end?row:last).to);
+  return result?{...result,intervals:windows.map(({from,to})=>({from,to}))}:null;
 }
 export function weatherSummary(day) {
   if (!day) return '天气尚未更新';

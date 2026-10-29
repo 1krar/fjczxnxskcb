@@ -82,6 +82,20 @@ function stripSeconds(timeStr) {
   return timeStr;
 }
 
+// Use the selected date, including dates without a course, for school bell times.
+export function seasonForDate(date, courses = [], rule = {}) {
+  const actual = courses.find(course => course.date === date && course.season);
+  if (actual) return actual.season;
+  const monthDay = String(date).slice(5);
+  for (const [season, description] of Object.entries(rule || {})) {
+    const range = String(description).match(/(\d{2}-\d{2})_to_(\d{2}-\d{2})/);
+    if (range && (range[1] <= range[2]
+      ? monthDay >= range[1] && monthDay <= range[2]
+      : monthDay >= range[1] || monthDay <= range[2])) return season;
+  }
+  return null;
+}
+
 export function getSectionTime(section, season, sectionTimes) {
   const seasonData = sectionTimes[season];
   if (!seasonData) return null;

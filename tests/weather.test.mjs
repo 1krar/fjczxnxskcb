@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { normalizeWeather, validWeather, weatherStatus, weatherDay, weatherFacts, DEFAULT_WEATHER_LOCATION, forecastURL } from '../js/weather-model.js';
+import { normalizeWeather, validWeather, weatherStatus, weatherDay, weatherFacts, weatherIntervals, DEFAULT_WEATHER_LOCATION, forecastURL } from '../js/weather-model.js';
 import { handleWeather } from '../server/weather-service.js';
 import { rawForecast, forecast } from './weather-fixture.mjs';
 const now=new Date('2026-10-22T08:00:00+08:00'),weather=forecast(now);
@@ -9,6 +9,14 @@ assert.equal(weatherStatus(weather,new Date(+now+31*60000)),'stale');
 assert.equal(weatherStatus(weather,new Date(+now+6*3600000+1)),'expired');
 assert.equal(weatherDay(weather,'2026-10-23',{now}).rows.length,13);
 assert.equal(weatherDay(weather,'2026-10-25',{now}),null);
+const intervalDay=weatherIntervals(weather,'2026-10-23',[{from:'14:50',to:'15:40'}],{now});
+assert.deepEqual(intervalDay.rows.map(row=>row.time.slice(11)),['14:00','15:00'],'minute boundaries include overlapping hourly samples, excluding the hour after class');
+assert.deepEqual([intervalDay.from,intervalDay.to],['14:50','15:40']);
+assert.deepEqual(weatherIntervals(weather,'2026-10-23',[{from:'14:00',to:'14:40'},{from:'08:00',to:'08:40'}],{now}).rows.map(row=>row.time.slice(11)),['08:00','14:00'],'gaps between PE classes are excluded');
+assert.equal(weatherIntervals(weather,'2026-10-25',[{from:'14:00',to:'15:40'}],{now}),null);
+assert.equal(weatherIntervals(weather,'2026-10-23',[{from:'15:40',to:'14:00'}],{now}),null);
+assert.equal(weatherIntervals(weather,'2026-10-23',[{from:'29:00',to:'30:00'}],{now}),null);
+assert.equal(weatherIntervals(weather,'2026-10-23',[{from:'14:00',to:'15:40'}],{now:new Date(+now+7*3600000)}),null);
 assert.equal(weatherFacts(weather,now).length,2);
 assert.equal(weatherFacts(weather,new Date(+now+31*60000)).length,0,'old weather is not used for AI prose');
 const corrupt=structuredClone(weather);corrupt.hours[0].rainProbability=999;assert.equal(validWeather(corrupt),false);
@@ -53,5 +61,24 @@ await assert.rejects(client.refreshWeather('',true),/这分钟/);
 assert.equal(local.get('course-dashboard-daily-v1'),'preserved-personal-wardrobe');assert.equal(client.cachedWeather(),fresh);
 globalThis.fetch=async()=>new Response('',{status:502});await assert.rejects(client.refreshWeather('不存在的地区'));
 assert.equal(local.get('course-dashboard-daily-v1'),'preserved-personal-wardrobe','weather failure never rewrites personal data');
+// A failed automatic fetch gets a bounded one-minute retry, not a 30-minute lockout.
+const nativeNow=Date.now,clientNow=Date.now();
+Date.now=()=>clientNow+61000;
+globalThis.fetch=async()=>Response.json({weather:{...forecast(new Date(clientNow),new Date(clientNow+8*3600000).toISOString().slice(0,10)),location:{...DEFAULT_WEATHER_LOCATION,name:'重试地区'}}});
+assert.equal((await client.refreshWeather('不存在的地区')).location.name,'重试地区');
+Date.now=nativeNow;
+
+// A slow response for a previous location must not evict the user's new one.
+let releaseOld,releaseNew;
+globalThis.fetch=url=>new Promise(resolve=>{
+  const city=new URL(String(url),'https://test.pages.dev').searchParams.get('city');
+  if(city==='旧地区')releaseOld=resolve;else if(city==='新地区')releaseNew=resolve;else throw Error('unexpected city');
+});
+const oldCity=client.refreshWeather('旧地区'),newCity=client.refreshWeather('新地区');
+const at=new Date(),base=forecast(at,new Date(+at+8*3600000).toISOString().slice(0,10));
+releaseNew(Response.json({weather:{...base,location:{...DEFAULT_WEATHER_LOCATION,name:'新地区'}}}));await newCity;
+releaseOld(Response.json({weather:{...base,location:{...DEFAULT_WEATHER_LOCATION,name:'旧地区'}}}));await oldCity;
+assert.equal(client.cachedWeather('新地区').location.name,'新地区');
+assert.equal(JSON.parse(local.get(client.WEATHER_KEY)).city,'新地区','latest selected location remains persistent after responses finish out of order');
 globalThis.fetch=nativeFetch;
-console.log('Weather client: static localhost fallback, refresh cooldown, independent cache and personal-data preservation passed.');
+console.log('Weather client: static localhost fallback, cooldown/retry, city-response races, independent cache and personal-data preservation passed.');

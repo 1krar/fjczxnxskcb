@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import { wardrobeDate, setWardrobeDate, wardrobeDateLabel } from '../js/wardrobe-view.js';
+const view={follow:'tomorrow',date:''};
+assert.equal(wardrobeDate(view,'2026-10-29'),'2026-10-30');
+assert.equal(wardrobeDate(view,'2026-10-30'),'2026-10-31','saving a plan must not pin a relative date');
+setWardrobeDate(view,'2026-10-30','2026-10-29');
+assert.equal(view.follow,'tomorrow');
+assert.equal(wardrobeDate(view,'2026-10-31'),'2026-11-01');
+setWardrobeDate(view,'2026-10-29','2026-10-29');
+assert.equal(wardrobeDate(view,'2026-10-30'),'2026-10-30');
+setWardrobeDate(view,'2026-11-05','2026-10-29');
+assert.equal(wardrobeDate(view,'2026-10-30'),'2026-11-05');
+assert.equal(wardrobeDateLabel('2026-10-30','2026-10-29'),'明天 · 10月30日 周五');
+assert.equal(wardrobeDate({follow:'tomorrow'},'2026-12-31'),'2027-01-01');
+console.log('Wardrobe relative dates: tomorrow/today follow midnight, custom dates remain explicit.');

@@ -1,11 +1,11 @@
-import { weatherDay, weatherStatus } from './weather-model.js?v=20261024-2';
+import { weatherDay, weatherStatus } from './weather-model.js?v=20261029-3';
 
 export function weatherHeadline(weather,now=new Date(),city='') {
   const today=new Date(+now+8*3600000).toISOString().slice(0,10),status=weatherStatus(weather,now);
   const day=weatherDay(weather,today,{now});
   const place=weather?.location?.name||city||'福州仓山附近';
   const range=day?`${Math.round(day.min)}—${Math.round(day.max)}°C`:'';
-  const label=day?(status==='stale'?'日间旧预报':'日间预报'):status==='expired'?'旧预报已过期':'天气未更新';
+  const label=day?(status==='stale'?'今日日间旧预报':'今日日间预报'):status==='expired'?'旧预报已过期':'天气未更新';
   let rain='';
   if(status==='fresh') {
     const rows=weather.hours.filter(row=>row.time.slice(0,10)===today&&Date.parse(row.time+':00+08:00')+3600000>+now);

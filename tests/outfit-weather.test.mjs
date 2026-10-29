@@ -29,4 +29,38 @@ assert.ok(input.candidates.every(row=>row.pieces.every(piece=>data.garments.some
 const backup=structuredClone(data);delete backup.profile.thermalPreference;delete backup.profile.changeMode;for(const item of backup.garments){delete item.wetWeather;delete item.preference;}
 const restored=validateDailyData(backup);assert.equal(restored.profile.thermalPreference,'unknown');assert.equal(restored.profile.changeMode,'unknown');assert.equal(restored.garments[0].wetWeather,'unknown');assert.equal(restored.garments.find(item=>item.id==='shorts-2').state,'rewear');
 assert.equal(planOutfits(data,date,[],[],weather(10),new Date(+now+7*3600000)).weather,null,'expired weather cannot determine clothing warmth');
-console.log('Outfits: hot/cold/layers, rain shoes, separate PE, all-day constraints, drying/rewear states, old backups and real AI candidate mapping passed.');
+
+// Different days must select their own forecast, including the default tomorrow.
+const byDayRaw=rawForecast();
+byDayRaw.hourly.temperature_2m=byDayRaw.hourly.time.map(time=>time.startsWith('2026-10-22')?32:time.startsWith(date)?12:22);
+byDayRaw.hourly.apparent_temperature=[...byDayRaw.hourly.temperature_2m];
+const byDay=normalizeWeather(byDayRaw,DEFAULT_WEATHER_LOCATION,now);
+assert.deepEqual(['2026-10-22',date,'2026-10-24'].map(day=>planOutfits(data,day,[],[],byDay,now).weather.min),[32,12,22]);
+
+const sportData=emptyDailyData();
+sportData.garments=[garment('light-top','tshirt',{warmth:'light'}),garment('warm-top','tshirt',{warmth:'warm'}),garment('light-pants','joggers',{warmth:'light'}),garment('warm-pants','joggers',{warmth:'warm'}),garment('layer','jacket')];
+const variedRaw=rawForecast();
+variedRaw.hourly.temperature_2m=variedRaw.hourly.time.map(time=>time.startsWith(date)&&time.slice(11)>='20:00'?10:28);
+variedRaw.hourly.apparent_temperature=[...variedRaw.hourly.temperature_2m];
+variedRaw.hourly.precipitation_probability=variedRaw.hourly.time.map(time=>time.startsWith(date)&&time.slice(11)>='20:00'?70:0);
+const varied=normalizeWeather(variedRaw,DEFAULT_WEATHER_LOCATION,now);
+plan=planOutfits(sportData,date,pe,[],varied,now);
+assert.equal(plan.daily.weather,plan.weather);assert.equal(plan.sport.weather,plan.sportWeather);
+assert.deepEqual([plan.weather.min,plan.weather.rainProbability],[10,70],'daily preparation retains the whole selected-day window');
+assert.deepEqual([plan.sportWeather.from,plan.sportWeather.to,plan.sportWeather.min,plan.sportWeather.rainProbability],['14:00','15:40',28,0],'night cold/rain cannot decide afternoon PE clothing');
+assert.ok(plan.daily.sets[0].pieces.some(item=>item.id==='warm-top'));
+assert.ok(plan.sport.sets[0].pieces.some(item=>item.id==='light-top'));
+assert.ok(!plan.sport.sets[0].pieces.some(item=>item.id==='layer'));
+assert.equal(outfitAIInput(plan,'sport','',sportData.profile).weather.to,'15:40');
+assert.equal(outfitAIInput(plan,'sport','',sportData.profile).weather.min,28);
+assert.match(outfitAIInput(plan,'sport','',sportData.profile).weatherNote,/14:00—15:40/);
+sportData.plans=[{date,run:true}];
+plan=planOutfits(sportData,date,pe,[],varied,now);
+assert.equal(plan.sportWeather,plan.weather,'unknown running time cannot be silently assumed to match PE');
+assert.match(plan.sportWeatherNote,/校园跑时段未设置/);
+sportData.plans=[];
+plan=planOutfits(sportData,date,[{...pe[0],endTime:''}],[],varied,now);
+assert.equal(plan.sportWeather,plan.weather);assert.match(plan.sportWeatherNote,/时段不可用/);
+plan=planOutfits(sportData,date,pe,[],null,now);
+assert.equal(outfitAIInput(plan,'sport','',sportData.profile).weather,null,'missing PE weather cannot fall back to another date');
+console.log('Outfits: selected-day weather, activity-hour weather, untimed running, hot/cold/layers, rain shoes, PE constraints, drying/rewear states and AI candidate mapping passed.');

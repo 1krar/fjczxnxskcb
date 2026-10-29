@@ -1,12 +1,7 @@
-import { getSectionTime } from './time.js?v=20261024-2';
-import { NOTICE_VERSION, NOTICE_FIELDS, normalizeNoticeExtraction } from './notice-form.js?v=20261024-2';
+import { getSectionTime, seasonForDate } from './time.js?v=20261029-3';
+export { seasonForDate } from './time.js?v=20261029-3';
+import { NOTICE_VERSION, NOTICE_FIELDS, normalizeNoticeExtraction } from './notice-form.js?v=20261029-3';
 
-export function seasonForDate(date,courses,rule) {
-  const actual=courses.find(course=>course.date===date&&course.season);if(actual)return actual.season;
-  const monthDay=date.slice(5);
-  for(const [season,description]of Object.entries(rule||{})){const range=String(description).match(/(\d{2}-\d{2})_to_(\d{2}-\d{2})/);if(range&&(range[1]<=range[2]?monthDay>=range[1]&&monthDay<=range[2]:monthDay>=range[1]||monthDay<=range[2]))return season;}
-  return null;
-}
 export function describeTimeContext(date,time,courses,sectionTimes,seasonRule) {
   if(!date||!time)return '';
   const moment=new Date(`${date}T${time}:00`),dayCourses=courses.filter(course=>course.date===date);

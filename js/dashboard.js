@@ -1,18 +1,19 @@
-import { notesForCourse, notesForMoment } from './persistent-model.js?v=20261024-2';
-import { renderContextNotes, mountNoteActions } from './context-notes.js?v=20261024-2';
-import { getTodayStr, getDayName, getCurrentWeek } from './time.js?v=20261024-2';
-import { showCourseDetail } from './app.js?v=20261024-2';
-import { formatLocation } from './location.js?v=20261024-2';
-import { mountTodayItems, openCapture } from './tasks.js?v=20261024-2';
-import { escapeText, itemsForScope } from './tasks-store.js?v=20261024-2';
-import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261024-2';
-import { readHomeLayout, defaultHomeLayout, homeModuleHeading, mountHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261024-2';
-import { renderUpcomingCourses, courseListCount, courseContinuation } from './home-courses.js?v=20261024-2';
-import { mountDailyAssistant } from './daily-widgets.js?v=20261024-2';
-import { mountTodayAgenda } from './today-agenda.js?v=20261024-2';
-import { readDailyData } from './daily-store.js?v=20261024-2';
-import { departurePlan } from './daily-model.js?v=20261024-2';
-import { mountWeather } from './weather-widget.js?v=20261024-2';
+import { notesForCourse, notesForMoment } from './persistent-model.js?v=20261029-3';
+import { renderContextNotes, mountNoteActions } from './context-notes.js?v=20261029-3';
+import { getTodayStr, getDayName, getCurrentWeek } from './time.js?v=20261029-3';
+import { showCourseDetail } from './app.js?v=20261029-3';
+import { formatLocation } from './location.js?v=20261029-3';
+import { mountTodayItems, openCapture } from './tasks.js?v=20261029-3';
+import { escapeText, itemsForScope } from './tasks-store.js?v=20261029-3';
+import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261029-3';
+import { readHomeLayout, defaultHomeLayout, homeModuleHeading, mountHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261029-3';
+import { renderUpcomingCourses, courseListCount, courseContinuation, renderUnassignedHint } from './home-courses.js?v=20261029-3';
+import { getDaySlots } from './day-slots.js?v=20261029-3';
+import { mountDailyAssistant } from './daily-widgets.js?v=20261029-3';
+import { mountTodayAgenda } from './today-agenda.js?v=20261029-3';
+import { readDailyData } from './daily-store.js?v=20261029-3';
+import { departurePlan } from './daily-model.js?v=20261029-3';
+import { mountWeather } from './weather-widget.js?v=20261029-3';
 
 const esc = escapeText;
 let tickHandler = null;
@@ -65,7 +66,7 @@ function courseButton(course, state, segment = null) {
   </button>`;
 }
 
-function renderStatus(context, courses, nextDay, state, now) {
+function renderStatus(context, courses, nextDay, state, now, daySlots) {
   const label = STATE_LABELS[context.state];
   const current = context.state === 'IN_CLASS';
   const resting = ['NO_CLASS', 'WEEKEND', 'DAY_FINISHED', 'TIME_UNKNOWN'].includes(context.state);
@@ -94,7 +95,7 @@ function renderStatus(context, courses, nextDay, state, now) {
     } catch { /* Course time stays available when optional daily preferences cannot be read. */ }
   }
   const continuation=!resting?courseContinuation(context.currentCourse||context.nextCourse,context.currentSegment,now):'';
-  return `<div class="status-main${resting ? ' is-resting' : ''}">${resting && context.state!=='TIME_UNKNOWN'?'':`<div class="status-heading"><div class="status-tag accent-${label.accent}">${label.label}</div></div>`}<div class="status-focus-row${countdown ? ' has-countdown' : ''}"><div class="status-course-info">${content}</div>${countdown}</div>${support}${continuation?`<p class="status-continuation">${esc(continuation)}</p>`:''}</div><div id="dash-course-notes"></div>`;
+  return `<div class="status-main${resting ? ' is-resting' : ''}">${resting && context.state!=='TIME_UNKNOWN'?'':`<div class="status-heading"><div class="status-tag accent-${label.accent}">${label.label}</div></div>`}<div class="status-focus-row${countdown ? ' has-countdown' : ''}"><div class="status-course-info">${content}</div>${countdown}</div>${support}${continuation?`<p class="status-continuation">${esc(continuation)}</p>`:''}</div><div id="dash-unassigned-hint">${renderUnassignedHint(daySlots, now)}</div><div id="dash-course-notes"></div>`;
 }
 
 function progressPercent(course, now, segment) {
@@ -124,13 +125,14 @@ export function renderDashboard(container, state, dm) {
   const now = new Date();
   const today = getTodayStr();
   const courses = dm.getCoursesByDate(state.currentClass, today);
+  const daySlots = getDaySlots({date:today,courses,sectionTimes:dm.getSectionTimes(),seasonRule:dm.getSemesterInfo().seasonRule,semesterInfo:dm.getSemesterInfo()});
   const nextDay = findNextClassDay(dm, state.currentClass, today);
   const context = getTodayState(courses, now);
   const semester = getSemesterProgress(dm.getSemesterInfo());
   const scope={semester:dm.getSemesterInfo().semester,className:state.currentClass};
   const layout=()=>{try{return readHomeLayout(scope);}catch{return defaultHomeLayout();}};
   container.innerHTML = `<section class="today-page"><div id="dash-advice-slot"></div><header class="today-header-row"><h1 class="today-date-sub"><a href="#/agenda" aria-label="打开日历与日程"><time datetime="${today}">${Number(today.slice(5, 7))}月${Number(today.slice(8))}日 · 星期${getDayName(today)}</time></a></h1><span class="today-week-badge">${semester.label}</span><button type="button" class="daily-restore" data-restore-advice hidden>恢复今日一句</button></header><span class="sr-only" id="dash-advice-status" role="status" aria-live="polite"></span>
-    <div id="dash-weather-slot"></div><div class="today-body-grid"><div class="today-now-column"><section class="today-status accent-${STATE_LABELS[context.state].accent}" id="dash-status" aria-label="当前课程与下一次安排">${renderStatus(context, courses, nextDay, state, now)}</section>
+    <div id="dash-weather-slot"></div><div class="today-body-grid"><div class="today-now-column"><section class="today-status accent-${STATE_LABELS[context.state].accent}" id="dash-status" aria-label="当前课程与下一次安排">${renderStatus(context, courses, nextDay, state, now, daySlots)}</section>
     <div id="dash-planner-slot"></div><div id="dash-moment-notes"></div><p class="context-notes-status" data-notes-status role="status" aria-live="polite"></p><div class="home-modules" id="dash-home-modules"><section class="home-module" id="dash-personal-slot" data-home-module="items"></section><section class="home-module today-course-list" id="dash-course-list" data-home-module="courses"${!courses.length?' hidden':''}>${homeModuleHeading('courses')}<div id="dash-courses-content"><div class="today-timeline" id="dash-timeline">${renderUpcomingCourses(courses,now,state,layout().expanded.courses)}</div></div></section></div><p class="home-layout-status" id="dash-layout-status" role="status" aria-live="polite"></p></div>
     <div class="today-support-column">
     <div id="dash-prep-slot"></div>${renderOverview(courses, now, dm.getSemesterInfo())}</div></div></section>`;
@@ -173,6 +175,12 @@ export function renderDashboard(container, state, dm) {
       } else container.querySelector('[data-home-toggle="courses"]').focus({preventScroll:true});
     }
   }
+  function refreshUnassigned(time) {
+    const slot=container.querySelector('#dash-unassigned-hint');
+    if (!slot) return;
+    const markup=renderUnassignedHint(daySlots,time);
+    if (slot.innerHTML!==markup) slot.innerHTML=markup;
+  }
   refreshCourses(now);
   refreshNotes(now);
   const allCourses = [...courses, ...(nextDay?.courses || [])];
@@ -192,13 +200,13 @@ export function renderDashboard(container, state, dm) {
       const status = container.querySelector('#dash-status');
       const statusFocused = status.contains(document.activeElement);
       status.className = `today-status accent-${STATE_LABELS[next.state].accent}`;
-      status.innerHTML = renderStatus(next, courses, nextDay, state, time);
+      status.innerHTML = renderStatus(next, courses, nextDay, state, time, daySlots);
       if (statusFocused) status.querySelector('.status-course, a')?.focus({ preventScroll: true });
       refreshCourses(time);
       refreshNotes(time);
     }
     const minute=Math.floor(+time/60000);
-    if(minute!==noteMinute){noteMinute=minute;refreshNotes(time);}
+    if(minute!==noteMinute){noteMinute=minute;refreshNotes(time);refreshUnassigned(time);}
     const countdown = container.querySelector('#dash-countdown');
     if (countdown && next.countdown !== null) countdown.textContent = countdownText(next.countdown);
     const progress = container.querySelector('#dash-progress');

@@ -147,7 +147,7 @@ body:has(#view-wardrobe.active) #quick-capture { display: none; }
 .wardrobe-suggestion > .daily-muted { margin:8px 0; font-size:0.8125rem; line-height:1.6; }
 #wardrobe-recommendation > .daily-muted { font-size:0.8125rem; margin:2px 0; }
 .wardrobe-plan-controls .daily-check-row { font-size:0.8125rem; }
-.is-empty-wardrobe :is(#wardrobe-plan,#wardrobe-inventory,#wardrobe-outfits), .is-empty-wardrobe:not(.has-wear-history) #wardrobe-wear { display:none; }
+.is-empty-wardrobe :is(#wardrobe-inventory,#wardrobe-outfits) { display:none; }
 .is-empty-wardrobe .wardrobe-layout { grid-template-columns:minmax(0,680px); justify-content:center; }
 .is-empty-wardrobe .wardrobe-main-column { display:contents; }
 .is-empty-wardrobe #add-garments > summary { font-size:1.0625rem; color:var(--color-text); }
@@ -173,3 +173,50 @@ body:has(#view-wardrobe.active) #quick-capture { display: none; }
 .garment-wash-usage { margin:4px 0 8px 32px; }
 .wear-history { margin-top:8px; }
 .wear-record .daily-small { overflow-wrap:anywhere; }
+
+/* One task at a time: preparing, recording, and laundry use separate workspaces. */
+.wardrobe-page { max-width:860px; }
+.wardrobe-page:not(.is-empty-wardrobe) #wardrobe-intro { display:none; }
+.wardrobe-tabs { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px; padding:4px; margin:0 0 16px; border-radius:12px; background:var(--color-surface-subtle); border:1px solid var(--color-border-light); }
+.wardrobe-tabs button { min-height:44px; min-width:0; border:1px solid transparent; border-radius:8px; background:transparent; color:var(--color-text-secondary); font:inherit; font-size:.875rem; cursor:pointer; padding:8px 4px; }
+.wardrobe-tabs button[aria-pressed=true] { background:var(--color-surface); color:var(--color-text); border-color:var(--color-border); font-weight:600; }
+[data-text-size=maximum] .wardrobe-tabs { grid-template-columns:minmax(0,1fr); }
+.wardrobe-layout, .is-empty-wardrobe .wardrobe-layout { grid-template-columns:minmax(0,1fr); gap:12px; }
+.wardrobe-main-column, .wardrobe-side-column { display:contents; }
+.wardrobe-page [data-wardrobe-panel][hidden] { display:none; }
+.wardrobe-page #wardrobe-plan-title { color:var(--color-text); font-size:1.0625rem; font-weight:650; text-wrap:balance; }
+.wardrobe-plan-controls { gap:12px; padding:0; border:0; }
+.wardrobe-card #wardrobe-date-options { margin:0; padding:0; border:0; }
+.wardrobe-card #wardrobe-date-options > summary { font-size:.8125rem; font-weight:400; color:var(--color-text-secondary); }
+.wardrobe-card #wardrobe-date-options[open] { flex-basis:100%; }
+#wardrobe-date-options .wardrobe-plan-controls { padding-block:4px 12px; }
+.wardrobe-plan-controls > label { flex:1; min-width:140px; }
+.wardrobe-date-shortcuts { display:flex; gap:4px; padding-block:1px; }
+.wardrobe-date-shortcuts .btn { min-height:44px; font-size:.875rem; padding-inline:14px; }
+.wardrobe-date-shortcuts .btn[aria-pressed=true] { border-color:var(--color-primary); color:var(--color-primary-dark); background:var(--color-primary-50); }
+.wardrobe-run { margin:0; }
+.outfit-weather { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:4px 12px; align-items:start; padding:8px 0; border-top:1px solid var(--color-border-light); margin-top:4px; }
+.outfit-weather p { margin:0; line-height:1.7; overflow-wrap:anywhere; }
+.outfit-weather-label { color:var(--color-text-secondary); font-size:.8125rem; }
+.outfit-weather-range { font-size:1.5rem; font-weight:650; color:var(--color-text); font-variant-numeric:tabular-nums; }
+.outfit-weather-range > span { font-size:.875rem; font-weight:400; margin-left:4px; }
+.outfit-weather-detail { font-size:.8125rem; color:var(--color-text); }
+.outfit-weather .outfit-weather-meta, .outfit-weather .outfit-weather-message { grid-column:1/-1; color:var(--color-text-secondary); font-size:.75rem; }
+.outfit-weather .outfit-weather-message { color:var(--color-text); }
+.outfit-purpose { padding-top:12px; margin-top:12px; }
+.outfit-purpose h3 { margin-bottom:4px; }
+.outfit-sport-weather, .outfit-saved-plan { color:var(--color-text-secondary); font-size:.8125rem; line-height:1.7; margin:6px 0; overflow-wrap:anywhere; }
+.outfit-context-note { font-size:.8125rem; line-height:1.7; color:var(--color-text); padding-left:8px; border-left:2px solid var(--color-border); margin:8px 0; }
+.outfit-saved-plan { color:var(--color-primary-dark); padding:8px 10px; border-left:2px solid var(--color-primary); background:var(--color-primary-50); border-radius:4px; }
+.outfit-chain { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; align-items:stretch; }
+.outfit-piece { display:grid; gap:2px; padding:8px 10px; border:0; border-radius:8px; }
+.outfit-piece small { font-size:.75rem; color:var(--color-text-secondary); font-weight:400; }
+.outfit-piece strong { font-size:.9375rem; line-height:1.6; font-weight:600; }
+.wardrobe-suggestion > .btn-primary[aria-pressed=true] { background:var(--color-primary-50); color:var(--color-primary-dark); }
+.wardrobe-page #daily-preferences, .wardrobe-page #daily-backup { border:0; border-top:1px solid var(--color-border-light); border-radius:0; background:transparent; padding-inline:4px; }
+.wardrobe-page :is(#daily-preferences,#daily-backup) > summary { font-size:.8125rem; color:var(--color-text-secondary); font-weight:400; }
+.garment-quick-action { display:flex; flex-wrap:wrap; align-items:flex-start; gap:0 8px; padding-left:32px; }
+.garment-quick-action > button { padding-inline:0; }
+.wardrobe-card .garment-quick-action .garment-detail { flex:1; min-width:140px; padding-left:0; }
+.garment-quick-action:has(details[open]) { display:block; }
+@media(max-width:360px) { .wardrobe-tabs button { font-size:.8125rem; } .wardrobe-plan-controls > label { flex-basis:100%; } }

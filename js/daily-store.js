@@ -1,5 +1,5 @@
-import { validateWearLog, validateGarmentEvent } from './wear-model.js?v=20261024-2';
-import { validDate } from './tasks-store.js?v=20261024-2';
+import { validateWearLog, validateGarmentEvent } from './wear-model.js?v=20261029-3';
+import { validDate } from './tasks-store.js?v=20261029-3';
 
 export const DAILY_KEY = 'course-dashboard-daily-v1';
 export const CATEGORIES = {

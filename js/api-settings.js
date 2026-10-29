@@ -1,6 +1,6 @@
-import { readAISettings, saveAISettings, serverStatus, callAI } from './ai-client.js?v=20261024-2';
-import { aiSessionStatus, restoreAISession, unlockAISession, logoutAISession, startAISession } from './ai-session-client.js?v=20261024-2';
-import { markFormSaved } from './refresh-guard.js?v=20261024-2';
+import { readAISettings, saveAISettings, serverStatus, callAI } from './ai-client.js?v=20261029-3';
+import { aiSessionStatus, restoreAISession, unlockAISession, logoutAISession, startAISession } from './ai-session-client.js?v=20261029-3';
+import { markFormSaved } from './refresh-guard.js?v=20261029-3';
 export function renderApiSettings(container) {
   const saved = readAISettings(); let disposed = false, busy = false;
   container.innerHTML = `<section class="agenda-page"><header class="agenda-heading"><div><h1>AI 与服务连接</h1><p>通知识别与每日一句</p></div></header>

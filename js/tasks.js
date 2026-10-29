@@ -1,11 +1,11 @@
-import { NOTE_SCENES, isPersistent, normalizeNoteRule, noteRuleLabel, notesForCourse } from './persistent-model.js?v=20261024-2';
-import { renderContextNotes, mountNoteActions } from './context-notes.js?v=20261024-2';
-import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, undoItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems, sortHomeItems, saveHomeOrder } from './tasks-store.js?v=20261024-2';
-import { reconcileRows } from './ui-list.js?v=20261024-2';
-import { setupHoldSort } from './hold-sort.js?v=20261024-2';
-import { getTodayStr } from './time.js?v=20261024-2';
-import { setupCaptureAI } from './capture-ai.js?v=20261024-2';
-import { homeModuleHeading, readHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261024-2';
+import { NOTE_SCENES, isPersistent, normalizeNoteRule, noteRuleLabel, notesForCourse } from './persistent-model.js?v=20261029-3';
+import { renderContextNotes, mountNoteActions } from './context-notes.js?v=20261029-3';
+import { KINDS, SOURCES, escapeText as esc, readItems, itemsForScope, saveItem, updateItemState, undoItemState, exportBackup, validateBackup, mergeBackup, dateLabel, isOverdue, sortItems, sortHomeItems, saveHomeOrder } from './tasks-store.js?v=20261029-3';
+import { reconcileRows } from './ui-list.js?v=20261029-3';
+import { setupHoldSort } from './hold-sort.js?v=20261029-3';
+import { getTodayStr } from './time.js?v=20261029-3';
+import { setupCaptureAI } from './capture-ai.js?v=20261029-3';
+import { homeModuleHeading, readHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261029-3';
 
 let context = null;
 let editingId = '';

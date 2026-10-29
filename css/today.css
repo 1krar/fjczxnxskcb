@@ -259,3 +259,14 @@ body:has(#view-today.active .today-page) #quick-capture { display: none; }
 .status-next-course strong { font-size:0.9375rem; line-height:1.6; font-weight:600; }
 .status-next-course > span { color:var(--color-text-secondary); font-size:0.8125rem; line-height:1.7; }
 .status-next-course:focus-visible { outline:2px solid var(--color-primary); outline-offset:4px; border-radius:4px; }
+
+#dash-unassigned-hint:empty { display:none; }
+.today-page .home-unassigned-hint { display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; min-height:44px; margin-top:10px; padding-top:6px; border-top:1px solid var(--color-border-light); color:var(--color-text-secondary); font-size:0.8125rem; line-height:1.5; text-decoration:none; }
+.home-unassigned-hint .mono, .home-unassigned-hint small { font-size:0.75rem; }
+.home-unassigned-hint small { margin-left:auto; }
+.home-unassigned-hint.is-current small { color:var(--color-primary-dark); }
+.home-unassigned-hint:focus-visible { outline:2px solid var(--color-primary); outline-offset:3px; border-radius:4px; }
+@container (max-width:275px) {
+  .today-page .home-unassigned-hint { gap:4px 6px; }
+  .home-unassigned-hint .home-unassigned-arrow { display:none; }
+}
