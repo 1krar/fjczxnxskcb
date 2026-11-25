@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { emptyDailyData } from '../js/daily-store.js';
 import { planOutfits, nextDate } from '../js/daily-model.js';
 import { outfitPlanning, OUTFIT_SCORE_WEIGHTS } from '../js/outfit-planning.js';
+import { outfitAIInput } from '../js/outfit-ai.js';
 import { normalizeWeather, DEFAULT_WEATHER_LOCATION } from '../js/weather-model.js';
 import { rawForecast } from './weather-fixture.mjs';
 
@@ -93,6 +94,30 @@ for(const excluded of [
   assert.ok(fit.candidates.every(set=>set.scoreBreakdown.find(row=>row.key==='rotation').score===15),'future, undone, deleted and selected-only rows are not actual wear');
   assert.equal(planning.days[0].date,date);
 }
+const prepareDate=nextDate(date);
+const presetData=emptyDailyData();
+presetData.garments=[item('preset-top','shirt'),item('fresh-top','shirt',{preference:'like'}),item('long-pants','trousers')];
+presetData.outfits=[saved('我预设的搭配',['preset-top','long-pants'])];
+presetData.wearLogs=Array.from({length:6},(_,i)=>actual(nextDate(date,-i),['preset-top'],{rating:1}));
+const standard=planOutfits(presetData,prepareDate,[],[],null,now);
+const preparation=planOutfits(presetData,prepareDate,[],[],null,now,{mode:'tomorrow'});
+assert.equal(standard.daily.sets[0].savedName,'','standard ranking can favor an unworn outfit');
+assert.equal(preparation.daily.sets[0].savedName,'我预设的搭配','tomorrow preparation ranks an eligible preset first');
+assert.ok(standard.daily.candidates.every(set=>!set.scoreBreakdown.some(row=>row.key==='preset')));
+for(const set of preparation.daily.candidates) {
+  assert.equal(set.scoreBreakdown.find(row=>row.key==='preset').score,set.savedName?8:0);
+  assert.equal(set.scoreBreakdown.reduce((sum,row)=>sum+row.max,0),100);
+  assert.equal(set.score,set.scoreBreakdown.reduce((sum,row)=>sum+row.score,0));
+}
+const preparationInput=outfitAIInput(preparation,'daily');
+assert.match(preparationInput.purpose,/明日准备/);
+assert.ok(preparationInput.candidates[0].scoreReasons.some(reason=>reason.includes('加8分')));
+const outOfSeason={...presetData,outfits:presetData.outfits.map(outfit=>({...outfit,seasons:['summer']}))};
+const seasonalFit=planOutfits(outOfSeason,prepareDate,[],[],null,now,{mode:'tomorrow'}).daily;
+assert.ok(seasonalFit.candidates.every(set=>set.scoreBreakdown.find(row=>row.key==='preset').score===0));
+const unavailable={...presetData,garments:presetData.garments.map(piece=>piece.id==='preset-top'?{...piece,state:'dirty'}:piece)};
+assert.ok(planOutfits(unavailable,prepareDate,[],[],null,now,{mode:'tomorrow'}).daily.candidates.every(set=>!set.savedName));
+
 const running=outfitPlanning({...data,plans:[{date,run:false}]},date,[],[],null,now);
 assert.ok(!running.runCheck.dates.includes(date),'explicit no-run is not treated as missing information');
 assert.ok(running.runCheck.dates.includes(nextDate(date)));

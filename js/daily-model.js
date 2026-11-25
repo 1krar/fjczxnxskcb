@@ -115,7 +115,7 @@ export function outfitRecommendation(data, date, courses = [], futureCourses = [
     const conditionalIds = pieces.filter(item=>!isAvailable(item)).map(item=>item.id);
     if (conditionalIds.length) reasons.push('包含预计收衣的单品，需确认干透后使用');
     const set={id,pieces,reasons,conditionalIds,savedName:saved?.name||'',savedSeasons:saved?.seasons||[]};
-    return scoreOutfit(set,{data,date,weather,pe,run,requireShorts,planning,preferred:!!saved,seasonMatch,now:options.now||new Date()});
+    return scoreOutfit(set,{data,date,weather,pe,run,requireShorts,planning,preferred:!!saved,seasonMatch,mode:options.mode,now:options.now||new Date()});
   }
   function addPair(top,bottom,shoe,layer,belt,saved=null) {
     const pieces=[top,bottom,belt,layer,shoe].filter(Boolean),id=JSON.stringify(pieces.map(item=>item.id));
@@ -202,7 +202,7 @@ export function outfitRecommendation(data, date, courses = [], futureCourses = [
   return { date, pe, run, requireShorts, readyShorts, futureShortDays, weather, weatherNote:options.weatherNote||'', sets: [first, alternate].filter(Boolean), candidates, missing, notes, planning, replacePiece, recheckSet };
 }
 
-export function planOutfits(data,date,courses=[],futureCourses=[],forecast=null,now=new Date()) {
+export function planOutfits(data,date,courses=[],futureCourses=[],forecast=null,now=new Date(),{mode='standard'}={}) {
   const planning=outfitPlanning(data,date,courses,futureCourses,forecast,now);
   const weather = weatherDay(forecast,date,{now,from:'07:00',to:'22:00'});
   const weatherNote='日常按所选日期07:00—22:00预报参考。';
@@ -214,12 +214,13 @@ export function planOutfits(data,date,courses=[],futureCourses=[],forecast=null,
   const sportWeather = !sportNeeded?null:!run&&timedPE?weatherIntervals(forecast,date,intervals,{now}):weather;
   const sportWeatherNote = !sportNeeded?'':run?'校园跑时段未设置，按07:00—22:00全天预报参考。':timedPE?`体育课${intervals.map(row=>`${row.from}—${row.to}`).join('、')}，按与上课区间相交的小时预报参考。`:'体育课时段不可用，按07:00—22:00全天预报参考。';
   const dailyData = separate ? {...data,plans:data.plans.filter(plan=>plan.date!==date)} : data;
-  const daily = outfitRecommendation(dailyData,date,separate?[]:courses,futureCourses,{weather,weatherNote,planning,now});
-  const sport = separate ? outfitRecommendation(data,date,courses,futureCourses,{weather:sportWeather,weatherNote:sportWeatherNote,planning,now}) : null;
-  const expectedDaily = outfitRecommendation(dailyData,date,separate?[]:courses,futureCourses,{weather,weatherNote,allowExpected:true,planning,now});
-  const expectedSport = separate ? outfitRecommendation(data,date,courses,futureCourses,{weather:sportWeather,weatherNote:sportWeatherNote,allowExpected:true,planning,now}) : null;
+  const scoring={planning,now,mode};
+  const daily = outfitRecommendation(dailyData,date,separate?[]:courses,futureCourses,{...scoring,weather,weatherNote});
+  const sport = separate ? outfitRecommendation(data,date,courses,futureCourses,{...scoring,weather:sportWeather,weatherNote:sportWeatherNote}) : null;
+  const expectedDaily = outfitRecommendation(dailyData,date,separate?[]:courses,futureCourses,{...scoring,weather,weatherNote,allowExpected:true});
+  const expectedSport = separate ? outfitRecommendation(data,date,courses,futureCourses,{...scoring,weather:sportWeather,weatherNote:sportWeatherNote,allowExpected:true}) : null;
   const conditional = [...new Map([...expectedDaily.sets.map(set=>({...set,purpose:'日常'})),...(expectedSport?.sets||[]).map(set=>({...set,purpose:'运动'}))].filter(set=>set.conditionalIds.length).map(set=>[set.purpose+set.id,set])).values()].slice(0,2);
-  return { daily, sport, conditional, weather, weatherNote, sportWeather, sportWeatherNote, separate, sportNeeded, planning,
+  return { mode, daily, sport, conditional, weather, weatherNote, sportWeather, sportWeatherNote, separate, sportNeeded, planning,
     changeNote:separate ? data.profile.changeMode==='change'?'日常与运动分开准备。':'换装条件未设置，分别给出日常和运动候选；可在偏好里改为全天兼顾。' : '' };
 }
 

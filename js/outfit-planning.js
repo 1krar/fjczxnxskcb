@@ -5,6 +5,7 @@ import { wearDate, wearUsageIndex } from './wear-model.js?v=20261030-1';
 // Transparent, hand-tuned ranking weights. These are not probabilities or a
 // trained model, and planning never changes a garment's confirmed state.
 export const OUTFIT_SCORE_WEIGHTS = Object.freeze({ weather:35, activity:20, reserve:20, rotation:15, preference:10 });
+const TOMORROW_SCORE_WEIGHTS = Object.freeze({...OUTFIT_SCORE_WEIGHTS,rotation:7,preset:8});
 const contexts = new WeakMap();
 const group = item => CATEGORIES[item.category]?.group;
 const available = item => !item.deletedAt && ['ready','rewear'].includes(item.state);
@@ -97,8 +98,9 @@ function allocateDemand(demands,excluded) {
   return {count:matched.size,unmatched:demands.filter((_,index)=>!matched.has(index))};
 }
 
-export function scoreOutfit(set,{data,date,weather=null,pe=false,run=false,requireShorts=false,planning,preferred=false,seasonMatch=0,now=new Date()}) {
+export function scoreOutfit(set,{data,date,weather=null,pe=false,run=false,requireShorts=false,planning,preferred=false,seasonMatch=0,mode='standard',now=new Date()}) {
   if(!planning||!contexts.has(planning))planning=outfitPlanning(data,date,[],[],null,now);
+  const weights=mode==='tomorrow'?TOMORROW_SCORE_WEIGHTS:OUTFIT_SCORE_WEIGHTS;
   const context=contexts.get(planning),pieces=set.pieces,body=pieces.filter(item=>['top','bottom'].includes(group(item)));
   const top=body.find(item=>group(item)==='top'),bottom=body.find(item=>group(item)==='bottom'),layer=pieces.find(item=>group(item)==='layer'),shoe=pieces.find(item=>group(item)==='shoes');
   const active=pe||run,feels=thermal(weather,data.profile),wet=weather?.rainProbability!==null&&weather?.rainProbability>=40;
@@ -148,13 +150,17 @@ export function scoreOutfit(set,{data,date,weather=null,pe=false,run=false,requi
     feedbackTotal+=value*overlap;feedbackWeight+=overlap;
   }
   const preferenceReason=`${preferred?`优先参考常用搭配${seasonMatch===1?'及匹配的季节标签':seasonMatch===-1?'，季节标签与所选日期不同':''}；`:''}${feedbackWeight?'参考相关实穿评分和体感反馈；':''}同时考虑你标记的喜欢或少穿偏好。`;
+  const presetBonus=preferred&&seasonMatch!==-1?(weights.preset||0):0;
+  const presetReason=presetBonus?'这套搭配已保存在常用搭配。':preferred?'这套常用搭配的季节标签与所选日期不同。':'这套搭配由当前可穿单品组合。';
+  const rotationScore=weights.rotation-rotationPenalty*weights.rotation/OUTFIT_SCORE_WEIGHTS.rotation;
   const scoreBreakdown=[
-    {key:'weather',label:'天气适配',score:bounded(weatherScore,35),max:35,reason:weatherReason},
-    {key:'activity',label:'活动安排',score:bounded(activityScore,20),max:20,reason:activityReason},
-    {key:'reserve',label:'洗晒预留',score:bounded(20-reservePenalty,20),max:20,reason:reserveReason},
-    {key:'rotation',label:'近期轮换',score:bounded(15-rotationPenalty,15),max:15,reason:rotationReason},
-    {key:'preference',label:'个人偏好',score:bounded(preferenceBase+(feedbackWeight?feedbackTotal/feedbackWeight:0),10),max:10,reason:preferenceReason},
+    {key:'weather',label:'天气适配',score:bounded(weatherScore,weights.weather),max:weights.weather,reason:weatherReason},
+    {key:'activity',label:'活动安排',score:bounded(activityScore,weights.activity),max:weights.activity,reason:activityReason},
+    {key:'reserve',label:'洗晒预留',score:bounded(weights.reserve-reservePenalty,weights.reserve),max:weights.reserve,reason:reserveReason},
+    {key:'rotation',label:'近期轮换',score:bounded(rotationScore,weights.rotation),max:weights.rotation,reason:rotationReason},
+    {key:'preference',label:'个人偏好',score:bounded(preferenceBase+(feedbackWeight?feedbackTotal/feedbackWeight:0),weights.preference),max:weights.preference,reason:preferenceReason},
   ];
-  const scoreReasons=[warning||preserved,preferred?preferenceReason:null,weather?weatherReason:null,rotationReason].filter(Boolean).slice(0,3);
+  if(weights.preset)scoreBreakdown.push({key:'preset',label:'预设搭配',score:presetBonus,max:weights.preset,reason:presetReason});
+  const scoreReasons=[warning||preserved,presetBonus?`明日准备 · 预设搭配加${presetBonus}分`:preferred?preferenceReason:null,weather?weatherReason:null,rotationReason].filter(Boolean).slice(0,3);
   return {...set,score:scoreBreakdown.reduce((sum,row)=>sum+row.score,0),scoreBreakdown,scoreReasons};
 }

@@ -65,7 +65,7 @@ export function renderWardrobe(container, state, dm) {
     <p id="wardrobe-feedback" data-save-feedback class="daily-feedback" role="status">${esc(initialError)}</p>
     <div class="wardrobe-layout"><div class="wardrobe-main-column">
       <section class="wardrobe-card" id="wardrobe-plan" data-wardrobe-panel="prepare" aria-labelledby="wardrobe-plan-title">
-        <div class="daily-heading"><h2 id="wardrobe-plan-title">明天穿什么</h2></div><div class="wardrobe-plan-controls"><div class="wardrobe-date-shortcuts"><button type="button" class="btn" data-outfit-day="today">今天</button><button type="button" class="btn" data-outfit-day="tomorrow">明天</button></div><input id="outfit-date" aria-label="选穿搭日期" data-refresh-safe type="date" value="${selectedDate}" min="2000-01-01" max="2100-12-31"></div>
+        <div class="daily-heading"><h2 id="wardrobe-plan-title">明天穿什么</h2></div><div class="wardrobe-plan-controls"><div class="wardrobe-date-shortcuts"><button type="button" class="btn" data-outfit-day="today">今天</button><button type="button" class="btn" data-outfit-day="tomorrow">明日准备</button></div><input id="outfit-date" aria-label="选穿搭日期" data-refresh-safe type="date" value="${selectedDate}" min="2000-01-01" max="2100-12-31"></div>
         <div id="wardrobe-recommendation"></div>
         <details class="wardrobe-activity"><summary>运动安排</summary><form id="run-plan-form"><label class="daily-check-row wardrobe-run"><input id="plan-run" type="checkbox"> 这天安排校园跑</label></form></details></section>
       <section class="wardrobe-card" id="wardrobe-wear" data-wardrobe-panel="record" hidden></section>
@@ -156,7 +156,8 @@ export function renderWardrobe(container, state, dm) {
     syncDate();
     const courses = dm.getCoursesByDate(state.currentClass, selectedDate);
     const future = dm.getCourses(state.currentClass).filter(course => course.date > selectedDate && course.date <= nextDate(selectedDate, 7));
-    const plan = planOutfits(data, selectedDate, courses, future, cachedWeather(data.profile.city));
+    const mode=wardrobeView.follow==='tomorrow'?'tomorrow':'standard';
+    const plan = planOutfits(data, selectedDate, courses, future, cachedWeather(data.profile.city),new Date(),{mode});
     latestPlan = plan;
     const candidateHTML = (recommendation,purpose,label) => {
       const signature=JSON.stringify(outfitAIInput(plan,purpose,'',data.profile));
@@ -173,8 +174,10 @@ export function renderWardrobe(container, state, dm) {
         const scoreId=purpose+':'+set.id,active=!!selected&&selected.id===set.id;
         const swap=index===0&&edited&&entry.previous?`<div class="outfit-swap-actions" role="status"><span>已换 ${esc(entry.name)}</span><button type="button" class="daily-text-button" data-swap-action="undo" data-purpose="${purpose}">撤销</button><button type="button" class="daily-text-button" data-swap-action="remember" data-purpose="${purpose}">记住这组不搭</button></div>`:index===0&&edited&&entry.message?`<p class="outfit-swap-message" role="status">${esc(entry.message)}</p>`:'';
         const pieces=chainHTML(set.pieces,{purpose,index});
+        const presetBonus=set.scoreBreakdown?.find(row=>row.key==='preset')?.score||0;
+        const savedTag=set.savedSeasons?.length?set.savedSeasons.map(season=>OUTFIT_SEASONS[season]).join('、'):'常用搭配';
         const details=set.scoreBreakdown?.length?`<details class="outfit-score-details" data-score-id="${esc(scoreId)}"${openScores.has(scoreId)?' open':''}><summary>评分依据</summary>${ai&&!edited&&index===0?`<p>${esc(ai.explanation)}</p>`:''}<dl>${set.scoreBreakdown.map(row=>`<div><dt>${esc(row.label)} <span>${Math.round(row.score)}/${Math.round(row.max)}</span></dt><dd>${esc(row.reason)}</dd></div>`).join('')}</dl></details>`:'';
-        return `<article class="wardrobe-suggestion"><div class="outfit-score-heading"><h4>${esc(set.savedName||(edited&&index===0?'已调整':ai&&index===0?'AI 推荐':index?'备选':'推荐搭配'))}</h4>${set.savedName?`<span class="outfit-tag">${set.savedSeasons.length?set.savedSeasons.map(season=>OUTFIT_SEASONS[season]).join('、'):'常用搭配'}</span>`:''}${index===0?'<span class="outfit-tag">点按换单品</span>':''}</div>${pieces}${swap}<button type="button" class="btn${index?'':' btn-primary'}" data-select-outfit="${purpose}" data-candidate-index="${index}" aria-pressed="${active}">${active?'已选作计划':'选这套'}</button>${details}</article>`;
+        return `<article class="wardrobe-suggestion"><div class="outfit-score-heading"><h4>${esc(set.savedName||(edited&&index===0?'已调整':ai&&index===0?'AI 推荐':index?'备选':'推荐搭配'))}</h4>${set.savedName?`<span class="outfit-tag">${savedTag}${presetBonus?` · 预设 +${presetBonus}`:''}</span>`:''}${index===0?'<span class="outfit-tag">点按换单品</span>':''}</div>${pieces}${swap}<button type="button" class="btn${index?'':' btn-primary'}" data-select-outfit="${purpose}" data-candidate-index="${index}" aria-pressed="${active}">${active?'已选作计划':'选这套'}</button>${details}</article>`;
       };
       const missing=recommendation.missing[0]||(data.outfitExclusions.some(row=>row.excluded)?'没有符合当前要求和排除设置的搭配。':'还没有可用搭配');
       return `<section class="outfit-purpose"><h3>${label}</h3>

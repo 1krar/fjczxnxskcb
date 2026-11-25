@@ -2,8 +2,9 @@
 export function outfitAIInput(plan, purpose, preference = '', profile = {}) {
   const fit = purpose === 'sport' ? plan.sport : plan.daily;
   const weather=Object.hasOwn(fit,'weather')?fit.weather:purpose==='sport'&&Object.hasOwn(plan,'sportWeather')?plan.sportWeather:plan.weather;
+  const activity=purpose==='sport'?'运动准备':plan.separate?'日常穿搭，运动前另换装':plan.sportNeeded?'全天兼顾运动':'日常穿搭';
   return {
-    date:fit.date, purpose:purpose === 'sport' ? '运动准备' : plan.separate ? '日常穿搭，运动前另换装' : plan.sportNeeded ? '全天兼顾运动' : '日常穿搭',
+    date:fit.date, purpose:plan.mode==='tomorrow'?`明日准备 · ${activity}`:activity,
     preference:String(preference).trim().slice(0,300), thermalPreference:profile.thermalPreference || 'unknown',
     requirements:{ shorts:fit.requireShorts, running:fit.run || fit.pe },
     weather:weather ? { date:weather.date, from:weather.from, to:weather.to, min:weather.min, max:weather.max, feelsMin:weather.feelsMin, feelsMax:weather.feelsMax, rainProbability:weather.rainProbability, status:weather.status } : null,
