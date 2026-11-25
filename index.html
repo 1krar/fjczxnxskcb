@@ -54,32 +54,15 @@
     <!-- Mobile Header -->
     <header class="mobile-header mobile-only">
       <div class="mobile-header-inner">
-        <span class="mobile-header-label">班级</span>
         <div class="mobile-class-selector" id="class-selector-mobile">
-          <button class="mobile-class-btn" id="class-selector-btn-mobile">
-            <span class="mobile-class-name" id="current-class-name-mobile">26虚拟现实技术应用1</span>
-            <svg class="chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          <button type="button" class="mobile-class-btn" id="class-selector-btn-mobile" aria-expanded="false" aria-controls="class-selector-dropdown-mobile">
+            班级
+            <svg class="chevron" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
           </button>
+          <div class="mobile-class-dropdown" id="class-selector-dropdown-mobile" aria-label="选择班级" hidden></div>
         </div>
       </div>
     </header>
-    <div class="mobile-class-dropdown mobile-only" id="class-selector-dropdown-mobile">
-        <div class="mobile-class-dropdown-inner">
-          <div class="mobile-class-dropdown-title">选择班级</div>
-          
-            <button class="mobile-class-option active" data-class="26虚拟现实技术应用1">
-              <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>26虚拟现实技术应用1</span>
-            </button>
-            <button class="mobile-class-option " data-class="26虚拟现实技术应用2">
-              <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>26虚拟现实技术应用2</span>
-            </button>
-            <button class="mobile-class-option " data-class="26虚拟现实技术应用3">
-              <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>26虚拟现实技术应用3</span>
-            </button>
-        </div></div>
 
     <main class="page-container">
       <div class="page-view active" id="view-today"></div>

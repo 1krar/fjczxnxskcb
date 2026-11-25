@@ -4,6 +4,7 @@ import { buildAdvice, chooseAdvice, localDate, nextDate, dailyFacts, shortAdvice
 import { scopedActivities, AGENDA_KEY } from './agenda-store.js?v=20261030-1';
 import { aiEnabled, AI_KEY, DAILY_CACHE_KEY, cachedDaily, dailyIdentity, requestDaily, canRequestDaily, dailyWaitMessage } from './ai-client.js?v=20261030-1';
 import { adviceVisibility, changeAdviceVisibility, ADVICE_VISIBILITY_KEY } from './daily-visibility.js?v=20261030-1';
+import { reducedMotion } from './motion.js?v=20261030-1';
 import { setupSwipeDismiss } from './swipe-dismiss.js?v=20261030-1';
 import { readStudyData, STUDY_KEY } from './study-store.js?v=20261030-1';
 import { applyEveningStudy } from './study-model.js?v=20261030-1';
@@ -26,7 +27,8 @@ function getContext(state, dm, now) {
 
 export function mountDailyAssistant(container, state, dm) {
   const slot=container.querySelector('#dash-advice-slot');
-  if(state.isMobile)document.querySelector('.mobile-header')?.append(slot);
+  const mobile=state.isMobile;
+  if(mobile)document.querySelector('.mobile-header-inner')?.append(slot);
   const advice = document.createElement('section');
   advice.className = 'daily-advice daily-advice-inline';
   advice.setAttribute('aria-label', '今日一句');
@@ -35,13 +37,36 @@ export function mountDailyAssistant(container, state, dm) {
   const restore = slot.querySelector('[data-restore-advice]');
   const live = slot.querySelector('#dash-advice-status');
   let disposed = false, busyKey = '', currentKey = '', aiNote = '', memoryEntry = null;
-  const markup = new Map();
-  function update(element, html) {
-    if (markup.get(element) === html) return;
-    const opened = new Set([...element.querySelectorAll('details[open][data-detail]')].map(detail => detail.dataset.detail));
-    element.innerHTML = html;
-    element.querySelectorAll('details[data-detail]').forEach(detail => { if (opened.has(detail.dataset.detail)) detail.open = true; });
-    markup.set(element, html);
+  let previousMarkup='',scrollFrame=0,lastScrolledLine='';
+  function stopQuoteScroll() {
+    cancelAnimationFrame(scrollFrame);
+    scrollFrame=0;
+  }
+  function scrollQuote(quote) {
+    if(!mobile||!quote||reducedMotion()||quote.textContent===lastScrolledLine)return;
+    const distance=quote.scrollWidth-quote.clientWidth;
+    if(distance<=1)return;
+    lastScrolledLine=quote.textContent;
+    const start=performance.now()+1000,duration=Math.min(3900,Math.max(600,distance*28));
+    function advance(time) {
+      if(!quote.isConnected||document.hidden||reducedMotion())return;
+      const progress=Math.min(1,Math.max(0,(time-start)/duration));
+      quote.scrollLeft=distance*progress;
+      scrollFrame=progress===1?0:requestAnimationFrame(advance);
+    }
+    scrollFrame=requestAnimationFrame(advance);
+  }
+  function update(html) {
+    if(previousMarkup===html)return;
+    const oldQuote=advice.querySelector('.daily-sentence'),oldLeft=oldQuote?.scrollLeft||0;
+    const open=advice.querySelector('details')?.open;
+    stopQuoteScroll();
+    advice.innerHTML=html;
+    previousMarkup=html;
+    const detail=advice.querySelector('details'),quote=advice.querySelector('.daily-sentence');
+    if(open&&detail)detail.open=true;
+    if(quote&&oldQuote?.textContent===quote.textContent)quote.scrollLeft=oldLeft;
+    if(!open)scrollQuote(quote);
   }
 
   function render(refresh = false, now = new Date()) {
@@ -51,7 +76,8 @@ export function mountDailyAssistant(container, state, dm) {
     try { data = readDailyData(); }
     catch (error) {
       advice.hidden = false;
-      update(advice, `<p class="daily-error">${esc(error.message)}</p><a class="daily-link" href="#/wardrobe">检查日常资料与备份 →</a>`);
+      restore.hidden=true;
+      update(mobile?`<a class="daily-link" href="#/wardrobe" title="${esc(error.message)}">检查日常资料</a>`:`<p class="daily-error">${esc(error.message)}</p><a class="daily-link" href="#/wardrobe">检查日常资料与备份 →</a>`);
       return;
     }
     let items = [];
@@ -63,6 +89,7 @@ export function mountDailyAssistant(container, state, dm) {
     try { visibility = adviceVisibility(context.scope, context.today); } catch (error) { note += ` ${error.message}`; }
     advice.hidden = !data.profile.enabled || visibility.hidden;
     restore.hidden = !advice.hidden;
+    if(advice.hidden)stopQuoteScroll();
     if (!advice.hidden) {
       const pool = buildAdvice({ ...context, data, items, activities });
       const useAI = aiEnabled('daily');
@@ -78,10 +105,10 @@ export function mountDailyAssistant(container, state, dm) {
       const chosen = entry ? { id:'ai', priority:10, line:entry.sentence, basis:entry.basisIds.map(id => facts.find(fact=>fact.id===id)?.text || '').join(' ') || '轻量日常评论，未引用个人安排。', href:'#/agenda' } : local;
       const feedback = local.limited ? `这分钟已经换了${data.profile.refreshPerMinute}次，约${local.retrySeconds}秒后可以再换。` : aiNote || local.storageWarning || '';
       const content = `<details class="daily-banner-details" data-detail="advice-tools"><summary aria-label="今日一句：${esc(chosen.line)}，展开操作与依据"><span class="daily-sentence">${esc(chosen.line)}</span></summary>
-        <div class="daily-banner-tools"><div class="daily-inline-actions"><button type="button" class="daily-text-button" data-refresh-advice ${busyKey === key ? 'disabled' : ''}>${busyKey === key ? '生成中…' : '换一句'}</button><a class="daily-link" href="${chosen.href}">相关安排</a><a class="daily-link" href="#/api">AI 设置</a><button type="button" class="daily-text-button" data-disable-advice>不再显示</button></div>
+        <div class="daily-banner-tools">${mobile?`<p class="daily-advice-full">${esc(chosen.line)}</p>`:''}<div class="daily-inline-actions"><button type="button" class="daily-text-button" data-refresh-advice ${busyKey === key ? 'disabled' : ''}>${busyKey === key ? '生成中…' : '换一句'}</button><a class="daily-link" href="${chosen.href}">相关安排</a><a class="daily-link" href="#/api">AI 设置</a>${mobile?'<button type="button" class="daily-text-button" data-hide-advice>今天隐藏</button>':''}<button type="button" class="daily-text-button" data-disable-advice>不再显示</button></div>
         <p class="daily-small">${entry ? '千问 AI' : '当前记录生成'} · ${esc(chosen.basis)}</p><p class="daily-small">${useAI ? '每日自动生成一次；重要记录变化后先显示当前短句，可手动换句。AI各功能合计每分钟最多2次。' : `随日期与记录更新；每分钟最多换${data.profile.refreshPerMinute}次。`}</p>
-        ${note ? `<p class="daily-error">${esc(note)}</p>` : ''}<p class="daily-feedback" role="status">${esc(feedback)}</p></div></details><button type="button" class="daily-banner-close" data-hide-advice aria-label="今天隐藏每日一句">×</button>`;
-      update(advice, content);
+        ${note ? `<p class="daily-error">${esc(note)}</p>` : ''}<p class="daily-feedback" role="status">${esc(feedback)}</p></div></details>${mobile?'':'<button type="button" class="daily-banner-close" data-hide-advice aria-label="今天隐藏每日一句">×</button>'}`;
+      update(content);
       if (retainFocus) advice.querySelector('[data-refresh-advice]')?.focus({ preventScroll: true });
       if (shouldRequest) {
         requestDaily(key, facts, refresh).then(value => {
@@ -112,7 +139,21 @@ export function mountDailyAssistant(container, state, dm) {
     else if (event.target.closest('[data-disable-advice]')) visibilityAction('off');
     else if (event.target.closest('[data-restore-advice]')) visibilityAction('restore');
   };
-  const cleanupSwipe = setupSwipeDismiss(advice, () => visibilityAction('today'));
+  const cleanupSwipe=mobile?null:setupSwipeDismiss(advice,()=>visibilityAction('today'));
+  function closeOnOutside(event) {
+    if(!slot.contains(event.target))advice.querySelector('details[open]')?.removeAttribute('open');
+  }
+  function closeOnEscape(event) {
+    const detail=advice.querySelector('details[open]');
+    if(event.key!=='Escape'||!detail)return;
+    detail.open=false;
+    if(slot.contains(document.activeElement))detail.querySelector('summary')?.focus({preventScroll:true});
+  }
+  if(mobile){
+    for(const event of ['pointerdown','focusin','wheel'])slot.addEventListener(event,stopQuoteScroll,{passive:true});
+    document.addEventListener('click',closeOnOutside);
+    document.addEventListener('keydown',closeOnEscape);
+  }
   const changed = () => render();
   const resumed = () => { if (!document.hidden) render(); };
   const storage = event => { if ([DAILY_KEY, AGENDA_KEY, STUDY_KEY, AI_KEY, DAILY_CACHE_KEY, ADVICE_VISIBILITY_KEY, 'course-dashboard-personal-items-v1', null].includes(event.key)) render(); };
@@ -135,7 +176,13 @@ export function mountDailyAssistant(container, state, dm) {
   render();
   return () => {
     disposed = true;
-    cleanupSwipe();
+    cleanupSwipe?.();
+    stopQuoteScroll();
+    if(mobile){
+      for(const event of ['pointerdown','focusin','wheel'])slot.removeEventListener(event,stopQuoteScroll);
+      document.removeEventListener('click',closeOnOutside);
+      document.removeEventListener('keydown',closeOnEscape);
+    }
     slot.removeEventListener('click', click);
     slot.remove();
     document.removeEventListener('app:tick', tick);

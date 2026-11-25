@@ -1070,12 +1070,8 @@
     --bottom-nav-height: 48px;
   }
 
-  .mobile-header {
-    height: 38px;
-  }
-
   :root {
-    --mobile-header-height: 38px;
+    --mobile-header-height: 44px;
   }
 }
 

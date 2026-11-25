@@ -1,4 +1,4 @@
-import { notesForCourse, notesForMoment, isPersistent } from './persistent-model.js?v=20261030-1';
+import { notesForCourse, notesForMoment } from './persistent-model.js?v=20261030-1';
 import { renderContextNotes, mountNoteActions } from './context-notes.js?v=20261030-1';
 import { getTodayStr, getDayName, getCurrentWeek } from './time.js?v=20261030-1';
 import { showCourseDetail } from './app.js?v=20261030-1';
@@ -119,7 +119,7 @@ export function renderDashboard(container, state, dm) {
   const scope={semester:dm.getSemesterInfo().semester,className:state.currentClass};
   const layout=()=>{try{return readHomeLayout(scope);}catch{return defaultHomeLayout();}};
   container.innerHTML = `<section class="today-page"><header class="today-header-row"><h1 class="today-date-sub"><a href="#/agenda" aria-label="打开日历与日程"><time datetime="${today}">${Number(today.slice(5, 7))}月${Number(today.slice(8))}日 · 星期${getDayName(today)}</time></a></h1><span class="today-week-badge">${semester.label}</span><div id="dash-advice-slot"><button type="button" class="daily-restore" data-restore-advice hidden>恢复今日一句</button><span class="sr-only" id="dash-advice-status" role="status" aria-live="polite"></span></div></header>
-    <div class="today-priority"><div id="dash-books"></div><div id="dash-prep-slot"><a class="today-tomorrow-link" href="#/wardrobe?day=tomorrow"><strong>明日准备</strong><span>查看穿搭 <span aria-hidden="true">›</span></span></a></div><section class="today-status accent-${STATE_ACCENTS[context.state]}" id="dash-status" aria-label="当前课程与下一次安排">${renderStatus(context,courses,nextDay,state)}</section></div>
+    <div class="today-priority"><div id="dash-period-courses"></div><div id="dash-prep-slot"><a class="today-tomorrow-link" href="#/wardrobe?day=tomorrow"><strong>明日准备</strong><span>查看穿搭 <span aria-hidden="true">›</span></span></a></div><section class="today-status accent-${STATE_ACCENTS[context.state]}" id="dash-status" aria-label="当前课程与下一次安排">${renderStatus(context,courses,nextDay,state)}</section></div>
     <div class="today-body-grid"><div class="today-now-column"><div id="dash-planner-slot"></div><div id="dash-moment-notes"></div><p class="context-notes-status" data-notes-status role="status" aria-live="polite"></p><div class="home-modules" id="dash-home-modules"><section class="home-module" id="dash-personal-slot" data-home-module="items"></section><section class="home-module today-course-list" id="dash-course-list" data-home-module="courses"${!plannedCourses.length?' hidden':''}>${homeModuleHeading('courses')}<div id="dash-courses-content"><div class="today-timeline" id="dash-timeline">${renderUpcomingCourses(plannedCourses,now,state,layout().expanded.courses)}</div></div></section></div><p class="home-layout-status" id="dash-layout-status" role="status" aria-live="polite"></p></div>
     <div class="today-support-column">
     ${renderOverview(academicCourses(courses), now, dm.getSemesterInfo())}</div></div></section>`;
@@ -137,32 +137,25 @@ export function renderDashboard(container, state, dm) {
     slot.innerHTML=html;noteMarkup.set(slot,html);
     if(opened&&slot.querySelector('details'))slot.querySelector('details').open=true;
   }
-  let booksMarkup='';
-  function refreshBooks(time,items) {
-    const rows=academicCourses(plannedCourses);
+  let courseStripMarkup='';
+  function refreshCourseStrip(time) {
     const midday=daySlots.periods[3]?.end??new Date(`${today}T12:00:00`);
-    const evening=daySlots.periods[7]?.end??new Date(`${today}T18:00:00`);
-    const section=course=>courseSectionRange(course)?.start;
-    const period=time<midday?'上午':time>=evening&&rows.some(course=>section(course)>=9)?'晚间':'下午';
-    const selected=rows.filter(course=>period==='上午'?section(course)<=4:period==='晚间'?section(course)>=9:section(course)>=5&&section(course)<=8);
-    selected.sort((a,b)=>section(a)-section(b));
-    const untimed=rows.filter(course=>!section(course));
-    const current=[...new Map([...selected,...untimed].map(course=>[course.courseName,course])).values()];
-    const bring=items.filter(item=>item.kind==='bring'&&!isPersistent(item)&&!item.deletedAt&&!item.completedAt&&(!item.dueDate||item.dueDate===today));
-    const other=bring.filter(item=>item.dueDate===today&&!rows.some(course=>course.courseName===item.courseName));
-    const html=`<section class="today-books" aria-label="带书清单"><h2>带书清单</h2>
-      <ul aria-label="${period}课程"><li class="today-books-period">${period}</li>${current.map(course=>{
-        const names=[...new Set([...notesForCourse(items,course,{now:time,view:'prepare'}).filter(item=>item.kind==='bring'),...bring.filter(item=>item.courseName===course.courseName)].map(item=>item.text))];
-        return `<li><button type="button" class="today-book-course" data-course-key="${esc(courseKey(course))}">${esc(course.courseName)}</button>${names.length?`<span>${names.map(esc).join('、')}</span>`:''}</li>`;
-      }).join('')}${!current.length?'<li class="today-books-empty">无课</li>':''}${other.length?`<li class="today-books-extra">另带 ${other.map(item=>esc(item.text)).join('、')}</li>`:''}</ul></section>`;
-    if(html===booksMarkup)return;
-    const slot=container.querySelector('#dash-books'),key=slot.contains(document.activeElement)?document.activeElement.dataset.courseKey:'';
-    slot.innerHTML=html;booksMarkup=html;
+    const morning=time<midday,period=morning?'上午':'下午';
+    const courses=academicCourses(plannedCourses)
+      .map(course=>({course,section:courseSectionRange(course)?.start}))
+      .filter(({section})=>morning?section>=1&&section<=4:section>=5&&section<=8)
+      .sort((a,b)=>a.section-b.section);
+    const names=new Map(courses.map(({course})=>[course.courseName,course]));
+    const list=[...names.values()].map(course=>`<li><button type="button" class="today-period-course" data-course-key="${esc(courseKey(course))}">${esc(course.courseName)}</button></li>`).join('');
+    const html=`<section class="today-course-strip" aria-label="${period}课程"><span class="today-period-name">${period}</span><ul>${list||'<li class="today-period-empty">无课</li>'}</ul></section>`;
+    if(html===courseStripMarkup)return;
+    const slot=container.querySelector('#dash-period-courses'),key=slot.contains(document.activeElement)?document.activeElement.dataset.courseKey:'';
+    slot.innerHTML=html;courseStripMarkup=html;
     if(key)[...slot.querySelectorAll('[data-course-key]')].find(node=>node.dataset.courseKey===key)?.focus({preventScroll:true});
   }
   function refreshNotes(time) {
     const items=noteItems(),value=getTodayState(courses,time),focus=value.currentCourse||value.nextCourse;
-    refreshBooks(time,items);
+    refreshCourseStrip(time);
     noteSlot('#dash-course-notes',notesForCourse(items,focus,{now:time,view:'focus'}));
     noteSlot('#dash-moment-notes',notesForMoment(items,time,dm.getCourses(state.currentClass)));
   }

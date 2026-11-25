@@ -131,7 +131,6 @@ function setupClassSelector() {
   setupSingleClassSelector({
     btnId: 'class-selector-btn-mobile',
     dropdownId: 'class-selector-dropdown-mobile',
-    nameId: 'current-class-name-mobile',
     isMobile: true,
   });
 }
@@ -139,42 +138,24 @@ function setupClassSelector() {
 function setupSingleClassSelector({ btnId, dropdownId, nameId, isMobile }) {
   const btn = $(btnId);
   const dropdown = $(dropdownId);
-  const nameEl = $(nameId);
-  if (!btn || !dropdown || !nameEl) return;
-
-  function updateDisplay() {
-    nameEl.textContent = state.currentClass;
-  }
+  const nameEl = nameId ? $(nameId) : null;
+  if (!btn || !dropdown) return;
 
   function buildDropdown() {
-    const classes = dataManager.getClasses();
-    if (isMobile) {
-      dropdown.innerHTML = `
-        <div class="mobile-class-dropdown-inner">
-          <div class="mobile-class-dropdown-title">选择班级</div>
-          ${classes.map(c => `
-            <button class="mobile-class-option ${c.className === state.currentClass ? 'active' : ''}" data-class="${c.className}">
-              <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              <span>${c.className}</span>
-            </button>`).join('')}
-        </div>`;
-    } else {
-      dropdown.innerHTML = classes.map(c => `
-        <button class="class-option ${c.className === state.currentClass ? 'active' : ''}" data-class="${c.className}">
-          <svg class="check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-          ${c.className}
-        </button>`).join('');
-    }
-
-    dropdown.querySelectorAll('[data-class]').forEach(opt => {
-      opt.addEventListener('click', () => {
-        const className = opt.dataset.class;
-        if (className === state.currentClass) {
-          closeDropdown();
-          return;
-        }
-        selectClass(className);
+    const optionClass=isMobile?'mobile-class-option':'class-option';
+    dropdown.innerHTML=dataManager.getClasses().map(({className})=>{
+      const active=className===state.currentClass;
+      return `<button type="button" class="${optionClass}${active?' active':''}" data-class="${esc(className)}"${active?' aria-current="true"':''}>
+        <svg class="check" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span>${esc(className)}</span>
+      </button>`;
+    }).join('');
+    dropdown.querySelectorAll('[data-class]').forEach(option=>{
+      option.addEventListener('click',()=>{
+        const className=option.dataset.class;
         closeDropdown();
+        if(className!==state.currentClass)selectClass(className);
+        btn.focus({preventScroll:true});
       });
     });
   }
@@ -182,42 +163,41 @@ function setupSingleClassSelector({ btnId, dropdownId, nameId, isMobile }) {
   function openDropdown() {
     buildDropdown();
     btn.classList.add('open');
+    btn.setAttribute('aria-expanded','true');
+    if(isMobile){
+      btn.closest('.mobile-header-inner').querySelector('.daily-banner-details[open]')?.removeAttribute('open');
+      dropdown.hidden=false;
+    }
     dropdown.classList.add('open');
+    if(isMobile)(dropdown.querySelector('[aria-current="true"]')||dropdown.querySelector('button'))?.focus({preventScroll:true});
   }
 
   function closeDropdown() {
     btn.classList.remove('open');
+    btn.setAttribute('aria-expanded','false');
     dropdown.classList.remove('open');
+    if(isMobile)dropdown.hidden=true;
   }
 
-  function toggleDropdown() {
-    if (dropdown.classList.contains('open')) closeDropdown();
+  btn.addEventListener('click',()=>{
+    if(dropdown.classList.contains('open'))closeDropdown();
     else openDropdown();
-  }
-
-  btn.addEventListener('click', (e) => { e.stopPropagation(); toggleDropdown(); });
-
-  if (isMobile) {
-    dropdown.addEventListener('click', (e) => {
-      if (e.target === dropdown) closeDropdown();
-    });
-  }
-
-  document.addEventListener('click', (e) => {
-    if (!dropdown.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+  });
+  document.addEventListener('click',event=>{
+    if(!dropdown.contains(event.target)&&!btn.contains(event.target))closeDropdown();
+  });
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'&&dropdown.classList.contains('open')){
       closeDropdown();
+      btn.focus({preventScroll:true});
     }
   });
-  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDropdown(); });
-
-  updateDisplay();
+  if(nameEl)nameEl.textContent=state.currentClass;
 }
 
 function updateAllClassDisplays() {
-  const desktopName = $('current-class-name-desktop');
-  const mobileName = $('current-class-name-mobile');
-  if (desktopName) desktopName.textContent = state.currentClass;
-  if (mobileName) mobileName.textContent = state.currentClass;
+  const name=$('current-class-name-desktop');
+  if(name)name.textContent=state.currentClass;
 }
 
 export function selectClass(className) {
