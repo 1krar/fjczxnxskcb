@@ -17,23 +17,28 @@ export function activeReminders(items,scope,now,delivery={}) {
 export function setupReminders(state,dm) {
   if(setup)return;setup=true;
   const tray=document.createElement('section');tray.id='reminder-tray';tray.className='reminder-tray';tray.setAttribute('aria-label','提前准备提醒');tray.setAttribute('aria-live','polite');tray.hidden=true;
-  document.querySelector('.page-container').before(tray);
+  const page=document.querySelector('.page-container');
+  page.append(tray);
   let current=null,scope=null,lastMinute='',signature='';
   function update(force=false,now=new Date()) {
     const minute=`${localDate(now)}:${now.getHours()}:${now.getMinutes()}:${state.currentClass}`;
     if(!force&&minute===lastMinute)return;lastMinute=minute;
     if(document.visibilityState==='hidden')return;
+    const reminderPage=state.route==='reminders';
+    if(reminderPage&&page.firstElementChild!==tray)page.prepend(tray);
+    else if(!reminderPage&&page.lastElementChild!==tray)page.append(tray);
     try {
       const context=plannerContext(state,dm,localDate(now));scope=context.scope;
       const delivery=readDelivery(),all=buildReminders(context),active=activeReminders(all,scope,now,delivery);
-      current=active[0]||null;
+      current=active.find(item=>reminderPage||item.type!=='market')||null;
       if(!current){tray.hidden=true;signature='';return;}
-      const id=reminderIdentity(current,scope),key=`${id}:${active.length}`;
+      const count=reminderPage?active.length:active.filter(item=>item.type!=='market').length;
+      const id=reminderIdentity(current,scope),key=`${id}:${count}`;
       tray.hidden=false;
       if(key===signature)return;signature=key;
       const expanded=tray.dataset.currentId===id?tray.querySelector('details')?.open:+current.start-+now<=3600000;
       tray.dataset.currentId=id;
-      tray.innerHTML=`<details class="reminder-disclosure"${expanded?' open':''}><summary><span class="agenda-tag">提前准备${active.length>1?` · 另有${active.length-1}条`:''}</span><strong>${esc(current.title)}</strong></summary><div class="reminder-copy"><p>${esc(current.detail)}</p></div><div class="reminder-actions"><button type="button" data-reminder-action="done">已处理</button><button type="button" data-reminder-action="snooze">5分钟后</button><button type="button" data-reminder-action="skip">跳过本次</button><a href="${current.type==='task'?'#/tasks':current.type==='study'?`#/study?date=${current.studyDate}`:'#/agenda'}">${current.type==='task'?'查看事项':current.type==='study'?'看晚自习安排':'看日程'}</a></div></details>`;
+      tray.innerHTML=`<details class="reminder-disclosure"${expanded?' open':''}><summary><span class="agenda-tag">提前准备${count>1?` · 另有${count-1}条`:''}</span><strong>${esc(current.title)}</strong></summary><div class="reminder-copy"><p>${esc(current.detail)}</p></div><div class="reminder-actions"><button type="button" data-reminder-action="done">已处理</button><button type="button" data-reminder-action="snooze">5分钟后</button><button type="button" data-reminder-action="skip">跳过本次</button><a href="${current.type==='task'?'#/tasks':current.type==='study'?`#/study?date=${current.studyDate}`:'#/agenda'}">${current.type==='task'?'查看事项':current.type==='study'?'看晚自习安排':'看日程'}</a></div></details>`;
     } catch(error) {
       current=null;signature='';tray.hidden=false;tray.innerHTML=`<p role="status">提前提醒暂不可用：${esc(error.message)}</p><a href="${/晚自习/.test(error.message)?'#/study':'#/agenda'}">检查${/晚自习/.test(error.message)?'晚自习':'日程'}资料</a>`;
     }

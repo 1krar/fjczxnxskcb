@@ -21,13 +21,11 @@
 .status-focus-row.has-countdown { grid-template-columns: minmax(0,1fr) fit-content(45%); }
 .status-course-info { min-width: 0; }
 .today-page .status-countdown { display: flex; flex-direction: column; gap: 4px; align-items: flex-end; margin: 0; padding: 0; border: 0; font-size: 0.75rem; line-height: 1.7; font-variant-numeric: tabular-nums; color: var(--color-text-secondary); }
-.today-page #dash-countdown { font-size: 1.5rem; line-height: 1.4; font-weight: 600; color: var(--color-text); overflow-wrap: anywhere; }
 .status-action-line { display: flex; flex-wrap: wrap; gap: 4px 12px; border-top: 1px solid var(--color-border-light); padding-top: 10px; margin: 4px 0 0; font-size: 0.75rem; line-height: 1.8; color: var(--color-text-secondary); }
 .status-action-line strong { font-weight: 600; color: var(--color-text); }
 @container (max-width: 275px) {
   .status-focus-row.has-countdown { grid-template-columns: minmax(0,1fr); gap: 8px; }
   .today-page .status-countdown { flex-direction: row; align-items: baseline; gap: 12px; }
-  .today-page #dash-countdown { font-size: 1.25rem; }
 }
 .today-page .status-course { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; width: 100%; min-height: 44px; padding: 0; border: 0; border-radius: 8px; font: inherit; text-align: left; cursor: pointer; background: transparent; color: var(--color-text); }
 .today-page .status-title { display: block; overflow: visible; font-size: 1.3125rem; line-height: 1.5; letter-spacing: 0; -webkit-line-clamp: unset; overflow-wrap: anywhere; }
@@ -279,15 +277,42 @@ body:has(#view-today.active .today-page) #quick-capture { display: none; }
 .study-absence-row:focus-visible { outline:2px solid var(--color-primary); outline-offset:3px; }
 .status-study-note { margin:8px 0 0; color:var(--color-text-secondary); font-size:.8125rem; line-height:1.7; overflow-wrap:anywhere; }
 
-.today-books { margin:0 0 12px; padding:12px 16px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-surface); }
-.today-books h2 { margin:0 0 4px; font-size:1rem; }
-.today-books details + details { border-top:1px solid var(--color-border-light); }
-.today-books summary { padding:8px 0; min-height:44px; align-content:center; cursor:pointer; font-size:.875rem; font-weight:650; }
-.today-books summary span { margin-inline-start:8px; color:var(--color-text-secondary); font-weight:400; }
-.today-books ul { list-style:none; margin:0 0 4px; padding:0; }
-.today-books li { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:4px 0; font-size:.875rem; }
-.today-books li + li { border-top:1px solid var(--color-border-light); }
-.today-books li > div { min-width:0; overflow-wrap:anywhere; }
-.today-books li p { margin:3px 0 0; }
-.today-books li button { min-height:44px; flex-shrink:0; }
-.today-books-extra { font-size:.875rem; overflow-wrap:anywhere; }
+/* Departure, tomorrow and live class status share the same reading rail. */
+.today-page .today-header-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:0 12px; margin:0 0 10px; }
+.today-page .today-date-sub { line-height:1.35; }
+#dash-advice-slot { grid-column:1/-1; }
+.today-page .daily-advice-inline { background:transparent; margin:0; }
+.today-page .daily-advice-inline .daily-sentence { color:var(--color-text-secondary); }
+.today-page .daily-banner-details > summary { padding:9px 0; align-content:center; }
+.today-page .daily-banner-tools { padding-inline-start:0; }
+.today-page .daily-restore { grid-column:1/-1; justify-self:start; }
+.today-priority { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.12fr); grid-template-areas:'books status' 'prep status'; gap:8px 16px; align-items:start; margin-bottom:16px; }
+#dash-books { grid-area:books; min-width:0; }
+#dash-prep-slot { grid-area:prep; min-width:0; }
+#dash-status { grid-area:status; min-width:0; }
+.today-books, .today-tomorrow-link { padding:12px 14px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-surface); }
+.today-tomorrow-link { display:flex; gap:8px; flex-wrap:wrap; align-items:baseline; justify-content:space-between; }
+.today-books h2, .today-tomorrow-link strong { margin:0; font-size:1rem; color:var(--color-text); }
+.today-tomorrow-link > span { color:var(--color-text-secondary); font-size:.8125rem; }
+.today-books { min-height:48px; display:flex; align-items:center; gap:10px; padding-block:1px; white-space:nowrap; }
+.today-books ul { display:flex; align-items:center; gap:10px; min-width:0; overflow-x:auto; margin:0; padding:0 4px; list-style:none; scrollbar-width:thin; }
+.today-books li { flex-shrink:0; display:flex; align-items:baseline; gap:4px; }
+.today-books li + li { border-inline-start:1px solid var(--color-border-light); padding-inline-start:10px; }
+.today-books-period, .today-books-empty, .today-books-extra, .today-books li > span { color:var(--color-text-secondary); font-size:.8125rem; }
+.today-book-course { color:var(--color-text); font:inherit; font-size:.875rem; font-weight:600; text-align:left; min-height:44px; }
+.today-tomorrow-link { min-height:48px; align-items:center; background:var(--color-primary-50); }
+.today-tomorrow-link > span { color:var(--color-primary-dark); font-weight:600; }
+.today-page #dash-status { padding:12px 14px; }
+.today-status-next + .today-status-current { border-top:1px solid var(--color-border-light); padding-top:8px; margin-top:6px; }
+.today-status-label, .today-status-current p, .today-status-countdown, .today-countdown-label { margin:0; color:var(--color-text-secondary); font-size:.8125rem; line-height:1.5; overflow-wrap:anywhere; }
+.today-status-line { display:flex; justify-content:space-between; align-items:baseline; gap:8px; flex-wrap:wrap; }
+.today-course-target { width:100%; display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 12px; min-height:44px; padding:4px 0; align-content:center; text-align:left; font:inherit; color:var(--color-text); overflow-wrap:anywhere; }
+.today-course-target strong { font-size:1rem; }
+.today-status-next .today-course-target strong { font-size:1.125rem; }
+.today-course-target span { color:var(--color-text-secondary); font-size:.8125rem; }
+.today-status-later .today-course-target { min-height:36px; }
+.today-time-left { color:var(--color-primary-dark); font-variant-numeric:tabular-nums; font-size:.875rem; }
+@media(max-width:768px) {
+  .today-priority { grid-template-columns:minmax(0,1fr); grid-template-areas:'books' 'prep' 'status'; }
+  body:has(#view-today.active) .personal-feedback { bottom:calc(var(--bottom-nav-height) + 8px + env(safe-area-inset-bottom,0px)); width:max-content; max-width:calc(100vw - 32px); padding:6px 12px; }
+}

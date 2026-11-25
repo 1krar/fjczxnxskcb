@@ -7,30 +7,28 @@ import { mountTodayItems, openCapture } from './tasks.js?v=20261030-1';
 import { escapeText, itemsForScope } from './tasks-store.js?v=20261030-1';
 import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261030-1';
 import { readHomeLayout, defaultHomeLayout, homeModuleHeading, mountHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261030-1';
-import { renderUpcomingCourses, courseListCount, courseContinuation, renderUnassignedHint, activeDayCourses, academicCourses, studyStateText } from './home-courses.js?v=20261030-1';
+import { renderUpcomingCourses, courseListCount, activeDayCourses, academicCourses } from './home-courses.js?v=20261030-1';
 import { getDaySlots, courseSectionRange } from './day-slots.js?v=20261030-1';
 import { readStudyData } from './study-store.js?v=20261030-1';
 import { applyEveningStudy } from './study-model.js?v=20261030-1';
 import { mountDailyAssistant } from './daily-widgets.js?v=20261030-1';
 import { mountTodayAgenda } from './today-agenda.js?v=20261030-1';
-import { readDailyData } from './daily-store.js?v=20261030-1';
-import { departurePlan, nextDate } from './daily-model.js?v=20261030-1';
-import { mountWeather } from './weather-widget.js?v=20261030-1';
+import { nextDate } from './daily-model.js?v=20261030-1';
 
 const esc = escapeText;
 let tickHandler = null;
-const STATE_LABELS = {
-  NO_CLASS: { label: '今日无课', accent: 'muted' },
-  WEEKEND: { label: '周末无课', accent: 'muted' },
-  EARLY_MORNING: { label: '夜间 · 今日准备', accent: 'muted' },
-  BEFORE_FIRST_CLASS: { label: '今日首课', accent: 'before' },
-  IN_CLASS: { label: '正在上课', accent: 'primary' },
-  INTERNAL_BREAK: { label: '大课内课间', accent: 'info' },
-  BREAK: { label: '课间', accent: 'info' },
-  LUNCH: { label: '午间空档', accent: 'warning' },
-  BEFORE_NEXT_CLASS: { label: '下一次课', accent: 'info' },
-  DAY_FINISHED: { label: '今日课程结束', accent: 'success' },
-  TIME_UNKNOWN: { label: '课程时间待确认', accent: 'muted' },
+const STATE_ACCENTS = {
+  NO_CLASS: 'muted',
+  WEEKEND: 'muted',
+  EARLY_MORNING: 'muted',
+  BEFORE_FIRST_CLASS: 'before',
+  IN_CLASS: 'primary',
+  INTERNAL_BREAK: 'info',
+  BREAK: 'info',
+  LUNCH: 'warning',
+  BEFORE_NEXT_CLASS: 'info',
+  DAY_FINISHED: 'success',
+  TIME_UNKNOWN: 'muted',
 };
 
 function scheduleForDate(dm,className,date,studyData) {
@@ -65,58 +63,33 @@ function countdownText(milliseconds) {
   return seconds < 60 ? `${seconds}秒` : hours ? `${hours}小时${minutes % 60 ? `${minutes % 60}分` : ''}` : `${minutes}分钟`;
 }
 
-function courseButton(course, state, segment = null) {
-  if (!course) return '';
-  const lesson = segment?.kind === 'lesson' ? segment : segment?.kind==='break' ? course.segments?.find(part=>part.kind==='lesson'&&part.start>=segment.end) : course.segments?.find(part => part.kind === 'lesson');
-  const time = lesson ? `第${lesson.section}小节 · ${lesson.startTime}—${lesson.endTime}` : `${course.startTime || '时间待确认'}${course.endTime ? `—${course.endTime}` : ''}`;
-  return `<button type="button" class="status-course" data-course-key="${esc(courseKey(course))}">
-    <span class="status-title">${esc(course.courseName)}</span>
-    <span class="status-meta">${esc(formatLocation(course.location, state.settings.showFullLocation) || (course.source==='evening-study'?'地点未设置':'教室待确认'))}${course.source==='evening-study'?` · ${esc(studyStateText(course))}`:''}</span>
-    <span class="status-course-footer"><span class="status-section mono">${esc(time)}</span><span class="status-detail-hint">详情 <span aria-hidden="true">→</span></span></span>
-  </button>`;
+function renderStatus(context, courses, nextDay, state) {
+  const current=context.currentCourse, segment=context.currentSegment;
+  const nextLesson=current?.segments?.find(part=>part.kind==='lesson'&&segment&&part.start>=segment.end);
+  const nextCourse=context.nextCourse||nextDay?.courses[0];
+  const room=course=>formatLocation(course.location,state.settings.showFullLocation)||(course.source==='evening-study'?'地点待确认':'教室待确认');
+  const currentStudy=current?.source==='evening-study';
+  const sameDay=nextCourse&&nextCourse!==nextDay?.courses[0];
+  const studyName=nextCourse?.studyStatus==='other'?'晚间安排':'晚自习';
+  const nextLabel=nextCourse?.source==='evening-study'?(sameDay?studyName:nextDay?.isTomorrow?'明日'+studyName:`${nextCourse.date.slice(5)} ${studyName}`)
+    :sameDay?'下节课':nextDay?.isTomorrow?'明日首课':nextCourse?`${nextCourse.date.slice(5)} 下一次课`:'';
+  const routeCourse=(course,html)=>`<button type="button" class="today-course-target" data-course-key="${esc(courseKey(course))}">${html}</button>`;
+  const destination=(course,label,detail)=>`<div class="today-status-next"><span class="today-status-label">${esc(label)}</span>${routeCourse(course,`<strong>${esc(room(course))}</strong><span>${esc(detail)}</span>`)}</div>`;
+  const upcoming=nextLesson?destination(current,'下一小节 · 原教室',`${nextLesson.startTime} 继续第${nextLesson.section}节`)
+    :nextCourse?destination(nextCourse,nextLabel,`${nextCourse.startTime||'时间待确认'} · ${nextCourse.courseName}`):'';
+  const later=nextLesson&&sameDay&&nextCourse?.source!=='evening-study'
+    ?`<div class="today-status-later">${routeCourse(nextCourse,`<span>下节课 ${esc(nextCourse.startTime||'时间待确认')} · ${esc(room(nextCourse))}</span>`)}</div>`:'';
+  const countdown=context.countdown!==null?`<strong class="today-time-left" id="dash-countdown">${countdownText(context.countdown)}</strong>`:'';
+  const range=current&&courseSectionRange(current);
+  const sectionText=range?(range.start===range.end?`第${range.start}节`:`第${range.start}–${range.end}节`):'';
+  const lessonText=range&&segment?.kind==='lesson'?` · 当前第${segment.section-range.start+1}小节（当天第${segment.section}节）`:'';
+  const clock=current?(segment?.kind==='break'
+    ? `${current.endTime} 本次课结束`
+    : [`${segment?.startTime||current.startTime} 上课 · ${segment?.endTime||current.endTime} 下课`,nextLesson?`${current.endTime} 本次课结束`:''].filter(Boolean).join(' · ')):'';
+  const currentHTML=current?`<div class="today-status-current"><div class="today-status-line"><span class="today-status-label">${current.studyStatus==='other'?'晚间安排':segment?.kind==='break'?'课间':currentStudy?'正在晚自习':'正在上课'}</span>${countdown?`<span class="today-countdown-label">${segment?.kind==='break'?'距继续':'距下课'} ${countdown}</span>`:''}</div>${routeCourse(current,`<strong>${esc(current.courseName)}</strong>${nextLesson?'':`<span>${esc(room(current))}</span>`}`)}<p>${esc(sectionText+lessonText)}</p><p>${esc(clock)}</p></div>`:'';
+  const unknown=context.state==='TIME_UNKNOWN'&&!current&&!nextCourse&&courses[0];
+  return `${upcoming}${currentHTML}${later}${!current&&nextCourse&&context.nextCourse&&countdown?`<p class="today-status-countdown">距开课 ${countdown}</p>`:''}${!current&&!nextCourse?`<p class="today-status-label">${unknown?'课程时间待确认':context.state==='DAY_FINISHED'?'今日课程结束':'今天无课'}</p>${unknown?routeCourse(unknown,`<strong>${esc(unknown.courseName)}</strong><span>${esc(room(unknown))}</span>`):''}`:''}<div id="dash-course-notes"></div>`;
 }
-
-function renderStatus(context, courses, nextDay, state, now, daySlots) {
-  const label = STATE_LABELS[context.state];
-  const focus=context.currentCourse||context.nextCourse,study=focus?.source==='evening-study';
-  const displayLabel=study?(focus.studyStatus==='other'?'晚间安排':context.state==='IN_CLASS'?'正在晚自习':context.state==='INTERNAL_BREAK'?'晚自习课间':'下一项 · 晚自习'):label.label;
-  const current = context.state === 'IN_CLASS';
-  const resting = ['NO_CLASS', 'WEEKEND', 'DAY_FINISHED', 'TIME_UNKNOWN'].includes(context.state);
-  let content;
-  if (resting) {
-    content = context.state === 'TIME_UNKNOWN' ? `${courseButton(context.currentCourse||context.nextCourse||courses[0], state)}<a class="status-schedule-link" href="#/data">查看导入的时间信息 →</a>` : '';
-    if (context.state !== 'TIME_UNKNOWN' && nextDay) {
-      const nextCourse = nextDay.courses[0];
-      content += `<h2 class="status-rest-title">${context.state === 'DAY_FINISHED' ? '今天的课上完了' : '今天无课'}</h2><div class="status-next-preview"><p class="next-day-info">${nextDay.isTomorrow ? '明日首课' : '下一有课日'} · ${esc(nextDay.date.slice(5))} 星期${nextDay.weekday}</p><button type="button" class="status-next-course" data-course-key="${esc(courseKey(nextCourse))}"><strong>${esc(nextCourse.courseName)}</strong><span>${esc(nextCourse.startTime || '时间待确认')} · ${esc(formatLocation(nextCourse.location, state.settings.showFullLocation) || '教室待确认')} <span aria-hidden="true">→</span></span></button></div>`;
-    } else if (context.state !== 'TIME_UNKNOWN') {
-      content = `<h2 class="status-rest-title">${context.state === 'DAY_FINISHED' ? '今天的课上完了' : '今天课表上没有课程'}</h2><p class="status-sub">也给自己的安排留一点时间。</p><a class="status-schedule-link" href="#/schedule">查看其他日期 →</a>`;
-    }
-  } else {
-    const course = context.currentCourse || context.nextCourse;
-    content = courseButton(course, state, context.currentSegment);
-    if (context.state === 'EARLY_MORNING') content += '<p class="status-sub">夜里先把需要的东西准备好，临近上课时再看倒计时。</p>';
-  }
-  const countdown = !resting && context.state !== 'EARLY_MORNING' && context.countdown !== null ? `<div class="status-countdown"><span>${study?(current?'距本时段结束':context.state==='INTERNAL_BREAK'?'距继续':'距开始'):current ? '距本小节下课' : context.state === 'INTERNAL_BREAK' ? '距继续上课' : '距开课'}</span><strong id="dash-countdown">${countdownText(context.countdown)}</strong></div>` : '';
-  let support = '';
-  if (context.state === 'INTERNAL_BREAK') support = `<p class="status-action-line">课间休息 · ${esc(context.currentSegment.endTime)}继续第${context.currentSegment.nextSection}小节</p>`;
-  else if (current) support = `<div class="status-progress-mini" aria-hidden="true"><div class="status-progress-mini-fill" id="dash-progress" style="width:${progressPercent(context.currentCourse, now, context.currentSegment)}%"></div></div>`;
-  else if (!resting && context.nextCourse) {
-    try {
-      const plan = departurePlan(context.nextCourse, readDailyData().profile, context.prevCourse);
-      if (plan) support = `<p class="status-action-line"><strong>${esc(plan.clock)} 建议出发</strong><span>按你的路线预算估算</span></p>`;
-    } catch { /* Course time stays available when optional daily preferences cannot be read. */ }
-  }
-  const continuation=!resting?courseContinuation(context.currentCourse||context.nextCourse,context.currentSegment,now):'';
-  return `<div class="status-main${resting ? ' is-resting' : ''}${study?' is-study':''}">${resting && context.state!=='TIME_UNKNOWN'?'':`<div class="status-heading"><div class="status-tag accent-${label.accent}">${displayLabel}</div></div>`}<div class="status-focus-row${countdown ? ' has-countdown' : ''}"><div class="status-course-info">${content}</div>${countdown}</div>${support}${continuation?`<p class="status-continuation">${esc(continuation)}</p>`:''}${study&&(focus.studyNote||focus.note)?`<p class="status-study-note">${esc(focus.studyNote||focus.note)}</p>`:''}</div><div id="dash-unassigned-hint">${renderUnassignedHint(daySlots, now)}</div><div id="dash-course-notes"></div>`;
-}
-
-function progressPercent(course, now, segment) {
-  const start = segment?.kind === 'lesson' ? segment.start : course.startDateTime;
-  const end = segment?.kind === 'lesson' ? segment.end : course.endDateTime;
-  const duration = end - start;
-  return duration > 0 ? Math.max(0, Math.min(100, (now - start) / duration * 100)) : 0;
-}
-
 
 function renderOverview(courses, now, info) {
   const summary = getCourseSummary(courses);
@@ -145,15 +118,14 @@ export function renderDashboard(container, state, dm) {
   const semester = getSemesterProgress(dm.getSemesterInfo());
   const scope={semester:dm.getSemesterInfo().semester,className:state.currentClass};
   const layout=()=>{try{return readHomeLayout(scope);}catch{return defaultHomeLayout();}};
-  container.innerHTML = `<section class="today-page"><div id="dash-advice-slot"></div><header class="today-header-row"><h1 class="today-date-sub"><a href="#/agenda" aria-label="打开日历与日程"><time datetime="${today}">${Number(today.slice(5, 7))}月${Number(today.slice(8))}日 · 星期${getDayName(today)}</time></a></h1><span class="today-week-badge">${semester.label}</span><button type="button" class="daily-restore" data-restore-advice hidden>恢复今日一句</button></header><span class="sr-only" id="dash-advice-status" role="status" aria-live="polite"></span>
-    <div id="dash-weather-slot"></div><div class="today-body-grid"><div class="today-now-column"><section class="today-status accent-${STATE_LABELS[context.state].accent}" id="dash-status" aria-label="当前课程与下一次安排">${renderStatus(context, courses, nextDay, state, now, daySlots)}</section>
-    <div id="dash-books"></div><div id="dash-planner-slot"></div><div id="dash-moment-notes"></div><p class="context-notes-status" data-notes-status role="status" aria-live="polite"></p><div class="home-modules" id="dash-home-modules"><section class="home-module" id="dash-personal-slot" data-home-module="items"></section><section class="home-module today-course-list" id="dash-course-list" data-home-module="courses"${!plannedCourses.length?' hidden':''}>${homeModuleHeading('courses')}<div id="dash-courses-content"><div class="today-timeline" id="dash-timeline">${renderUpcomingCourses(plannedCourses,now,state,layout().expanded.courses)}</div></div></section></div><p class="home-layout-status" id="dash-layout-status" role="status" aria-live="polite"></p></div>
+  container.innerHTML = `<section class="today-page"><header class="today-header-row"><h1 class="today-date-sub"><a href="#/agenda" aria-label="打开日历与日程"><time datetime="${today}">${Number(today.slice(5, 7))}月${Number(today.slice(8))}日 · 星期${getDayName(today)}</time></a></h1><span class="today-week-badge">${semester.label}</span><button type="button" class="daily-restore" data-restore-advice hidden>恢复今日一句</button><div id="dash-advice-slot"></div></header><span class="sr-only" id="dash-advice-status" role="status" aria-live="polite"></span>
+    <div class="today-priority"><div id="dash-books"></div><div id="dash-prep-slot"><a class="today-tomorrow-link" href="#/wardrobe?day=tomorrow"><strong>明日准备</strong><span>查看穿搭 <span aria-hidden="true">›</span></span></a></div><section class="today-status accent-${STATE_ACCENTS[context.state]}" id="dash-status" aria-label="当前课程与下一次安排">${renderStatus(context,courses,nextDay,state)}</section></div>
+    <div class="today-body-grid"><div class="today-now-column"><div id="dash-planner-slot"></div><div id="dash-moment-notes"></div><p class="context-notes-status" data-notes-status role="status" aria-live="polite"></p><div class="home-modules" id="dash-home-modules"><section class="home-module" id="dash-personal-slot" data-home-module="items"></section><section class="home-module today-course-list" id="dash-course-list" data-home-module="courses"${!plannedCourses.length?' hidden':''}>${homeModuleHeading('courses')}<div id="dash-courses-content"><div class="today-timeline" id="dash-timeline">${renderUpcomingCourses(plannedCourses,now,state,layout().expanded.courses)}</div></div></section></div><p class="home-layout-status" id="dash-layout-status" role="status" aria-live="polite"></p></div>
     <div class="today-support-column">
-    <div id="dash-prep-slot"></div>${renderOverview(academicCourses(courses), now, dm.getSemesterInfo())}</div></div></section>`;
+    ${renderOverview(academicCourses(courses), now, dm.getSemesterInfo())}</div></div></section>`;
   const cleanupItems = mountTodayItems(container, state, dm);
   const cleanupAssistant = mountDailyAssistant(container, state, dm);
   const cleanupAgendaBrief = mountTodayAgenda(container, state, dm);
-  const cleanupWeather = mountWeather(container);
   const cleanupLayout = mountHomeLayout(container,scope);
   const noteItems=()=>{try{return itemsForScope(scope);}catch{return [];}};
   const noteMarkup=new Map();
@@ -168,31 +140,25 @@ export function renderDashboard(container, state, dm) {
   let booksMarkup='';
   function refreshBooks(time,items) {
     const rows=academicCourses(plannedCourses);
-    const blocks=[{label:'上午',rows:[]},{label:'下午',rows:[]},{label:'其他课',rows:[]}];
-    for(const course of rows) {
-      const section=courseSectionRange(course)?.start;
-      const index=!section||section>=9?2:section>=5?1:0;
-      blocks[index].rows.push(course);
-    }
-    const upcoming=blocks.findIndex(block=>block.rows.some(course=>+course.endDateTime>+time));
-    const ordered=upcoming===-1?blocks:[blocks[upcoming],...blocks.filter((_,index)=>index!==upcoming)];
-    const courseNames=new Set(rows.map(course=>course.courseName));
-    const bringItems=items.filter(item=>item.kind==='bring'&&!isPersistent(item)&&!item.deletedAt&&!item.completedAt&&(item.dueDate===today||!item.dueDate&&courseNames.has(item.courseName)));
-    const otherItems=bringItems.filter(item=>!courseNames.has(item.courseName));
-    const html=rows.length||otherItems.length?`<section class="today-books" aria-label="带书清单"><h2>带书清单</h2>
-      ${ordered.filter(block=>block.rows.length).map(block=>`<details${block===ordered[0]?' open':''} data-book-block="${block.label}"><summary>${block.label}<span>${new Set(block.rows.map(course=>course.courseName)).size} 门课</span></summary><ul>${[...new Map(block.rows.map(course=>[course.courseName,course])).values()].map(course=>{
-        const names=[...new Set([...notesForCourse(items,course,{now:time,view:'prepare'}).filter(item=>item.kind==='bring'),...bringItems.filter(item=>item.courseName===course.courseName)].map(item=>item.text))];
-        return `<li><div><strong>${esc(course.courseName)}</strong>${names.length?`<p>${names.map(esc).join('、')}</p>`:'<p class="daily-muted">未记录教材</p>'}</div><button type="button" class="daily-text-button" data-book-course="${esc(course.courseName)}" aria-label="记下${esc(course.courseName)}要带的书">${names.length?'补充':'记带书'}</button></li>`;
-      }).join('')}</ul></details>`).join('')}
-      ${otherItems.length?`<p class="today-books-extra">另外要带 · ${otherItems.map(item=>esc(item.text)).join('、')}</p>`:''}</section>`:'';
+    const midday=daySlots.periods[3]?.end??new Date(`${today}T12:00:00`);
+    const evening=daySlots.periods[7]?.end??new Date(`${today}T18:00:00`);
+    const section=course=>courseSectionRange(course)?.start;
+    const period=time<midday?'上午':time>=evening&&rows.some(course=>section(course)>=9)?'晚间':'下午';
+    const selected=rows.filter(course=>period==='上午'?section(course)<=4:period==='晚间'?section(course)>=9:section(course)>=5&&section(course)<=8);
+    selected.sort((a,b)=>section(a)-section(b));
+    const untimed=rows.filter(course=>!section(course));
+    const current=[...new Map([...selected,...untimed].map(course=>[course.courseName,course])).values()];
+    const bring=items.filter(item=>item.kind==='bring'&&!isPersistent(item)&&!item.deletedAt&&!item.completedAt&&(!item.dueDate||item.dueDate===today));
+    const other=bring.filter(item=>item.dueDate===today&&!rows.some(course=>course.courseName===item.courseName));
+    const html=`<section class="today-books" aria-label="带书清单"><h2>带书清单</h2>
+      <ul aria-label="${period}课程"><li class="today-books-period">${period}</li>${current.map(course=>{
+        const names=[...new Set([...notesForCourse(items,course,{now:time,view:'prepare'}).filter(item=>item.kind==='bring'),...bring.filter(item=>item.courseName===course.courseName)].map(item=>item.text))];
+        return `<li><button type="button" class="today-book-course" data-course-key="${esc(courseKey(course))}">${esc(course.courseName)}</button>${names.length?`<span>${names.map(esc).join('、')}</span>`:''}</li>`;
+      }).join('')}${!current.length?'<li class="today-books-empty">无课</li>':''}${other.length?`<li class="today-books-extra">另带 ${other.map(item=>esc(item.text)).join('、')}</li>`:''}</ul></section>`;
     if(html===booksMarkup)return;
-    const slot=container.querySelector('#dash-books');
-    const active=slot.contains(document.activeElement)?document.activeElement:null;
-    const opened=new Map([...slot.querySelectorAll('[data-book-block]')].map(node=>[node.dataset.bookBlock,node.open]));
-    const moved=slot.firstElementChild?.querySelector('details')?.dataset.bookBlock!==ordered.find(block=>block.rows.length)?.label;
+    const slot=container.querySelector('#dash-books'),key=slot.contains(document.activeElement)?document.activeElement.dataset.courseKey:'';
     slot.innerHTML=html;booksMarkup=html;
-    if(!moved)slot.querySelectorAll('[data-book-block]').forEach(node=>{if(opened.has(node.dataset.bookBlock))node.open=opened.get(node.dataset.bookBlock);});
-    if(active?.dataset.bookCourse)[...slot.querySelectorAll('[data-book-course]')].find(node=>node.dataset.bookCourse===active.dataset.bookCourse)?.focus({preventScroll:true});
+    if(key)[...slot.querySelectorAll('[data-course-key]')].find(node=>node.dataset.courseKey===key)?.focus({preventScroll:true});
   }
   function refreshNotes(time) {
     const items=noteItems(),value=getTodayState(courses,time),focus=value.currentCourse||value.nextCourse;
@@ -220,18 +186,10 @@ export function renderDashboard(container, state, dm) {
       } else container.querySelector('[data-home-toggle="courses"]').focus({preventScroll:true});
     }
   }
-  function refreshUnassigned(time) {
-    const slot=container.querySelector('#dash-unassigned-hint');
-    if (!slot) return;
-    const markup=renderUnassignedHint(daySlots,time);
-    if (slot.innerHTML!==markup) slot.innerHTML=markup;
-  }
   refreshCourses(now);
   refreshNotes(now);
   const allCourses = [...plannedCourses, ...(nextDay?.courses || [])];
   const onClick = event => {
-    const book=event.target.closest('[data-book-course]');
-    if(book){openCapture({courseName:book.dataset.bookCourse,bring:true});return;}
     const button = event.target.closest('[data-course-key]');
     if (!button || !container.contains(button)) return;
     const course = allCourses.find(item => courseKey(item) === button.dataset.courseKey);
@@ -246,18 +204,16 @@ export function renderDashboard(container, state, dm) {
       previousKey = stateKey(next);
       const status = container.querySelector('#dash-status');
       const statusFocused = status.contains(document.activeElement);
-      status.className = `today-status accent-${STATE_LABELS[next.state].accent}`;
-      status.innerHTML = renderStatus(next, courses, nextDay, state, time, daySlots);
-      if (statusFocused) status.querySelector('.status-course, a')?.focus({ preventScroll: true });
+      status.className = `today-status accent-${STATE_ACCENTS[next.state]}`;
+      status.innerHTML = renderStatus(next,courses,nextDay,state);
+      if (statusFocused) status.querySelector('.today-course-target, a')?.focus({ preventScroll: true });
       refreshCourses(time);
       refreshNotes(time);
     }
     const minute=Math.floor(+time/60000);
-    if(minute!==noteMinute){noteMinute=minute;refreshNotes(time);refreshUnassigned(time);}
+    if(minute!==noteMinute){noteMinute=minute;refreshNotes(time);}
     const countdown = container.querySelector('#dash-countdown');
     if (countdown && next.countdown !== null) countdown.textContent = countdownText(next.countdown);
-    const progress = container.querySelector('#dash-progress');
-    if (progress && next.currentCourse) progress.style.width = `${progressPercent(next.currentCourse, time, next.currentSegment)}%`;
   };
   const preferencesChanged = () => { previousKey = ''; handler({ detail:{ now:new Date() } }); };
   const layoutChanged=()=>refreshCourses(new Date());
@@ -275,7 +231,6 @@ export function renderDashboard(container, state, dm) {
     cleanupItems?.();
     cleanupAssistant();
     cleanupAgendaBrief();
-    cleanupWeather();
     cleanupLayout();
     cleanupNotes();
     window.removeEventListener('personal-items:changed',notesChanged);

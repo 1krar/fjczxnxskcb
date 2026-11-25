@@ -97,6 +97,16 @@ assert.notEqual(chooseAdvice(advice, 'scope', now, 2, true).id, original.id, 'op
 assert.equal(chooseAdvice(advice, 'scope', now, 2, true).limited, true);
 assert.notEqual(chooseAdvice(advice, 'scope', new Date(+now + 60001), 2, true).limited, true);
 
+assert.deepEqual(store.readDailyData().outfitExclusions,[]);
+store.setOutfitExclusion([top.id,joggers.id]);
+const remembered=structuredClone(store.readDailyData());
+assert.ok(remembered.outfitExclusions[0].excluded);
+store.setOutfitExclusion([joggers.id,top.id],false);
+const prior=structuredClone(remembered);
+prior.outfitExclusions[0].updatedAt='2020-01-01T00:00:00.000Z';
+store.mergeDailyBackup(prior);
+assert.equal(store.readDailyData().outfitExclusions.length,1);
+assert.equal(store.readDailyData().outfitExclusions[0].excluded,false,'an older backup cannot reactivate a removed exclusion');
 const backup = structuredClone(store.readDailyData());
 store.mergeDailyBackup(backup);
 assert.equal(store.readDailyData().garments.length, backup.garments.length, 'reimport is idempotent');

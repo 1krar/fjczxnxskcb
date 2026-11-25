@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { emptyDailyData, validateDailyData } from '../js/daily-store.js';
+import { emptyDailyData, validateDailyData, outfitSignature } from '../js/daily-store.js';
 import { planOutfits, isAvailable } from '../js/daily-model.js';
 import { outfitAIInput, applyOutfitChoice } from '../js/outfit-ai.js';
 import { normalizeWeather, DEFAULT_WEATHER_LOCATION } from '../js/weather-model.js';
@@ -26,6 +26,21 @@ assert.deepEqual(linked.outfits[1].seasons,['autumn','winter'],'backup normaliza
 const coldFit=planOutfits(linked,date,[],[],weather(10,70),now).daily;
 assert.equal(coldFit.sets[0].savedName,'秋冬长袖');
 assert.ok(coldFit.candidates.every(set=>!set.pieces.some(item=>item.id==='thin-top')),'warm choices keep short sleeves out of cold-weather alternatives and the AI pool');
+const source=coldFit.sets[0];
+assert.equal(coldFit.replacePiece(source,'thick-top'),null,'a cold-weather swap cannot force a short sleeve');
+const swapData={...linked,garments:[...linked.garments,garment('other-long-top','shirt',{name:'另一件长袖',warmth:'warm'})]};
+const swapPlan=planOutfits(swapData,date,[],[],weather(10,70),now);
+const replaced=swapPlan.daily.replacePiece(source,'thick-top');
+assert.ok(replaced);
+assert.equal(replaced.pieces[0].id,'other-long-top');
+assert.deepEqual(replaced.pieces.slice(1).map(item=>item.id),source.pieces.slice(1).map(item=>item.id),'a swap keeps all other garment identities');
+const rejected=source.pieces.map(item=>item.id).reverse(),key=outfitSignature(rejected);
+const excluded=validateDailyData({...swapData,outfitExclusions:[{garmentIds:rejected,excluded:true,updatedAt:stamp}]});
+const after=planOutfits(excluded,date,[],[],weather(10,70),now);
+assert.equal(after.daily.recheckSet(source),null);
+assert.ok(after.daily.candidates.every(set=>outfitSignature(set.pieces.map(item=>item.id))!==key));
+assert.ok(outfitAIInput(after,'daily').candidates.every(set=>outfitSignature(set.pieces.map(item=>item.id))!==key));
+assert.ok(after.daily.candidates.some(set=>set.pieces.some(item=>item.id==='thick-top')),'the same shirt may appear with different pieces');
 const fallback=planOutfits(linked,'2026-11-23',[],[],null,now).daily;
 assert.equal(fallback.sets[0].savedName,'秋冬长袖');
 assert.ok(fallback.candidates.every(set=>!set.pieces.some(item=>item.id==='thin-top')));

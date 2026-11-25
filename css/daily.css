@@ -267,3 +267,27 @@ body:has(#view-wardrobe.active) #quick-capture { display: none; }
 @media(max-width:768px) {
   .wardrobe-suggestion .btn-primary { width:100%; justify-content:center; }
 }
+
+/* The first outfit keeps its actions close to the garment tiles. */
+.wardrobe-page .wardrobe-header { margin-bottom:8px; }
+.wardrobe-page .wardrobe-tabs { margin-bottom:10px; }
+.wardrobe-page .wardrobe-plan-controls { align-items:center; gap:8px; margin:0 0 8px; }
+.wardrobe-plan-controls > input { min-height:44px; inline-size:auto; min-inline-size:0; flex:1 1 120px; }
+.wardrobe-card .outfit-purpose { padding:0; margin:8px 0 14px; }
+.wardrobe-card .outfit-purpose h3 { font-size:1rem; }
+.wardrobe-card .outfit-purpose .wardrobe-suggestion { padding:10px; margin-top:4px; }
+.wardrobe-suggestion .outfit-score-heading h4 { font-size:.8125rem; color:var(--color-text-secondary); margin:0; }
+.wardrobe-suggestion .outfit-score-heading { margin-bottom:6px; }
+.wardrobe-suggestion .outfit-chain { gap:6px; }
+.wardrobe-suggestion .outfit-piece-edit { align-content:start; min-height:56px; padding:7px 9px; border:1px solid var(--color-border); background:var(--color-surface); cursor:pointer; text-align:left; user-select:none; -webkit-touch-callout:none; touch-action:pan-y; }
+.wardrobe-suggestion .outfit-piece-edit strong { line-height:1.35; }
+.wardrobe-suggestion .outfit-piece-edit:active { background:var(--color-primary-50); }
+.wardrobe-suggestion > .btn { margin-top:8px; }
+.wardrobe-card .wardrobe-suggestion .outfit-score-details { margin:0; }
+.outfit-swap-message { margin:6px 0 0; color:var(--color-text-secondary); font-size:.8125rem; }
+.outfit-swap-actions, .outfit-weather-brief { display:flex; align-items:center; flex-wrap:wrap; gap:2px 8px; color:var(--color-text-secondary); font-size:.8125rem; }
+.outfit-swap-actions > span { overflow-wrap:anywhere; }
+.outfit-swap-actions button, .outfit-weather-brief button, .outfit-option-tools > button { min-height:44px; }
+.outfit-weather-brief p { margin:0; }
+.wardrobe-activity #run-plan-form { margin:0; }
+@media(max-width:768px){.wardrobe-page #wardrobe-plan { padding:10px 12px; }}

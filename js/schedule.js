@@ -1,5 +1,4 @@
 import { getCurrentWeek, getWeekDates, getSectionTime, getCourseState, getNextCourse, localDate, seasonForDate } from './time.js?v=20261030-1';
-import { segmentMarkup } from './course-segments.js?v=20261030-1';
 import { showCourseDetail } from './app.js?v=20261030-1';
 import { formatLocation } from './location.js?v=20261030-1';
 import { getDayWindow } from './day-plan.js?v=20261030-1';
@@ -73,15 +72,6 @@ function slotStrip(model, now) {
     const mark={unknown:'?',study:'自',arranged:'另',excused:'假'}[period.state];
     return `<span class="day-slot is-${period.state}${current ? ' is-current' : ''}" title="${esc(description)}" aria-label="${esc(description)}"${period.start ? ` data-school-start="${+period.start}" data-school-end="${+period.end}"` : ''}${current ? ' aria-current="time"' : ''}>${period.section}${mark?`<small>${mark}</small>`:''}</span>`;
   }).join('')}</div></div>`).join('')}</div>${model.reason ? `<p class="day-slots-note">${esc(model.reason)}；待确认时段暂不判断是否未排课。</p>` : '<p class="day-slots-note">依据当前导入课表；个人活动请看日历。</p>'}</section>`;
-}
-
-function slotAgendaRow(entry, now) {
-  if (entry.kind === 'unassigned') {
-    const sections = entry.startSection === entry.endSection ? `第${entry.startSection}节` : `第${entry.startSection}—${entry.endSection}节`;
-    const current = now >= entry.start && now < entry.end;
-    return `<div class="m-unassigned${current ? ' is-current' : ''}" data-school-start="${+entry.start}" data-school-end="${+entry.end}"><span class="mono">${entry.startTime}—${entry.endTime}</span><span>${sections}未排课<small${current ? '' : ' hidden'}>当前时段</small></span></div>`;
-  }
-  return `<div class="m-school-break"><span>${entry.kind === 'lunch' ? '午间' : '课间'}</span><span class="mono">${entry.startTime}—${entry.endTime}</span>${entry.kind === 'break' ? `<span>${entry.durationMin}分钟</span>` : ''}</div>`;
 }
 
 function timeToMin(timeStr) {
@@ -268,7 +258,7 @@ export function renderSchedule(container, state, dm) {
     return html;
   }
 
-  function buildDesktopGrid({ week, weekDates, todayStr, isCurrentWeek, coursesByDay, conflicts, season, sectionTimes, state, info, now, dayNames, hasAnyCourse }) {
+  function buildDesktopGrid({ week, weekDates, todayStr, isCurrentWeek, coursesByDay, conflicts, season, sectionTimes, state, info, now, dayNames, hasAnyCourse, compact=false }) {
     const daySlots = Object.fromEntries(weekDates.map((date, index) => [index + 1, getDaySlots({ date,
       courses: coursesByDay[index + 1], sectionTimes, seasonRule: info.seasonRule, semesterInfo: info })]));
 
@@ -353,7 +343,7 @@ export function renderSchedule(container, state, dm) {
 
     // Current time line overlay
     let timeLineHTML = '';
-    if (timePos.visible && todayCol > 0) {
+    if (!compact && timePos.visible && todayCol > 0) {
       timeLineHTML = `
         <div class="sch-now-line" id="sch-now-line" style="grid-column:${todayCol + 1};top:${timePos.topPercent}%;">
           <div class="sch-now-dot"></div>
@@ -362,7 +352,7 @@ export function renderSchedule(container, state, dm) {
     }
 
     return `
-      <p class="sch-slots-legend">${!hasAnyCourse ? `${esc(Object.values(daySlots).find(model => model.reason)?.reason || `第${week}周暂无课程记录`)} · ` : ''}— 未排课 · ? 待确认。个人活动请看日历。</p>
+      ${compact&&hasAnyCourse?'':`<p class="sch-slots-legend">${!hasAnyCourse ? `${esc(Object.values(daySlots).find(model => model.reason)?.reason || `第${week}周暂无课程记录`)} · ` : ''}— 未排课 · ? 待确认</p>`}
       <div class="sch-grid-wrapper">
         <div class="sch-grid" style="--schedule-days:7;grid-template-rows: 40px repeat(10, minmax(44px, 1fr));">
           ${gridHTML}
@@ -415,13 +405,11 @@ export function renderSchedule(container, state, dm) {
         </div>`;
     }
 
-    html += `</div>`; // close m-sch-header
-
     const weekView=state.mobileScheduleView!=='day';
-    html += `<div class="m-sch-view-controls" aria-label="手机课表视图"><button type="button" id="show-week-grid" aria-pressed="${weekView}">整周</button><button type="button" id="show-day-agenda" aria-pressed="${!weekView}">单日</button>${weekView&&!isCurrentWeek?'<button type="button" class="daily-text-button" id="week-today">回到今天</button>':''}</div>`;
+    html += `<div class="m-sch-view-controls" aria-label="手机课表视图"><button type="button" id="show-week-grid" aria-pressed="${weekView}">整周</button><button type="button" id="show-day-agenda" aria-pressed="${!weekView}">单日</button>${weekView&&!isCurrentWeek?'<button type="button" class="daily-text-button" id="week-today">回到今天</button>':''}</div></div>`;
     if(weekView){
-      const grid=buildDesktopGrid({week,weekDates,todayStr,isCurrentWeek,coursesByDay,conflicts,season,sectionTimes,state,info,now,dayNames:dayNames.map(day=>'周'+day),hasAnyCourse:allWeekCourses.length>0});
-      return html+`<div class="mobile-week-grid">${grid}</div><div id="search-results-container"></div>`;
+      const grid=buildDesktopGrid({week,weekDates,todayStr,isCurrentWeek,coursesByDay,conflicts,season,sectionTimes,state,info,now,dayNames:dayNames.map(day=>'周'+day),hasAnyCourse:allWeekCourses.length>0,compact:true});
+      return html+`<div id="search-results-container"></div><div class="mobile-week-grid">${grid}</div>`;
     }
 
     // Day picker (horizontal scroll)
@@ -439,31 +427,9 @@ export function renderSchedule(container, state, dm) {
     }
     html += `</div>`;
 
-    // Day title
-    const fullDayNames = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    html += `
-      <div class="m-day-title-row">
-        <span class="m-day-title">${fullDayNames[selectedDay - 1]}</span>
-        <span class="m-day-title-date mono">${dayDateStr.slice(5)}</span>
-        ${isDayToday ? '<span class="m-day-today-badge">今天</span>' : '<button type="button" class="daily-text-button" id="week-today">回到今天</button>'}
-        <a class="study-day-edit" href="#/study?date=${esc(dayDateStr)}">晚自习安排</a>
-      </div>`;
-
-    html += slotStrip(daySlots, now);
-
-    // Agenda
-    html += `<div class="m-agenda" id="m-agenda">`;
-
-    if (dayCourses.length === 0) {
-      html += `<p class="m-slots-empty">${daySlots.reason ? esc(daySlots.reason) : `${isDayToday ? '今天' : '这天'}课表未排课程`}</p>`;
-    }
-    const dayEntries = [...dayCourses.map((course, index) => ({ kind: 'course', course, index, order: courseSectionRange(course)?.start || 11 })),
-      ...daySlots.unassigned.map(entry => ({ ...entry, order: entry.startSection })),
-      ...daySlots.separators.map(entry => ({ ...entry, order: entry.afterSection + 0.5 }))].sort((a, b) => a.order - b.order);
-    for (const entry of dayEntries) {
-      if (entry.kind !== 'course') { html += slotAgendaRow(entry, now); continue; }
-        const i = entry.index;
-        const c = dayCourses[i];
+    html += `<div id="search-results-container"></div><div class="m-agenda" id="m-agenda" aria-label="${dayDateStr}课程">`;
+    if(!dayCourses.length)html+=`<p class="m-slots-empty">${esc(daySlots.reason||'当天无课')}</p>`;
+    for(const [i,c] of dayCourses.entries()){
         const sectionRange = courseSectionRange(c);
         const cState = c.studyStatus==='excused'?'excused':sectionRange ? getCourseState(c, now) : 'unknown';
         const isNext = nextCourse && c === nextCourse && cState === 'before';
@@ -490,11 +456,10 @@ export function renderSchedule(container, state, dm) {
               <button type="button" class="m-ag-name" data-schedule-agenda-course="${i}" aria-label="${c.source==='evening-study'?'调整晚自习安排':'查看课程详情'}：${esc(c.courseName)}">${esc(c.courseName)}</button>
               ${c.source==='evening-study'?`<p class="study-row-status">${esc(STUDY_STATUS_LABELS[c.studyStatus]||c.studyLabel)}${c.studyArrangementTitle&&c.studyStatus!=='other'?` · ${esc(c.studyArrangementTitle)}`:''}${c.studyNote?` · ${esc(c.studyNote)}`:''}</p>`:''}
               <div class="m-ag-meta">
-                ${c.location ? `<span class="m-ag-loc">${formatLocation(c.location, state.settings.showFullLocation)}</span>` : ''}
-                ${state.settings.showTeacher && c.teacher ? `<span class="m-ag-teacher">${c.teacher}</span>` : ''}
+                ${c.location ? `<span class="m-ag-loc">${esc(formatLocation(c.location, state.settings.showFullLocation))}</span>` : ''}
+                ${state.settings.showTeacher&&c.teacher?`<span class="m-ag-teacher">${esc(c.teacher)}</span>`:''}
               </div>
-              <div class="m-ag-sec mono">${sectionRange ? `第${sectionRange.start}-${sectionRange.end}节` : '原记录节次待确认'}</div>
-              ${sectionRange&&c.studyStatus!=='excused' ? segmentMarkup(c) : ''}
+              ${!sectionRange?'<div class="m-ag-sec">节次待确认</div>':''}
             </div>
           </div>`;
 
@@ -502,10 +467,8 @@ export function renderSchedule(container, state, dm) {
 
     html += `</div>`; // close m-agenda
 
-    // Week Summary (mobile)
-    html += `<details class="m-week-overview"><summary>本周概览 · ${weekStats.totalPeriods} 节 · ${weekStats.totalHours} 小时</summary>${buildWeekSummary(weekStats, conflicts, 'mobile')}</details>`;
-
-    html += `<div id="search-results-container"></div>`;
+    html += `<div class="m-day-links">${isDayToday?'':'<button type="button" class="daily-text-button" id="week-today">回到今天</button>'}<a class="study-day-edit" href="#/study?date=${esc(dayDateStr)}">晚自习安排</a></div>
+      <details class="m-week-overview"><summary>节次分布与周统计</summary>${slotStrip(daySlots,now)}${buildWeekSummary(weekStats,conflicts,'mobile')}</details>`;
     return html;
   }
 
@@ -579,8 +542,14 @@ export function renderSchedule(container, state, dm) {
     return `${h}h${m}m`;
   }
 
+  function pageHTML() {
+    const mobile=isMobile(),content=buildHTML();
+    const nav=`<nav class="agenda-view-switch" aria-label="课表相关页面">${mobile?'':'<a href="#/schedule" aria-current="page">周课表</a>'}<a href="#/agenda">日历与日程</a><a href="#/reminders">提醒设置</a></nav>`;
+    return mobile?content+nav:nav+content;
+  }
+
   // ========== Render + Events ==========
-  container.innerHTML = `<nav class="agenda-view-switch" aria-label="课表视图"><a href="#/schedule" aria-current="page">周课表</a><a href="#/agenda">日历与日程</a><a href="#/reminders">提醒设置</a></nav>` + buildHTML();
+  container.innerHTML = pageHTML();
   attachEvents();
 
   // Tick (real-time updates)
@@ -864,7 +833,7 @@ export function renderSchedule(container, state, dm) {
   function rerender() {
     const previous=container.contains(document.activeElement)?document.activeElement:null;
     const focusDay=previous?.dataset.day, focusId=previous?.id;
-    container.innerHTML = `<nav class="agenda-view-switch" aria-label="课表视图"><a href="#/schedule" aria-current="page">周课表</a><a href="#/agenda">日历与日程</a><a href="#/reminders">提醒设置</a></nav>` + buildHTML();
+    container.innerHTML = pageHTML();
     attachEvents();
     const next=focusDay?container.querySelector(`[data-day="${focusDay}"]`):focusId?container.querySelector(`#${CSS.escape(focusId)}`):null;
     if (next&&!next.disabled) next.focus({preventScroll:true});

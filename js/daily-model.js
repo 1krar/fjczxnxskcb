@@ -1,4 +1,4 @@
-import { CATEGORIES } from './daily-store.js?v=20261030-1';
+import { CATEGORIES, outfitSignature } from './daily-store.js?v=20261030-1';
 import { getTodayState } from './day-plan.js?v=20261030-1';
 import { weatherDay, weatherFacts, weatherIntervals } from './weather-model.js?v=20261030-1';
 import { outfitPlanning, scoreOutfit } from './outfit-planning.js?v=20261030-1';
@@ -91,11 +91,17 @@ export function outfitRecommendation(data, date, courses = [], futureCourses = [
   };
   const availableById=new Map(available.map(item=>[item.id,item]));
   const topIds=new Set(tops.map(item=>item.id)),bottomIds=new Set(bottoms.map(item=>item.id));
+  const excludedKeys=new Set((data.outfitExclusions||[]).filter(row=>row.excluded).map(row=>outfitSignature(row.garmentIds)));
+  const savedByKey=new Map(data.outfits.filter(row=>!row.deletedAt).map(row=>[outfitSignature(row.garmentIds),row]));
   const pairMap=new Map();
-  function addPair(top,bottom,shoe,layer,belt,saved=null) {
-    const pieces=[top,bottom,belt,layer,shoe].filter(Boolean);
-    const id=JSON.stringify(pieces.map(item=>item.id));
-    if(pairMap.has(id)&&!saved)return;
+  function evaluatePieces(pieces,saved) {
+    const [top,bottom]=pieces;
+    const shoe=pieces.find(item=>CATEGORIES[item.category].group==='shoes');
+    const layer=pieces.find(item=>CATEGORIES[item.category].group==='layer');
+    const ids=pieces.map(item=>item.id),key=outfitSignature(ids);
+    if(excludedKeys.has(key))return null;
+    saved??=savedByKey.get(key);
+    const id=JSON.stringify(ids);
     const seasonMatch=saved?.seasons?.length?saved.seasons.includes(season)?1:-1:0;
     const reasons = [saved ? `常用搭配「${saved.name}」` : '按可穿单品组合'];
     if(seasonMatch===1)reasons.push('符合这套搭配的季节标签');
@@ -109,8 +115,42 @@ export function outfitRecommendation(data, date, courses = [], futureCourses = [
     const conditionalIds = pieces.filter(item=>!isAvailable(item)).map(item=>item.id);
     if (conditionalIds.length) reasons.push('包含预计收衣的单品，需确认干透后使用');
     const set={id,pieces,reasons,conditionalIds,savedName:saved?.name||'',savedSeasons:saved?.seasons||[]};
-    const scored=scoreOutfit(set,{data,date,weather,pe,run,requireShorts,planning,preferred:!!saved,seasonMatch,now:options.now||new Date()});
+    return scoreOutfit(set,{data,date,weather,pe,run,requireShorts,planning,preferred:!!saved,seasonMatch,now:options.now||new Date()});
+  }
+  function addPair(top,bottom,shoe,layer,belt,saved=null) {
+    const pieces=[top,bottom,belt,layer,shoe].filter(Boolean),id=JSON.stringify(pieces.map(item=>item.id));
+    if(pairMap.has(id)&&!saved)return true;
+    const scored=evaluatePieces(pieces,saved);
+    if(!scored)return false;
     if(!pairMap.has(id)||scored.score>pairMap.get(id).score||!pairMap.get(id).savedName)pairMap.set(id,scored);
+    return true;
+  }
+  const groupOf=item=>CATEGORIES[item.category].group;
+  const pools={top:tops,bottom:bottoms,shoes,layer:layers,accessory:belts};
+  function recheckSet(set) {
+    const pieces=set.pieces.map(item=>availableById.get(item.id));
+    if(pieces.some(item=>!item))return null;
+    const [top,bottom]=pieces,shoe=pieces.find(item=>groupOf(item)==='shoes');
+    if(!topIds.has(top.id)||!bottomIds.has(bottom.id)||(active&&shoe&&!runningSuitable(shoe))||
+      (bottom.needsBelt==='yes'&&!pieces.some(item=>item.category==='belt')))return null;
+    return evaluatePieces(pieces);
+  }
+  function replacePiece(set,id) {
+    const index=set.pieces.findIndex(item=>item.id===id);
+    if(index<0)return null;
+    const sourceRisk=warmthRisk(set);
+    let best=null,bestRisk=Infinity;
+    for(const item of pools[groupOf(set.pieces[index])]) {
+      if(item.id===id)continue;
+      const pieces=[...set.pieces];
+      pieces[index]=item;
+      const candidate=recheckSet({pieces});
+      if(!candidate)continue;
+      const risk=warmthRisk(candidate);
+      if(risk>sourceRisk||risk>bestRisk)continue;
+      if(!best||risk<bestRisk||candidate.score>best.score){best=candidate;bestRisk=risk;}
+    }
+    return best;
   }
   // Saved combinations are considered even when their items are outside the general search limit.
   for(const saved of data.outfits) {
@@ -129,7 +169,13 @@ export function outfitRecommendation(data, date, courses = [], futureCourses = [
   const rankTop=(a,b)=>Number((cold||seasonFallback)&&shortSleeve(a))-Number((cold||seasonFallback)&&shortSleeve(b))||warmthScore(b)-warmthScore(a)||a.id.localeCompare(b.id);
   const rankBottom=(a,b)=>Number((cold||seasonFallback)&&isShorts(a))-Number((cold||seasonFallback)&&isShorts(b))||warmthScore(b)-warmthScore(a)||a.id.localeCompare(b.id);
   for(const top of [...tops].sort(rankTop).slice(0,24))for(const bottom of [...bottoms].sort(rankBottom).slice(0,24)) {
-    for(const shoe of shoes.length?shoes.slice(0,3):[null])addPair(top,bottom,shoe,chosenLayer,bottom.needsBelt==='yes'?belts[0]:null);
+    const belt=bottom.needsBelt==='yes'?belts[0]:null;
+    for(const shoe of shoes.length?shoes.slice(0,3):[null]){
+      if(addPair(top,bottom,shoe,chosenLayer,belt))continue;
+      for(const layer of chosenLayer?layers.slice(1,4):[])addPair(top,bottom,shoe,layer,belt);
+      for(const otherShoe of shoes.slice(3,6))addPair(top,bottom,otherShoe,chosenLayer,belt);
+      for(const otherBelt of belt?belts.slice(1,4):[])addPair(top,bottom,shoe,chosenLayer,otherBelt);
+    }
   }
   const eligible=[...pairMap.values()].map(set=>({set,risk:warmthRisk(set)}));
   const lowestRisk=Math.min(...eligible.map(row=>row.risk));
@@ -153,7 +199,7 @@ export function outfitRecommendation(data, date, courses = [], futureCourses = [
   if (needLayer && !layers.length) notes.push('该时段体感偏凉，已录衣橱中没有确认可用的外套。');
   if (wet) notes.push('部分时段有降雨可能，可考虑带伞；衣物未标注雨天适配时不假定防水。');
   if (active && !shoes.length) notes.push('尚无确认可用的运动鞋记录，运动前记得核对鞋子。');
-  return { date, pe, run, requireShorts, readyShorts, futureShortDays, weather, weatherNote:options.weatherNote||'', sets: [first, alternate].filter(Boolean), candidates, missing, notes, planning };
+  return { date, pe, run, requireShorts, readyShorts, futureShortDays, weather, weatherNote:options.weatherNote||'', sets: [first, alternate].filter(Boolean), candidates, missing, notes, planning, replacePiece, recheckSet };
 }
 
 export function planOutfits(data,date,courses=[],futureCourses=[],forecast=null,now=new Date()) {

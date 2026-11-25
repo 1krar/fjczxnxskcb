@@ -1328,3 +1328,23 @@
 .mobile-week-grid .sch-now-label { display:none; }
 :root:is([data-text-size=larger],[data-text-size=maximum]) .mobile-week-grid .sch-grid-wrapper { overflow:auto; }
 :root:is([data-text-size=larger],[data-text-size=maximum]) .mobile-week-grid .sch-grid { min-width:32rem; }
+
+/* Keep dates and view controls together; rows carry the time and the destination. */
+.m-sch-header { display:grid; gap:4px; margin-bottom:8px; }
+.m-sch-week-row { margin:0; }
+.m-sch-week-btn, .m-sch-search-btn { width:44px; height:44px; }
+.m-sch-view-controls { margin:0; }
+.m-sch-view-controls > button { border-color:transparent; background:transparent; min-height:44px; padding-inline:12px; }
+.m-day-picker { margin-bottom:6px; }
+.m-day-chip { padding-block:4px; min-height:44px; }
+.m-agenda-item { gap:8px; padding:9px 8px; margin:0; }
+.m-agenda-item + .m-agenda-item { border-top:1px solid var(--color-border-light); }
+.m-agenda-item.is-study { padding-block:9px; }
+.m-agenda-item .m-ag-body { gap:2px; }
+.m-agenda-item .m-ag-name { font-size:.9375rem; line-height:1.45; }
+.m-agenda-item .m-ag-loc { max-width:none; overflow-wrap:anywhere; white-space:normal; }
+.m-agenda-item.finished .m-ag-body::after { content:none; }
+.m-day-links { display:flex; flex-wrap:wrap; gap:8px; min-height:44px; align-items:center; justify-content:flex-end; }
+.m-day-links .study-day-edit { align-content:center; min-height:44px; }
+#view-schedule .m-week-overview { margin:4px 0; }
+@media(max-width:768px){#view-schedule .agenda-view-switch { margin:8px 0 0; gap:4px; }#view-schedule .agenda-view-switch a{padding-inline:10px;}}

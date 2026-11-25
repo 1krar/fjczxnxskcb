@@ -87,6 +87,20 @@ function validateOutfit(value, ids, garments) {
   if(!Array.isArray(seasons)||seasons.length>4||seasons.some(season=>!Object.hasOwn(OUTFIT_SEASONS,season)))throw Error('搭配季节标签无效');
   return { ...metadata(value), name, garmentIds: [...value.garmentIds], seasons:[...new Set(seasons)] };
 }
+export const outfitSignature = garmentIds => JSON.stringify([...garmentIds].sort());
+
+function validateOutfitExclusions(values,ids) {
+  if(!Array.isArray(values)||values.length>500)throw Error('搭配排除记录格式无效或过多');
+  const rows=values.map(row=>{
+    if(!row||!Array.isArray(row.garmentIds)||row.garmentIds.length<2||row.garmentIds.length>5||
+      new Set(row.garmentIds).size!==row.garmentIds.length||row.garmentIds.some(id=>!ids.has(id))||
+      typeof row.excluded!=='boolean')throw Error('搭配排除记录无效');
+    return {garmentIds:[...row.garmentIds].sort(),excluded:row.excluded,updatedAt:timestamp(row.updatedAt)};
+  });
+  if(new Set(rows.map(row=>outfitSignature(row.garmentIds))).size!==rows.length)throw Error('搭配排除记录重复');
+  return rows;
+}
+
 export function validateDailyData(value) {
   if (!value || ![1,2].includes(value.schemaVersion) || !Array.isArray(value.garments) || value.garments.length > 2000 || !Array.isArray(value.outfits) || value.outfits.length > 500 || !Array.isArray(value.plans) || value.plans.length > 500) throw new Error('这不是支持的日常助手备份');
   const garments = value.garments.map(validateGarment);
@@ -103,9 +117,9 @@ export function validateDailyData(value) {
   if(!Array.isArray(wearLogs)||wearLogs.length>5000||!Array.isArray(garmentEvents)||garmentEvents.length>10000)throw new Error('穿搭或洗晒历史格式无效或过大');
   const logs=wearLogs.map(row=>validateWearLog(row,garments)),events=garmentEvents.map(row=>validateGarmentEvent(row,garments));
   if(new Set(logs.map(row=>row.id)).size!==logs.length||new Set(events.map(row=>row.id)).size!==events.length)throw new Error('穿搭或洗晒历史编号重复');
-  return { schemaVersion: 2, profile: validateProfile(value.profile), garments, outfits, plans, wearLogs:logs,garmentEvents:events, lastLaundryAt: timestamp(value.lastLaundryAt || '', true) };
+  return { schemaVersion: 2, profile: validateProfile(value.profile), garments, outfits, outfitExclusions:validateOutfitExclusions(value.outfitExclusions??[],ids), plans, wearLogs:logs,garmentEvents:events, lastLaundryAt: timestamp(value.lastLaundryAt || '', true) };
 }
-export function emptyDailyData() { return { schemaVersion: 2, profile: { ...DEFAULT_PROFILE }, garments: [], outfits: [], plans: [], wearLogs:[],garmentEvents:[],lastLaundryAt: '' }; }
+export function emptyDailyData() { return { schemaVersion: 2, profile: { ...DEFAULT_PROFILE }, garments: [], outfits: [], outfitExclusions:[], plans: [], wearLogs:[],garmentEvents:[],lastLaundryAt: '' }; }
 export function readDailyData() {
   let raw;
   try { raw = localStorage.getItem(DAILY_KEY); } catch { throw new Error('浏览器无法读取日常助手资料，请检查存储权限'); }
@@ -208,6 +222,15 @@ export function setOutfitSeasons(id,seasons) {
   outfit.updatedAt=new Date().toISOString();
   return write(data);
 }
+export function setOutfitExclusion(garmentIds,excluded=true) {
+  const data=readDailyData(),key=outfitSignature(garmentIds);
+  const index=data.outfitExclusions.findIndex(row=>outfitSignature(row.garmentIds)===key);
+  const row={garmentIds,excluded,updatedAt:new Date().toISOString()};
+  if(index===-1)data.outfitExclusions.push(row);
+  else data.outfitExclusions[index]=row;
+  return write(data);
+}
+
 export function saveRunPlan(date, run) {
   const data = readDailyData();
   const updatedAt = new Date().toISOString();
@@ -219,13 +242,18 @@ export function mergeDailyBackup(value, replaceUnreadable = false) {
   let current;
   try { current = readDailyData(); } catch (error) { if (!replaceUnreadable) throw error; return write(incoming); }
   const merge = (old, next, key) => {
-    const map = new Map(old.map(item => [item[key], item]));
-    for (const item of next) if (!map.has(item[key]) || Date.parse(item.updatedAt||item.at) > Date.parse(map.get(item[key]).updatedAt||map.get(item[key]).at)) map.set(item[key], item);
+    const identify=typeof key==='function'?key:item=>item[key];
+    const map = new Map(old.map(item => [identify(item), item]));
+    for (const item of next) {
+      const id=identify(item),previous=map.get(id);
+      if(!previous||Date.parse(item.updatedAt||item.at)>Date.parse(previous.updatedAt||previous.at))map.set(id,item);
+    }
     return [...map.values()];
   };
   return write({ schemaVersion: 2, lastLaundryAt: (incoming.lastLaundryAt ? Date.parse(incoming.lastLaundryAt) : 0) > (current.lastLaundryAt ? Date.parse(current.lastLaundryAt) : 0) ? incoming.lastLaundryAt : current.lastLaundryAt,
     profile: Date.parse(incoming.profile.updatedAt) > Date.parse(current.profile.updatedAt) ? incoming.profile : current.profile,
-    garments: merge(current.garments, incoming.garments, 'id'), outfits: merge(current.outfits, incoming.outfits, 'id'), plans: merge(current.plans, incoming.plans, 'date'),wearLogs:merge(current.wearLogs,incoming.wearLogs,'id'),garmentEvents:merge(current.garmentEvents,incoming.garmentEvents,'id') });
+    garments: merge(current.garments, incoming.garments, 'id'), outfits: merge(current.outfits, incoming.outfits, 'id'),
+    outfitExclusions:merge(current.outfitExclusions,incoming.outfitExclusions,row=>outfitSignature(row.garmentIds)), plans: merge(current.plans, incoming.plans, 'date'),wearLogs:merge(current.wearLogs,incoming.wearLogs,'id'),garmentEvents:merge(current.garmentEvents,incoming.garmentEvents,'id') });
 }
 
 export { write as writeDailyData };
