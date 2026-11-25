@@ -11,7 +11,7 @@ import { renderSettings } from './settings.js?v=20261030-1';
 import { renderTasks, setupPersonalItems, mountCourseItems } from './tasks.js?v=20261030-1';
 import { renderWardrobe } from './wardrobe.js?v=20261030-1';
 import { renderStudy } from './study.js?v=20261030-1';
-import { STUDY_KEY } from './study-store.js?v=20261030-1';
+import { STUDY_KEY, readStudyData, studyProfile, saveStudyExcusal } from './study-store.js?v=20261030-1';
 import { renderAgenda, selectAgendaDate } from './agenda.js?v=20261030-1';
 import { setupReminders, renderReminderSettings } from './reminders.js?v=20261030-1';
 import { renderApiSettings } from './api-settings.js?v=20261030-1';
@@ -20,6 +20,7 @@ import { readAISettings } from './ai-client.js?v=20261030-1';
 import { startAISession } from './ai-session-client.js?v=20261030-1';
 import { createRefreshGate, trackEditors } from './refresh-guard.js?v=20261030-1';
 import { reducedMotion } from './motion.js?v=20261030-1';
+import { escapeText as esc } from './tasks-store.js?v=20261030-1';
 import { focusSelector } from './focus.js?v=20261030-1';
 
 const state = {
@@ -283,7 +284,7 @@ function setupDetailOverlay() {
 }
 
 export function showCourseDetail(course) {
-  if(course.source==='evening-study') { closeDetailPanel();location.hash=`#/study?date=${encodeURIComponent(course.date)}`;return; }
+  if(course.source==='evening-study') {showStudyDetail(course);return;}
   const panel = $('detail-panel');
   const settings = state.settings;
   const teacher = course.teacher || '未提供';
@@ -315,6 +316,31 @@ export function showCourseDetail(course) {
     </div>`;
 
   mountCourseItems(panel, course);
+  openDetailPanel(panel);
+}
+
+function showStudyDetail(course) {
+  const panel=$('detail-panel'),href=`#/study?date=${encodeURIComponent(course.date)}`;
+  let reasons;
+  try {reasons=studyProfile(readStudyData(),course.className).excusalReasons;}
+  catch {location.hash=href;return;}
+  panel.innerHTML=`<div class="detail-header"><div><h2 id="course-detail-title">${esc(course.courseName)}</h2><p class="daily-muted">${esc(course.date)} · ${esc(course.startTime)}—${esc(course.endTime)}</p></div><button type="button" class="detail-close" id="detail-close-btn" aria-label="关闭晚自习">×</button></div>
+    <div class="detail-body"><h3>快捷销假</h3>${course.studyArrangementTitle?`<p class="daily-muted">当前原因：${esc(course.studyArrangementTitle)}</p>`:''}
+    <div class="study-quick-tags">${reasons.map(reason=>`<button type="button" class="btn" data-study-reason="${esc(reason)}">${esc(reason)}</button>`).join('')}</div>
+    <form class="study-quick-form"><label>自定义标签<input name="reason" maxlength="24" required></label><button type="submit" class="btn">添加并销假</button></form>
+    <p class="daily-error" role="alert"></p><a class="daily-link" href="${href}">查看安排或恢复晚自习 →</a></div>`;
+  function save(reason) {
+    try {saveStudyExcusal(course.className,course.date,reason);closeDetailPanel();}
+    catch(error){panel.querySelector('[role=alert]').textContent=error.message;}
+  }
+  panel.querySelectorAll('[data-study-reason]').forEach(button=>button.onclick=()=>save(button.dataset.studyReason));
+  panel.querySelector('form').onsubmit=event=>{event.preventDefault();save(event.currentTarget.elements.reason.value);};
+  panel.querySelector('a').onclick=closeDetailPanel;
+  openDetailPanel(panel);
+}
+
+function openDetailPanel(panel) {
+  panel.scrollTop=0;
   $('detail-close-btn').addEventListener('click', closeDetailPanel);
   $('detail-overlay').classList.add('open');
   if (!$('detail-overlay').open) $('detail-overlay').showModal();
@@ -534,7 +560,7 @@ function setupRoutineRefresh() {
       else rerenderCurrentPage();
       for(const [key,value]of messages) { const node=document.getElementById(key);if(node&&value&&!node.textContent)node.textContent=value; }
       const active=document.querySelector('.page-view.active');
-      const target=selector&&(active?.querySelector(selector)||(selector.startsWith('#')?document.querySelector(selector):null)||active?.querySelector('[data-today-capture],#personal-add,#agenda-add'));
+      const target=selector?(active?.querySelector(selector)||(selector.startsWith('#')?document.querySelector(selector):null)||active?.querySelector('[data-today-capture],#personal-add,#agenda-add')):null;
       target?.focus({preventScroll:true});
       const offset=target&&oldTop>=0&&oldTop<innerHeight?target.getBoundingClientRect().top-oldTop:0;
       window.scrollTo({top:y+offset,behavior:'auto'});

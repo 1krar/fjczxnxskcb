@@ -20,7 +20,7 @@ export function studyCalendarContext(dm,className,studyData=readStudyData()) {
   const options={className,studyData,semesterInfo:info,sectionTimes:dm.getSectionTimes(),seasonRule:info.seasonRule||{}};
   for(let offset=0;offset<count;offset++) {
     const date=new Date(first+offset*86400000).toISOString().slice(0,10);
-    generated.push(...applyEveningStudy(byDate.get(date)||[],date,options).filter(row=>row.source==='evening-study'));
+    generated.push(...applyEveningStudy(byDate.get(date)||[],date,{...options,nextDayCourses:byDate.get(new Date(first+(offset+1)*86400000).toISOString().slice(0,10))||[]}).filter(row=>row.source==='evening-study'));
   }
   result.courses.push(...generated);
   result.courses.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||''))||(a.startSection||11)-(b.startSection||11));

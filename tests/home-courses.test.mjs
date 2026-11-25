@@ -67,7 +67,7 @@ assert.equal(renderUnassignedHint(getDaySlots({...slotOptions,seasonRule:{}}),at
 assert.equal(renderUnassignedHint(slots,new Date('2026-10-24T08:00:00+08:00')),'','yesterday gaps are not carried over to a new date');
 assert.equal(renderUnassignedHint(null,at('10:00')),'');
 assert.ok(!renderUpcomingCourses([first,third],at('08:20'),state).includes('course-gap-note'),'the single status hint replaces duplicated gap notes in the course list');
-const planned=applyEveningStudy(courses,'2026-10-23',{...slotOptions,studyData:{schemaVersion:1,profiles:{}},className:'test'});
+const planned=applyEveningStudy(courses,'2026-10-23',{...slotOptions,studyData:{schemaVersion:1,profiles:{}},className:'test',nextDayCourses:[{date:'2026-10-24',className:'test'}]});
 const study=planned.find(course=>course.source==='evening-study');
 assert.ok(study);
 assert.equal(courseListCount(planned,at('08:20')),'2次课 · 4小节 · 晚自习','evening study is presented separately from academic course counts');

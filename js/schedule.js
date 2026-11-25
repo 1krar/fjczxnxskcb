@@ -8,6 +8,8 @@ import { escapeText as esc } from './tasks-store.js?v=20261030-1';
 import { readStudyData, STUDY_STATUS_LABELS } from './study-store.js?v=20261030-1';
 import { applyEveningStudy } from './study-model.js?v=20261030-1';
 
+import { nextDate } from './daily-model.js?v=20261030-1';
+
 let tickHandler = null;
 let scheduleState = { week: 1, selectedDay: 1, searchOpen: false };
 
@@ -170,7 +172,7 @@ export function renderSchedule(container, state, dm) {
     const key=`${week}:${day}`;
     if(!studyCourseCache.has(key)){
       const original=dm.getCoursesByWeekday(state.currentClass,week,day),date=getWeekDates(week,info.semesterStart)[day-1];
-      studyCourseCache.set(key,studyData?applyEveningStudy(original,date,{sectionTimes,seasonRule:info.seasonRule,semesterInfo:info,studyData,className:state.currentClass}):original);
+      studyCourseCache.set(key,studyData?applyEveningStudy(original,date,{sectionTimes,seasonRule:info.seasonRule,semesterInfo:info,studyData,className:state.currentClass,nextDayCourses:dm.getCoursesByDate(state.currentClass,nextDate(date))}):original);
     }
     return studyCourseCache.get(key);
   }
@@ -298,10 +300,11 @@ export function renderSchedule(container, state, dm) {
       </div>`;
     }
 
+    const hasActualNinth=allWeekCourses.some(course=>course.source!=='evening-study'&&courseSectionRange(course)?.end>=9&&courseSectionRange(course)?.start<=9);
+    const hasStudy=allWeekCourses.some(course=>course.source==='evening-study'&&course.startSection===9);
     for (let s = 1; s <= 10; s++) {
       const st = sectionTimes[season]?.[String(s)];
-      const stStart = st ? st.start.slice(0, 5) : '';
-      const stEnd = st ? st.end.slice(0, 5) : '';
+      const stStart = s===9&&hasStudy&&!hasActualNinth ? '19:00' : st?.start.slice(0,5)||'';
       gridHTML += `<div class="sch-section-label" style="grid-row:${s + 1};">
         <span class="sch-section-num">${s}</span>
         ${stStart ? `<span class="sch-section-time mono">${stStart}</span>` : ''}
@@ -328,12 +331,12 @@ export function renderSchedule(container, state, dm) {
           gridHTML += `<div class="${cardClass}" style="grid-row:${s + 1} / span ${span};grid-column:${d + 1};--course-hue:${hue}deg;" data-course-id="${d}-${s}">
             <div class="sch-course-bar"></div>
             <div class="sch-course-body">
-              <button type="button" class="sch-course-name" aria-label="${course.source==='evening-study'?'调整晚自习安排':'查看课程详情'}：${esc(course.courseName)}">${esc(course.courseName)}</button>
+              <button type="button" class="sch-course-name" data-schedule-course="${d}-${s}" aria-label="${course.source==='evening-study'?'调整晚自习安排':'查看课程详情'}：${esc(course.courseName)}${course.source==='evening-study'?`，${esc(course.startTime)}${course.studyArrangementTitle?`，${esc(course.studyArrangementTitle)}`:''}`:''}">${esc(course.studyStatus==='excused'&&course.courseName.includes('销假')?'销假':course.courseName)}</button>
               ${course.source==='evening-study'?`<div class="study-row-status">${esc(STUDY_STATUS_LABELS[course.studyStatus]||course.studyLabel)}${course.studyArrangementTitle&&course.studyStatus!=='other'?` · ${esc(course.studyArrangementTitle)}`:''}</div>`:''}
               ${course.studyNote?`<div class="sch-course-loc">${esc(course.studyNote)}</div>`:''}
               ${course.location ? `<div class="sch-course-loc">${formatLocation(course.location, state.settings.showFullLocation)}</div>` : ''}
               ${state.settings.showTeacher && course.teacher ? `<div class="sch-course-teacher">${course.teacher}</div>` : ''}
-              <div class="sch-course-sec mono">第${range.start}-${range.end}节</div>
+              <div class="sch-course-sec mono">${course.source==='evening-study'?esc(course.startTime):`第${range.start}-${range.end}节`}</div>
               ${hasConflict ? `<div class="sch-conflict-tag">冲突</div>` : ''}
             </div>
           </div>`;
@@ -414,6 +417,13 @@ export function renderSchedule(container, state, dm) {
 
     html += `</div>`; // close m-sch-header
 
+    const weekView=state.mobileScheduleView!=='day';
+    html += `<div class="m-sch-view-controls" aria-label="手机课表视图"><button type="button" id="show-week-grid" aria-pressed="${weekView}">整周</button><button type="button" id="show-day-agenda" aria-pressed="${!weekView}">单日</button>${weekView&&!isCurrentWeek?'<button type="button" class="daily-text-button" id="week-today">回到今天</button>':''}</div>`;
+    if(weekView){
+      const grid=buildDesktopGrid({week,weekDates,todayStr,isCurrentWeek,coursesByDay,conflicts,season,sectionTimes,state,info,now,dayNames:dayNames.map(day=>'周'+day),hasAnyCourse:allWeekCourses.length>0});
+      return html+`<div class="mobile-week-grid">${grid}</div><div id="search-results-container"></div>`;
+    }
+
     // Day picker (horizontal scroll)
     html += `<div class="m-day-picker" id="mobile-day-picker">`;
     for (let d = 0; d < 7; d++) {
@@ -477,7 +487,7 @@ export function renderSchedule(container, state, dm) {
               ${cState === 'in_progress' ? `<div class="m-ag-now-tag">${c.source==='evening-study'?(c.studyStatus==='other'?'晚间安排':'正在晚自习'):'正在上课'}</div>` : ''}
               ${cState === 'break' ? '<div class="m-ag-break-tag">大课内课间</div>' : ''}
               ${isNext && cState === 'before' ? `<div class="m-ag-next-tag">${c.source==='evening-study'?'下一项':'下一次课'}</div>` : ''}
-              <button type="button" class="m-ag-name" aria-label="${c.source==='evening-study'?'调整晚自习安排':'查看课程详情'}：${esc(c.courseName)}">${esc(c.courseName)}</button>
+              <button type="button" class="m-ag-name" data-schedule-agenda-course="${i}" aria-label="${c.source==='evening-study'?'调整晚自习安排':'查看课程详情'}：${esc(c.courseName)}">${esc(c.courseName)}</button>
               ${c.source==='evening-study'?`<p class="study-row-status">${esc(STUDY_STATUS_LABELS[c.studyStatus]||c.studyLabel)}${c.studyArrangementTitle&&c.studyStatus!=='other'?` · ${esc(c.studyArrangementTitle)}`:''}${c.studyNote?` · ${esc(c.studyNote)}`:''}</p>`:''}
               <div class="m-ag-meta">
                 ${c.location ? `<span class="m-ag-loc">${formatLocation(c.location, state.settings.showFullLocation)}</span>` : ''}
@@ -689,6 +699,9 @@ export function renderSchedule(container, state, dm) {
   }
 
   function attachEvents() {
+    for (const [id,view] of [['show-week-grid','week'],['show-day-agenda','day']]) {
+      container.querySelector('#'+id)?.addEventListener('click',()=>{state.mobileScheduleView=view;rerender();});
+    }
     // Week nav
     const prevBtn = document.getElementById('week-prev');
     const nextBtn = document.getElementById('week-next');
@@ -817,6 +830,7 @@ export function renderSchedule(container, state, dm) {
               scheduleState.week = r.week;
               state.scheduleWeek = scheduleState.week;
               scheduleState.selectedDay = r.weekday || 1; state.scheduleFollowToday=r.date===localDate(new Date());
+              if(isMobile())state.mobileScheduleView='day';
               scheduleState.searchOpen = false;
               rerender();
             });

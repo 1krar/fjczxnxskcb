@@ -1308,3 +1308,23 @@
   .day-slots-periods { gap:3px; }
   .m-unassigned { gap:8px; padding-inline:8px; }
 }
+
+.m-sch-view-controls { display:flex; gap:8px; margin:8px 0 12px; }
+.m-sch-view-controls > button { min-height:44px; padding:0 14px; border:1px solid var(--color-border); border-radius:var(--radius-md); background:var(--color-surface); color:var(--color-text); font:inherit; font-size:.875rem; }
+.m-sch-view-controls > button[aria-pressed=true] { border-color:var(--color-primary); background:var(--color-primary-50); color:var(--color-primary-dark); font-weight:700; }
+.mobile-week-grid .sch-grid { grid-template-columns:minmax(34px,2.25rem) repeat(7,minmax(0,1fr)); }
+.mobile-week-grid .sch-grid[style] { grid-template-rows:3rem repeat(10,minmax(58px,3.625rem))!important; }
+.mobile-week-grid .sch-day-header { padding:5px 0; }
+.mobile-week-grid .sch-section-label { padding-inline:1px; }
+@media(max-width:768px) { body:has(#view-schedule.active) #quick-capture { display:none; } }
+.mobile-week-grid .sch-day-name { font-size:.75rem; }
+.mobile-week-grid .sch-day-date, .mobile-week-grid .sch-section-time { font-size:.625rem; }
+.mobile-week-grid .sch-course-bar, .mobile-week-grid .sch-course:hover .sch-course-bar { width:3px; }
+.mobile-week-grid .sch-course-body { padding:3px 1px 2px 3px; gap:0; }
+.mobile-week-grid .sch-course-name { font-size:.75rem; -webkit-line-clamp:3; max-height:4.2em; overflow-wrap:anywhere; }
+.mobile-week-grid .sch-course:is(.is-study) { background:var(--color-surface-subtle); }
+.mobile-week-grid .sch-course :is(.sch-course-loc,.sch-course-teacher,.sch-course-sec,.study-row-status,.sch-conflict-tag) { display:none; }
+.mobile-week-grid .sch-course.is-excused .study-row-status { display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; font-size:.625rem; }
+.mobile-week-grid .sch-now-label { display:none; }
+:root:is([data-text-size=larger],[data-text-size=maximum]) .mobile-week-grid .sch-grid-wrapper { overflow:auto; }
+:root:is([data-text-size=larger],[data-text-size=maximum]) .mobile-week-grid .sch-grid { min-width:32rem; }

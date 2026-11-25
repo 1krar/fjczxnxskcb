@@ -1,4 +1,4 @@
-import { notesForCourse, notesForMoment } from './persistent-model.js?v=20261030-1';
+import { notesForCourse, notesForMoment, isPersistent } from './persistent-model.js?v=20261030-1';
 import { renderContextNotes, mountNoteActions } from './context-notes.js?v=20261030-1';
 import { getTodayStr, getDayName, getCurrentWeek } from './time.js?v=20261030-1';
 import { showCourseDetail } from './app.js?v=20261030-1';
@@ -8,13 +8,13 @@ import { escapeText, itemsForScope } from './tasks-store.js?v=20261030-1';
 import { courseKey, getCourseSummary, getTodayState, getFreeTimeInfo, formatMinutes } from './day-plan.js?v=20261030-1';
 import { readHomeLayout, defaultHomeLayout, homeModuleHeading, mountHomeLayout, HOME_LAYOUT_KEY } from './home-layout.js?v=20261030-1';
 import { renderUpcomingCourses, courseListCount, courseContinuation, renderUnassignedHint, activeDayCourses, academicCourses, studyStateText } from './home-courses.js?v=20261030-1';
-import { getDaySlots } from './day-slots.js?v=20261030-1';
+import { getDaySlots, courseSectionRange } from './day-slots.js?v=20261030-1';
 import { readStudyData } from './study-store.js?v=20261030-1';
 import { applyEveningStudy } from './study-model.js?v=20261030-1';
 import { mountDailyAssistant } from './daily-widgets.js?v=20261030-1';
 import { mountTodayAgenda } from './today-agenda.js?v=20261030-1';
 import { readDailyData } from './daily-store.js?v=20261030-1';
-import { departurePlan } from './daily-model.js?v=20261030-1';
+import { departurePlan, nextDate } from './daily-model.js?v=20261030-1';
 import { mountWeather } from './weather-widget.js?v=20261030-1';
 
 const esc = escapeText;
@@ -35,7 +35,7 @@ const STATE_LABELS = {
 
 function scheduleForDate(dm,className,date,studyData) {
   const courses=dm.getCoursesByDate(className,date);
-  return studyData?applyEveningStudy(courses,date,{sectionTimes:dm.getSectionTimes(),seasonRule:dm.getSemesterInfo().seasonRule,semesterInfo:dm.getSemesterInfo(),studyData,className}):courses;
+  return studyData?applyEveningStudy(courses,date,{sectionTimes:dm.getSectionTimes(),seasonRule:dm.getSemesterInfo().seasonRule,semesterInfo:dm.getSemesterInfo(),studyData,className,nextDayCourses:dm.getCoursesByDate(className,nextDate(date))}):courses;
 }
 function findNextClassDay(dm, className, today, studyData) {
   const tomorrow = new Date(`${today}T00:00:00`);
@@ -147,7 +147,7 @@ export function renderDashboard(container, state, dm) {
   const layout=()=>{try{return readHomeLayout(scope);}catch{return defaultHomeLayout();}};
   container.innerHTML = `<section class="today-page"><div id="dash-advice-slot"></div><header class="today-header-row"><h1 class="today-date-sub"><a href="#/agenda" aria-label="打开日历与日程"><time datetime="${today}">${Number(today.slice(5, 7))}月${Number(today.slice(8))}日 · 星期${getDayName(today)}</time></a></h1><span class="today-week-badge">${semester.label}</span><button type="button" class="daily-restore" data-restore-advice hidden>恢复今日一句</button></header><span class="sr-only" id="dash-advice-status" role="status" aria-live="polite"></span>
     <div id="dash-weather-slot"></div><div class="today-body-grid"><div class="today-now-column"><section class="today-status accent-${STATE_LABELS[context.state].accent}" id="dash-status" aria-label="当前课程与下一次安排">${renderStatus(context, courses, nextDay, state, now, daySlots)}</section>
-    <div id="dash-planner-slot"></div><div id="dash-moment-notes"></div><p class="context-notes-status" data-notes-status role="status" aria-live="polite"></p><div class="home-modules" id="dash-home-modules"><section class="home-module" id="dash-personal-slot" data-home-module="items"></section><section class="home-module today-course-list" id="dash-course-list" data-home-module="courses"${!plannedCourses.length?' hidden':''}>${homeModuleHeading('courses')}<div id="dash-courses-content"><div class="today-timeline" id="dash-timeline">${renderUpcomingCourses(plannedCourses,now,state,layout().expanded.courses)}</div></div></section></div><p class="home-layout-status" id="dash-layout-status" role="status" aria-live="polite"></p></div>
+    <div id="dash-books"></div><div id="dash-planner-slot"></div><div id="dash-moment-notes"></div><p class="context-notes-status" data-notes-status role="status" aria-live="polite"></p><div class="home-modules" id="dash-home-modules"><section class="home-module" id="dash-personal-slot" data-home-module="items"></section><section class="home-module today-course-list" id="dash-course-list" data-home-module="courses"${!plannedCourses.length?' hidden':''}>${homeModuleHeading('courses')}<div id="dash-courses-content"><div class="today-timeline" id="dash-timeline">${renderUpcomingCourses(plannedCourses,now,state,layout().expanded.courses)}</div></div></section></div><p class="home-layout-status" id="dash-layout-status" role="status" aria-live="polite"></p></div>
     <div class="today-support-column">
     <div id="dash-prep-slot"></div>${renderOverview(academicCourses(courses), now, dm.getSemesterInfo())}</div></div></section>`;
   const cleanupItems = mountTodayItems(container, state, dm);
@@ -165,8 +165,38 @@ export function renderDashboard(container, state, dm) {
     slot.innerHTML=html;noteMarkup.set(slot,html);
     if(opened&&slot.querySelector('details'))slot.querySelector('details').open=true;
   }
+  let booksMarkup='';
+  function refreshBooks(time,items) {
+    const rows=academicCourses(plannedCourses);
+    const blocks=[{label:'上午',rows:[]},{label:'下午',rows:[]},{label:'其他课',rows:[]}];
+    for(const course of rows) {
+      const section=courseSectionRange(course)?.start;
+      const index=!section||section>=9?2:section>=5?1:0;
+      blocks[index].rows.push(course);
+    }
+    const upcoming=blocks.findIndex(block=>block.rows.some(course=>+course.endDateTime>+time));
+    const ordered=upcoming===-1?blocks:[blocks[upcoming],...blocks.filter((_,index)=>index!==upcoming)];
+    const courseNames=new Set(rows.map(course=>course.courseName));
+    const bringItems=items.filter(item=>item.kind==='bring'&&!isPersistent(item)&&!item.deletedAt&&!item.completedAt&&(item.dueDate===today||!item.dueDate&&courseNames.has(item.courseName)));
+    const otherItems=bringItems.filter(item=>!courseNames.has(item.courseName));
+    const html=rows.length||otherItems.length?`<section class="today-books" aria-label="带书清单"><h2>带书清单</h2>
+      ${ordered.filter(block=>block.rows.length).map(block=>`<details${block===ordered[0]?' open':''} data-book-block="${block.label}"><summary>${block.label}<span>${new Set(block.rows.map(course=>course.courseName)).size} 门课</span></summary><ul>${[...new Map(block.rows.map(course=>[course.courseName,course])).values()].map(course=>{
+        const names=[...new Set([...notesForCourse(items,course,{now:time,view:'prepare'}).filter(item=>item.kind==='bring'),...bringItems.filter(item=>item.courseName===course.courseName)].map(item=>item.text))];
+        return `<li><div><strong>${esc(course.courseName)}</strong>${names.length?`<p>${names.map(esc).join('、')}</p>`:'<p class="daily-muted">未记录教材</p>'}</div><button type="button" class="daily-text-button" data-book-course="${esc(course.courseName)}" aria-label="记下${esc(course.courseName)}要带的书">${names.length?'补充':'记带书'}</button></li>`;
+      }).join('')}</ul></details>`).join('')}
+      ${otherItems.length?`<p class="today-books-extra">另外要带 · ${otherItems.map(item=>esc(item.text)).join('、')}</p>`:''}</section>`:'';
+    if(html===booksMarkup)return;
+    const slot=container.querySelector('#dash-books');
+    const active=slot.contains(document.activeElement)?document.activeElement:null;
+    const opened=new Map([...slot.querySelectorAll('[data-book-block]')].map(node=>[node.dataset.bookBlock,node.open]));
+    const moved=slot.firstElementChild?.querySelector('details')?.dataset.bookBlock!==ordered.find(block=>block.rows.length)?.label;
+    slot.innerHTML=html;booksMarkup=html;
+    if(!moved)slot.querySelectorAll('[data-book-block]').forEach(node=>{if(opened.has(node.dataset.bookBlock))node.open=opened.get(node.dataset.bookBlock);});
+    if(active?.dataset.bookCourse)[...slot.querySelectorAll('[data-book-course]')].find(node=>node.dataset.bookCourse===active.dataset.bookCourse)?.focus({preventScroll:true});
+  }
   function refreshNotes(time) {
     const items=noteItems(),value=getTodayState(courses,time),focus=value.currentCourse||value.nextCourse;
+    refreshBooks(time,items);
     noteSlot('#dash-course-notes',notesForCourse(items,focus,{now:time,view:'focus'}));
     noteSlot('#dash-moment-notes',notesForMoment(items,time,dm.getCourses(state.currentClass)));
   }
@@ -200,6 +230,8 @@ export function renderDashboard(container, state, dm) {
   refreshNotes(now);
   const allCourses = [...plannedCourses, ...(nextDay?.courses || [])];
   const onClick = event => {
+    const book=event.target.closest('[data-book-course]');
+    if(book){openCapture({courseName:book.dataset.bookCourse,bring:true});return;}
     const button = event.target.closest('[data-course-key]');
     if (!button || !container.contains(button)) return;
     const course = allCourses.find(item => courseKey(item) === button.dataset.courseKey);

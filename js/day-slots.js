@@ -40,7 +40,8 @@ export function getDaySlots({ date, courses = [], sectionTimes = {}, seasonRule 
   const unknownCourses = rows.filter(course => !courseSectionRange(course));
   const periods = Array.from({ length: 10 }, (_, index) => {
     const section = index + 1, block = SCHOOL_BLOCKS.find(group => section >= group.first && section <= group.last);
-    const time = season && getSectionTime(section, season, sectionTimes);
+    const studySegment=rows.find(course=>course.source==='evening-study')?.segments?.find(part=>part.section===section);
+    const time = studySegment ? {start:studySegment.startTime,end:studySegment.endTime} : season && getSectionTime(section, season, sectionTimes);
     const start = time?.start ? new Date(`${date}T${time.start}:00`) : null;
     const end = time?.end ? new Date(`${date}T${time.end}:00`) : null;
     const timeKnown = Boolean(start && end && Number.isFinite(+start) && Number.isFinite(+end) && end > start);

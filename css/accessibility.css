@@ -63,3 +63,12 @@ dialog.detail-overlay::backdrop { background:transparent; }
   transition-duration:.01ms!important; scroll-behavior:auto!important;
 }
 :root[data-motion="reduce"] .page-view.active { animation:none!important; }
+
+.detail-panel, .capture-dialog { scroll-padding-top:6rem; overscroll-behavior:contain; }
+.detail-header, .capture-dialog .capture-heading { position:sticky; top:0; z-index:5; background:var(--color-surface); }
+.detail-header { padding-bottom:10px; border-bottom:1px solid var(--color-border-light); }
+.detail-header > div, .capture-heading > div { min-width:0; overflow-wrap:anywhere; }
+.detail-close, .capture-dialog .capture-close { min-width:44px; min-height:44px; flex-shrink:0; }
+.detail-close { font-size:1.5rem; }
+.capture-dialog { padding-top:0; }
+.capture-dialog .capture-heading { padding:16px 0 10px; border-bottom:1px solid var(--color-border-light); }

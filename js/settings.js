@@ -10,9 +10,9 @@ export function renderSettings(container, state, dm) {
     <header class="personal-page-heading"><div><h1>更多</h1><p>日常准备、课表工具与设置</p></div></header>
     <nav class="more-links more-sections" aria-label="更多功能">
       <section><h2>日常准备</h2>
-        <a href="#/wardrobe"><span>小衣橱<span>选明天穿搭，记录实穿与洗晒</span></span><span aria-hidden="true">›</span></a>
+        <a href="#/wardrobe"><span>穿搭<span>选穿搭、记实穿和洗晒</span></span><span aria-hidden="true">›</span></a>
         <a href="#/agenda"><span>日历与活动<span>查看每天安排，检查时间冲突</span></span><span aria-hidden="true">›</span></a>
-        <a href="#/study"><span>晚自习与特殊安排<span>九、十节，按天记录活动和请假</span></span><span aria-hidden="true">›</span></a>
+        <a href="#/study"><span>晚自习与特殊安排<span>19:00 · 次日有课 · 快捷销假</span></span><span aria-hidden="true">›</span></a>
       </section>
       <section><h2>课程与提醒</h2>
         <a href="#/reminders"><span>提前提醒与大 A<span>出门准备、课程区间与提醒时间</span></span><span aria-hidden="true">›</span></a>

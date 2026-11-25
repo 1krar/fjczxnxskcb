@@ -97,7 +97,7 @@ function allocateDemand(demands,excluded) {
   return {count:matched.size,unmatched:demands.filter((_,index)=>!matched.has(index))};
 }
 
-export function scoreOutfit(set,{data,date,weather=null,pe=false,run=false,requireShorts=false,planning,preferred=false,now=new Date()}) {
+export function scoreOutfit(set,{data,date,weather=null,pe=false,run=false,requireShorts=false,planning,preferred=false,seasonMatch=0,now=new Date()}) {
   if(!planning||!contexts.has(planning))planning=outfitPlanning(data,date,[],[],null,now);
   const context=contexts.get(planning),pieces=set.pieces,body=pieces.filter(item=>['top','bottom'].includes(group(item)));
   const top=body.find(item=>group(item)==='top'),bottom=body.find(item=>group(item)==='bottom'),layer=pieces.find(item=>group(item)==='layer'),shoe=pieces.find(item=>group(item)==='shoes');
@@ -109,12 +109,14 @@ export function scoreOutfit(set,{data,date,weather=null,pe=false,run=false,requi
     // later day: the outfit still has to suit the day being prepared.
     weatherScore=35-body.reduce((sum,item)=>sum+Math.abs(warmth(item)-desired)*26,0)/Math.max(1,body.length);
     if(feels<19&&!layer)weatherScore-=9;
+    if(feels<13&&layer&&warmth(layer)===0)weatherScore-=7;
+    if(feels>=24&&layer)weatherScore-=12;
     if(wet&&shoe?.wetWeather==='no')weatherScore-=10;
     weatherReason=`参考${weather.date.slice(5)} ${weather.from}—${weather.to}预报${Math.round(weather.min)}—${Math.round(weather.max)}°C${layer?'，带可脱穿外层':''}${weather.status==='stale'?'（旧预报）':''}。`;
   }
   let activityScore=20;
   if(active&&!athletic(top))activityScore-=5;
-  if(active&&!shoe)activityScore-=3;
+  if(!shoe)activityScore-=active?3:1;
   const activityReason=requireShorts?'已满足体育课短裤和运动下装要求。':active?`按${run?'已记录校园跑':'体育课'}筛选运动下装${shoe?'与鞋子':'；运动鞋尚未记录'}。`:'没有已记录的运动要求，按日常穿着准备。';
   const wornIds=new Set(body.map(item=>item.id));
   const after=allocateDemand(context.demands,wornIds),lost=context.baseline.count-after.count;
@@ -131,7 +133,7 @@ export function scoreOutfit(set,{data,date,weather=null,pe=false,run=false,requi
     return sum+Math.min(8,row.times7*1.5)+recency;
   },0)/Math.max(1,body.length);
   const rotationReason=body.map(item=>`${group(item)==='top'?'上衣':'下装'}近7天${context.usage.get(item.id)?.times7||0}次`).join('，')+'；只计已确认实穿。';
-  const preferenceBase=6+(preferred?2:0)+body.reduce((sum,item)=>sum+(item.preference==='like'?2:item.preference==='avoid'?-4:0),0)/Math.max(1,body.length);
+  const preferenceBase=4+(preferred?5:0)+(seasonMatch===1?2:seasonMatch===-1?-7:0)+body.reduce((sum,item)=>sum+(item.preference==='like'?2:item.preference==='avoid'?-4:0),0)/Math.max(1,body.length);
   let feedbackTotal=0,feedbackWeight=0;
   for(const row of context.rows) {
     const overlap=body.filter(item=>row.actualPieces.some(piece=>piece.id===item.id)).length/body.length;
@@ -145,7 +147,7 @@ export function scoreOutfit(set,{data,date,weather=null,pe=false,run=false,requi
     if(feels!==null&&feels>=23&&row.feedback.includes('hot'))value-=1;
     feedbackTotal+=value*overlap;feedbackWeight+=overlap;
   }
-  const preferenceReason=`${preferred?'参考已保存常用搭配；':''}${feedbackWeight?'参考相关实穿评分和体感反馈；':''}同时考虑你标记的喜欢或少穿偏好。`;
+  const preferenceReason=`${preferred?`优先参考常用搭配${seasonMatch===1?'及匹配的季节标签':seasonMatch===-1?'，季节标签与所选日期不同':''}；`:''}${feedbackWeight?'参考相关实穿评分和体感反馈；':''}同时考虑你标记的喜欢或少穿偏好。`;
   const scoreBreakdown=[
     {key:'weather',label:'天气适配',score:bounded(weatherScore,35),max:35,reason:weatherReason},
     {key:'activity',label:'活动安排',score:bounded(activityScore,20),max:20,reason:activityReason},
@@ -153,6 +155,6 @@ export function scoreOutfit(set,{data,date,weather=null,pe=false,run=false,requi
     {key:'rotation',label:'近期轮换',score:bounded(15-rotationPenalty,15),max:15,reason:rotationReason},
     {key:'preference',label:'个人偏好',score:bounded(preferenceBase+(feedbackWeight?feedbackTotal/feedbackWeight:0),10),max:10,reason:preferenceReason},
   ];
-  const scoreReasons=[warning||preserved,weather?weatherReason:null,rotationReason,preferred?'参考你的常用搭配':null].filter(Boolean).slice(0,3);
+  const scoreReasons=[warning||preserved,preferred?preferenceReason:null,weather?weatherReason:null,rotationReason].filter(Boolean).slice(0,3);
   return {...set,score:scoreBreakdown.reduce((sum,row)=>sum+row.score,0),scoreBreakdown,scoreReasons};
 }

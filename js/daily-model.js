@@ -77,36 +77,63 @@ export function outfitRecommendation(data, date, courses = [], futureCourses = [
     missing.push(candidates.some(item => item.needsBelt === 'yes') && !belts.length ? '合适的裤子需要腰带，目前没有确认可用的腰带。可以准备腰带或换条裤子。' :
       requireShorts ? '这天有体育课，按你的设置需要短裤；目前没有确认可穿且适合运动的短裤。先看看待洗和晾晒中的备用。' : active ? '目前没有确认可穿且适合运动的裤子，可以检查库存或为合适的单品调整运动适配。' : '还没有确认可穿的下装，可以先录入或检查洗晒状态。');
   }
-  const pairs = [];
-  // Bound combinations to keep a large imported wardrobe inexpensive on a phone.
-  for (const top of tops.slice(0, 24)) for (const bottom of bottoms.slice(0, 24)) {
-    const preferred = data.outfits.find(outfit => !outfit.deletedAt && outfit.garmentIds.includes(top.id) && outfit.garmentIds.includes(bottom.id) && outfit.garmentIds.every(id => available.some(item => item.id === id && (!active || !['bottom', 'shoes'].includes(CATEGORIES[item.category].group) || runningSuitable(item)))));
-    const savedPieces = (preferred?.garmentIds || []).map(id => available.find(item=>item.id===id));
-    const chosenLayer = needLayer ? layers[0] : weather ? null : savedPieces.find(item=>CATEGORIES[item.category].group==='layer');
-    const savedShoe = savedPieces.find(item=>CATEGORIES[item.category].group==='shoes');
-    const shoeChoices = shoes.length ? [...new Map([...(savedShoe?[savedShoe]:[]),...shoes.slice(0,3)].map(item=>[item.id,item])).values()] : [null];
-    for (const shoe of shoeChoices) {
-    const ids = new Set([top.id,bottom.id]);
-    const savedBelt = savedPieces.find(item=>item.category==='belt');
-    if (savedBelt) ids.add(savedBelt.id);
-    else if (bottom.needsBelt === 'yes') ids.add(belts[0].id);
-    if (chosenLayer) ids.add(chosenLayer.id);
-    if (shoe) ids.add(shoe.id);
-    const pieces = [...ids].map(id => available.find(item => item.id === id));
-    const reasons = [preferred ? `参考常用搭配「${preferred.name}」` : '按可穿单品组合'];
+  const month=Number(date.slice(5,7));
+  const season=month>=3&&month<=5?'spring':month>=6&&month<=8?'summer':month>=9&&month<=11?'autumn':'winter';
+  const shortSleeve=item=>/短袖|半袖/.test(item.name)||item.category==='tshirt'&&!/长袖/.test(item.name);
+  const cold=feels!==null&&feels<19;
+  const seasonFallback=feels===null&&[11,12,1,2].includes(month);
+  const warmthRisk=set=>{
+    const top=set.pieces[0],bottom=set.pieces[1],layer=set.pieces.find(item=>item.category==='jacket');
+    if(!(cold||seasonFallback))return 0;
+    const sleeveRisk=shortSleeve(top)?(layer?1:3):0;
+    const shortsRisk=!requireShorts&&isShorts(bottom)?2:0;
+    return sleeveRisk+shortsRisk+(feels!==null&&feels<13&&!layer&&top.warmth!=='warm'?1:0);
+  };
+  const availableById=new Map(available.map(item=>[item.id,item]));
+  const topIds=new Set(tops.map(item=>item.id)),bottomIds=new Set(bottoms.map(item=>item.id));
+  const pairMap=new Map();
+  function addPair(top,bottom,shoe,layer,belt,saved=null) {
+    const pieces=[top,bottom,belt,layer,shoe].filter(Boolean);
+    const id=JSON.stringify(pieces.map(item=>item.id));
+    if(pairMap.has(id)&&!saved)return;
+    const seasonMatch=saved?.seasons?.length?saved.seasons.includes(season)?1:-1:0;
+    const reasons = [saved ? `常用搭配「${saved.name}」` : '按可穿单品组合'];
+    if(seasonMatch===1)reasons.push('符合这套搭配的季节标签');
     if (requireShorts) reasons.push('符合你设置的体育课短裤要求');
     else if (run) reasons.push('为校园跑优先选了适合运动的下装');
     if (preserveShorts && bottom.category === 'joggers') reasons.push('后面还有体育课，可为短裤轮换留余地');
     if (bottom.needsBelt === 'yes') reasons.push('已搭上可用腰带');
     if (active && !runningSuitable(top)) reasons.push('这件上衣的运动适配待核对，跑前可换成方便活动的上衣');
-    if (weather) reasons.push(`参考${weather.from}—${weather.to}预报${Math.round(weather.min)}—${Math.round(weather.max)}°C${chosenLayer?'，加入可脱穿外层':''}`);
+    if (weather) reasons.push(`参考${weather.from}—${weather.to}预报${Math.round(weather.min)}—${Math.round(weather.max)}°C${layer?'，加入可脱穿外层':''}`);
     if (wet && shoe?.wetWeather === 'yes') reasons.push('按你标记的雨天适配选择鞋子');
     const conditionalIds = pieces.filter(item=>!isAvailable(item)).map(item=>item.id);
     if (conditionalIds.length) reasons.push('包含预计收衣的单品，需确认干透后使用');
-    pairs.push(scoreOutfit({ id: JSON.stringify([...ids]), pieces, reasons, conditionalIds },{data,date,weather,pe,run,requireShorts,planning,preferred:!!preferred,now:options.now||new Date()}));
-    }
+    const set={id,pieces,reasons,conditionalIds,savedName:saved?.name||'',savedSeasons:saved?.seasons||[]};
+    const scored=scoreOutfit(set,{data,date,weather,pe,run,requireShorts,planning,preferred:!!saved,seasonMatch,now:options.now||new Date()});
+    if(!pairMap.has(id)||scored.score>pairMap.get(id).score||!pairMap.get(id).savedName)pairMap.set(id,scored);
   }
-  pairs.sort((a, b) => b.score - a.score || a.id.localeCompare(b.id));
+  // Saved combinations are considered even when their items are outside the general search limit.
+  for(const saved of data.outfits) {
+    if(saved.deletedAt)continue;
+    const items=saved.garmentIds.map(id=>availableById.get(id));
+    if(items.some(item=>!item))continue;
+    const byGroup=Object.fromEntries(items.map(item=>[CATEGORIES[item.category].group,item]));
+    const {top,bottom,shoes:shoe,layer,accessory}=byGroup;
+    if(!topIds.has(top.id)||!bottomIds.has(bottom.id)||active&&shoe&&!runningSuitable(shoe))continue;
+    const belt=accessory||(bottom.needsBelt==='yes'?belts[0]:null);
+    addPair(top,bottom,shoe,layer,belt,saved);
+    const adjustedShoe=shoe||shoes[0],adjustedLayer=layer||((needLayer||seasonFallback)?layers[0]:null);
+    if((adjustedShoe&&adjustedShoe!==shoe)||(adjustedLayer&&adjustedLayer!==layer))addPair(top,bottom,adjustedShoe,adjustedLayer,belt,saved);
+  }
+  const chosenLayer=needLayer||seasonFallback?layers[0]:null;
+  const rankTop=(a,b)=>Number((cold||seasonFallback)&&shortSleeve(a))-Number((cold||seasonFallback)&&shortSleeve(b))||warmthScore(b)-warmthScore(a)||a.id.localeCompare(b.id);
+  const rankBottom=(a,b)=>Number((cold||seasonFallback)&&isShorts(a))-Number((cold||seasonFallback)&&isShorts(b))||warmthScore(b)-warmthScore(a)||a.id.localeCompare(b.id);
+  for(const top of [...tops].sort(rankTop).slice(0,24))for(const bottom of [...bottoms].sort(rankBottom).slice(0,24)) {
+    for(const shoe of shoes.length?shoes.slice(0,3):[null])addPair(top,bottom,shoe,chosenLayer,bottom.needsBelt==='yes'?belts[0]:null);
+  }
+  const eligible=[...pairMap.values()].map(set=>({set,risk:warmthRisk(set)}));
+  const lowestRisk=Math.min(...eligible.map(row=>row.risk));
+  const pairs=eligible.filter(row=>row.risk===lowestRisk).map(row=>row.set).sort((a,b)=>b.score-a.score||a.id.localeCompare(b.id));
   const first = pairs[0];
   // Keep the AI pool varied: otherwise the first eight can differ only by shoes.
   const candidates=first?[first]:[];
@@ -121,6 +148,8 @@ export function outfitRecommendation(data, date, courses = [], futureCourses = [
   for(const set of pairs)if(candidates.length<8&&!candidates.some(row=>row.id===set.id))candidates.push(set);
   const alternate = first ? pairs.find(pair => pair.id !== first.id && pair.pieces.find(item => CATEGORIES[item.category].group === 'bottom')?.id !== first.pieces.find(item => CATEGORIES[item.category].group === 'bottom')?.id) || pairs.find(pair => pair.id !== first.id) : null;
   const notes = weather ? [weather.status==='stale'?'使用旧预报，仅作参考。':'按区域逐小时预报提供搭配参考，实际冷暖以你的感受为准。'] : ['天气未更新，当前仅按活动、偏好与可穿状态搭配。'];
+  if(seasonFallback)notes.push('暂无预报，优先推荐保暖穿搭。');
+  if(first&&warmthRisk(first)>0&&cold)notes.push('可穿衣物的保暖选择有限，出门前可加一件保暖衣物。');
   if (needLayer && !layers.length) notes.push('该时段体感偏凉，已录衣橱中没有确认可用的外套。');
   if (wet) notes.push('部分时段有降雨可能，可考虑带伞；衣物未标注雨天适配时不假定防水。');
   if (active && !shoes.length) notes.push('尚无确认可用的运动鞋记录，运动前记得核对鞋子。');

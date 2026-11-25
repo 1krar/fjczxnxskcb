@@ -15,15 +15,16 @@ const realRows = (courses,date,className) => courses.filter(course=>course.sourc
 
 /** Describe defaults/overrides separately from their safe insertion into the school timetable. */
 export function describeEveningStudy(courses,date,options={}) {
-  const {studyData,className,sectionTimes={},seasonRule={},semesterInfo}=options;
+  const {studyData,className,sectionTimes={},seasonRule={},semesterInfo,nextDayCourses=courses}=options;
   const profile=studyProfile(studyData,className),override=profile.overrides[date]||null,status=override?.status||'normal';
   const base={enabled:profile.enabled,scheduled:false,status,label:STUDY_STATUS_LABELS[status],profile,override,
     attendance:status==='normal'||status==='pending',reason:'',season:null,availableSections:[],blockedSections:[],unknownCourses:[]};
   if(!validDate(date))return {...base,reason:'晚自习日期待确认'};
-  const scheduled=!!override||profile.enabled&&profile.weekdays.includes(getWeekday(date));
-  if(!scheduled)return {...base,reason:'当天未设置晚自习'};
   const coverage=coverageReason(date,semesterInfo);
   if(coverage)return {...base,reason:coverage};
+  const tomorrow=new Date((dayNumber(date)+1)*86400000).toISOString().slice(0,10);
+  if(!realRows(nextDayCourses,tomorrow,className).length)return {...base,reason:'次日课表无课'};
+  if(!override&&(!profile.enabled||!profile.weekdays.includes(getWeekday(date))))return {...base,reason:'当天未设置晚自习'};
   const rows=realRows(courses,date,className),season=seasonForDate(date,rows,seasonRule);
   const result={...base,scheduled:true,season};
   // Missing raw section metadata is never interpreted as an unoccupied evening.
@@ -53,13 +54,14 @@ export function applyEveningStudy(courses,date,options={}) {
   const {profile,override,status,season,attendance}=description;
   const sections=description.availableSections,startSection=sections[0],endSection=sections.at(-1);
   const id=`evening-study:${className}:${date}:${startSection}-${endSection}`;
-  const label=status==='normal'?'晚自习':status==='other'?'晚自习特殊安排':status==='pending'?'晚自习 · 请假待确认':'晚自习已请假';
+  const label=status==='normal'?'晚自习':status==='other'?'晚自习特殊安排':status==='pending'?'晚自习 · 请假待确认':(override?.quickExcusal?'晚自习 · 销假':'晚自习已请假');
   const title=status==='other'?(override?.title||'晚自习特殊安排'):status==='normal'?(override?.title||'晚自习'):label;
   const row={source:'evening-study',courseId:id,id,className,date,week:courseWeek(date,base,semesterInfo),weekday:getWeekday(date),
     courseName:title,title,teacher:'',location:override?.location||profile.location,season,startSection,endSection,startSectionRaw:startSection,endSectionRaw:endSection,
     studyStatus:status,studyLabel:label,studyAttendance:attendance,studyArrangementTitle:override?.title||'',studyNote:override?.note||profile.note,note:override?.note||profile.note,
     studyActivityId:override?.activityId||'',activityId:override?.activityId||'',studyPersonalRecord:true};
-  row.segments=getCourseSegments(row,sectionTimes);
+  const studyTimes={...sectionTimes,[season]:{...sectionTimes[season],9:{...sectionTimes[season][9],start:'19:00'}}};
+  row.segments=getCourseSegments(row,studyTimes);
   if(!row.segments.length)return [...base];
   row.startDateTime=row.segments[0].start;row.endDateTime=row.segments.at(-1).end;
   row.startTime=row.segments[0].startTime;row.endTime=row.segments.at(-1).endTime;

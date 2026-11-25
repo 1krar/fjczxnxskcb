@@ -128,7 +128,7 @@ function refreshNoteForm() {
   dialog.querySelector('#capture-note-hint').textContent={manual:'先保存原话。以后可修改关联，再让它出现在相关地方。',course:'请选择上方的关联课程。课程详情一直可查；临近上课和课间也会出现。',prepare:'请选择上方课程或填写教学楼关键词，在对应日期的出门准备中出现。',place:'按课表地点的关键词匹配。课程详情可查，临近上课时出现；不会读取你的位置。',time:'填写开始和结束时间；若选了关联课程，只在有这门课的当天显示。时间未填全就先保存，不猜测时段。',home:'在首页保留一行轻提示；不占用“要记得”的事项预览。'}[scene];
 }
 
-export function openCapture({ courseName = '', item = null } = {}) {
+export function openCapture({ courseName = '', item = null, bring = false } = {}) {
   if (!context) return;
   const { state, dm, closeCourse } = context;
   closeCourse();
@@ -143,11 +143,11 @@ export function openCapture({ courseName = '', item = null } = {}) {
   const select = document.getElementById('capture-course');
   select.innerHTML = `<option value="">先不关联课程</option>${names.map(name => `<option value="${esc(name)}">${esc(name)}</option>`).join('')}`;
   select.value = selected;
-  document.getElementById('capture-title').textContent = item ? '补充这条事项' : '记一下';
+  document.getElementById('capture-title').textContent = item ? '补充这条事项' : bring ? '记下这门课要带的书' : '记一下';
   document.getElementById('capture-text').value = item?.text || '';
   document.getElementById('capture-summary').value = item?.title || '';
   document.getElementById('capture-time-role').value = item?.timeRole || '';
-  document.getElementById('capture-kind').value = item?.kind || 'task';
+  document.getElementById('capture-kind').value = item?.kind || (bring ? 'bring' : 'task');
   document.getElementById('capture-source').value = item?.source || (selected ? 'oral' : 'other');
   document.getElementById('capture-date').value = item?.dueDate || '';
   document.getElementById('capture-time').value = item?.dueTime || '';
@@ -162,8 +162,8 @@ export function openCapture({ courseName = '', item = null } = {}) {
   document.getElementById('capture-next').value = item?.nextStep || '';
   document.getElementById('capture-error').textContent = '';
   document.getElementById('capture-extra').open = !!item;
-  const rule=normalizeNoteRule(item?.noteRule);
-  document.getElementById('capture-persistent').checked = !!item&&isPersistent(item);
+  const rule=normalizeNoteRule(item?.noteRule||(bring?{scene:'course'}:undefined));
+  document.getElementById('capture-persistent').checked = item ? isPersistent(item) : bring;
   for(const [key,value] of Object.entries({scene:rule.scene,place:rule.place,start:rule.startTime,end:rule.endTime,lead:rule.leadMinutes})) document.getElementById('capture-note-'+key).value=value;
   form.querySelectorAll('[name=noteDay]').forEach(input=>input.checked=rule.weekdays.includes(Number(input.value)));
   refreshNoteForm();
@@ -307,11 +307,12 @@ export function mountCourseItems(container, course) {
   let error = '', notes=[];
   try { notes=notesForCourse(itemsForScope({semester:context.dm.getSemesterInfo().semester,className:course.className}),course); items = sortItems(itemsForScope({ semester: context.dm.getSemesterInfo().semester, className: course.className }).filter(item => item.courseName === course.courseName && !isPersistent(item) && !item.completedAt && !item.deletedAt)); }
   catch (err) { error = err.message; }
-  section.innerHTML = `<div class="personal-section-heading"><h3>这门课要记得</h3><button type="button" class="btn" data-course-capture>＋ 记一下</button></div>
+  section.innerHTML = `<div class="personal-section-heading"><h3>这门课要记得</h3><div><button type="button" class="btn" data-course-book>记带书</button> <button type="button" class="btn" data-course-capture>记事项</button></div></div>
     ${renderContextNotes(notes,'course-detail')}<p class="context-notes-status" data-notes-status role="status"></p>
     ${error ? `<p class="personal-error">${esc(error)}</p>` : items.length ? items.map(item => itemCard(item, getTodayStr(), true)).join('') : notes.length?'':'<p class="personal-muted">老师交代的作业、下次要带的东西，可以直接记在这里。</p>'}`;
   container.querySelector('.detail-body').append(section);
   section.querySelector('[data-course-capture]').addEventListener('click', () => openCapture({ courseName: course.courseName }));
+  section.querySelector('[data-course-book]').onclick = () => openCapture({courseName:course.courseName,bring:true});
   mountNoteActions(section,openCapture,()=>{section.remove();mountCourseItems(container,course);context.rerender();return container.querySelector('.course-personal')||container;});
   attachItemActions(section, () => { section.remove(); mountCourseItems(container, course); context.rerender(); });
 }

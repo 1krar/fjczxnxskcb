@@ -15,6 +15,7 @@ export const CATEGORIES = {
   shoes: { label: '日常鞋', group: 'shoes', running: false },
   belt: { label: '腰带', group: 'accessory', running: false },
 };
+export const OUTFIT_SEASONS = Object.freeze({spring:'春季',summer:'夏季',autumn:'秋季',winter:'冬季'});
 export const COLORS = { unknown: '颜色未指定', black: '黑色', white: '白色', grey: '灰色', navy: '藏蓝', blue: '蓝色', beige: '米色 / 卡其', green: '绿色', red: '红色', other: '其他颜色' };
 export const CLOTHING_STATES = { ready: '可穿', rewear: '穿过仍可穿', dirty: '待洗', washing: '洗涤中', drying: '晾晒中' };
 export const DEFAULT_PROFILE = Object.freeze({
@@ -82,7 +83,9 @@ function validateOutfit(value, ids, garments) {
   if (!name.trim()) throw new Error('请填写搭配名称');
   const groups = value.garmentIds.map(id => CATEGORIES[garments.find(item => item.id === id).category].group);
   if (groups.filter(group => group === 'top').length !== 1 || groups.filter(group => group === 'bottom').length !== 1 || ['layer', 'shoes', 'accessory'].some(group => groups.filter(item => item === group).length > 1)) throw new Error('每套先选一件上衣、一件下装；外套、鞋和腰带各选至多一件');
-  return { ...metadata(value), name, garmentIds: [...value.garmentIds] };
+  const seasons=value.seasons??[];
+  if(!Array.isArray(seasons)||seasons.length>4||seasons.some(season=>!Object.hasOwn(OUTFIT_SEASONS,season)))throw Error('搭配季节标签无效');
+  return { ...metadata(value), name, garmentIds: [...value.garmentIds], seasons:[...new Set(seasons)] };
 }
 export function validateDailyData(value) {
   if (!value || ![1,2].includes(value.schemaVersion) || !Array.isArray(value.garments) || value.garments.length > 2000 || !Array.isArray(value.outfits) || value.outfits.length > 500 || !Array.isArray(value.plans) || value.plans.length > 500) throw new Error('这不是支持的日常助手备份');
@@ -191,11 +194,18 @@ export function setArchived(type, id, archived) {
   item.updatedAt = now;
   return write(data);
 }
-export function saveOutfit(name, garmentIds) {
+export function saveOutfit(name, garmentIds, seasons=[]) {
   const data = readDailyData();
   if (garmentIds.some(id => !data.garments.some(item => item.id === id && !item.deletedAt))) throw new Error('搭配中有已收起的衣物');
   const now = new Date().toISOString();
-  data.outfits.push({ id: crypto.randomUUID(), name: name.trim(), garmentIds, createdAt: now, updatedAt: now, deletedAt: '' });
+  data.outfits.push({ id: crypto.randomUUID(), name: name.trim(), garmentIds, seasons, createdAt: now, updatedAt: now, deletedAt: '' });
+  return write(data);
+}
+export function setOutfitSeasons(id,seasons) {
+  const data=readDailyData(), outfit=data.outfits.find(row=>row.id===id&&!row.deletedAt);
+  if(!outfit)throw Error('这套搭配已收起或移除');
+  outfit.seasons=seasons;
+  outfit.updatedAt=new Date().toISOString();
   return write(data);
 }
 export function saveRunPlan(date, run) {

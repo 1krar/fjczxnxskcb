@@ -15,6 +15,23 @@ plan=planOutfits(data,date,[],[],weather(10,70),now);
 assert.ok(plan.daily.sets[0].pieces.some(item=>item.id==='thick-top'));assert.ok(plan.daily.sets[0].pieces.some(item=>item.id==='layer'));
 assert.ok(plan.daily.sets[0].pieces.some(item=>item.id==='rain-shoes'),'rain suitability influences shoe choice');
 assert.ok(planOutfits({...data,garments:[...data.garments].reverse()},date,[],[],weather(10,70),now).daily.sets[0].pieces.some(item=>item.id==='rain-shoes'),'shoe choice is not an accident of recording order');
+const saved=(id,garmentIds,seasons)=>({id,name:id,garmentIds,...(seasons?{seasons}:{}),createdAt:stamp,updatedAt:stamp,deletedAt:''});
+const linked=validateDailyData({...data,outfits:[
+  saved('夏季短袖',['thin-top','thin-bottom','dry-shoes'],['summer']),
+  saved('秋冬长袖',['thick-top','thick-bottom','layer','rain-shoes'],['autumn','winter']),
+  saved('旧搭配',['thin-top','thick-bottom']),
+]});
+assert.deepEqual(linked.outfits[2].seasons,[],'existing saved outfits migrate without season tags');
+assert.deepEqual(linked.outfits[1].seasons,['autumn','winter'],'backup normalization retains multi-season tags');
+const coldFit=planOutfits(linked,date,[],[],weather(10,70),now).daily;
+assert.equal(coldFit.sets[0].savedName,'秋冬长袖');
+assert.ok(coldFit.candidates.every(set=>!set.pieces.some(item=>item.id==='thin-top')),'warm choices keep short sleeves out of cold-weather alternatives and the AI pool');
+const fallback=planOutfits(linked,'2026-11-23',[],[],null,now).daily;
+assert.equal(fallback.sets[0].savedName,'秋冬长袖');
+assert.ok(fallback.candidates.every(set=>!set.pieces.some(item=>item.id==='thin-top')));
+const limited=planOutfits({...data,garments:data.garments.filter(item=>item.id!=='thick-top')},date,[],[],weather(10),now).daily;
+assert.ok(limited.sets[0].pieces.some(item=>item.id==='layer'),'keep a layered fallback when the only top is short-sleeved');
+assert.ok(limited.notes.some(note=>note.includes('保暖选择有限')));
 const pe=[{courseName:'体育',date,startTime:'14:00',endTime:'15:40'}];
 plan=planOutfits(data,date,pe,[],weather(25),now);
 assert.equal(plan.separate,true);assert.ok(plan.daily.sets.length);assert.equal(plan.sport.sets.length,0,'casual daily outfit cannot be silently used for PE');

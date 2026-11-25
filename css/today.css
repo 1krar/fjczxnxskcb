@@ -278,3 +278,16 @@ body:has(#view-today.active .today-page) #quick-capture { display: none; }
 .study-absence-note { flex-basis:100%; font-size:.75rem; }
 .study-absence-row:focus-visible { outline:2px solid var(--color-primary); outline-offset:3px; }
 .status-study-note { margin:8px 0 0; color:var(--color-text-secondary); font-size:.8125rem; line-height:1.7; overflow-wrap:anywhere; }
+
+.today-books { margin:0 0 12px; padding:12px 16px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-surface); }
+.today-books h2 { margin:0 0 4px; font-size:1rem; }
+.today-books details + details { border-top:1px solid var(--color-border-light); }
+.today-books summary { padding:8px 0; min-height:44px; align-content:center; cursor:pointer; font-size:.875rem; font-weight:650; }
+.today-books summary span { margin-inline-start:8px; color:var(--color-text-secondary); font-weight:400; }
+.today-books ul { list-style:none; margin:0 0 4px; padding:0; }
+.today-books li { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:4px 0; font-size:.875rem; }
+.today-books li + li { border-top:1px solid var(--color-border-light); }
+.today-books li > div { min-width:0; overflow-wrap:anywhere; }
+.today-books li p { margin:3px 0 0; }
+.today-books li button { min-height:44px; flex-shrink:0; }
+.today-books-extra { font-size:.875rem; overflow-wrap:anywhere; }

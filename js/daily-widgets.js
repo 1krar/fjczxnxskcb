@@ -23,8 +23,8 @@ function getContext(state, dm, now) {
   try {
     const info=dm.getSemesterInfo(),options={className:state.currentClass,studyData:readStudyData(),sectionTimes:dm.getSectionTimes(),seasonRule:info.seasonRule,semesterInfo:info};
     const attending=course=>course.source==='evening-study'&&course.studyAttendance!==false&&['normal','pending'].includes(course.studyStatus);
-    context.studyCourses=applyEveningStudy(context.courses,today,options).filter(attending);
-    context.tomorrowStudyCourses=applyEveningStudy(context.tomorrowCourses,tomorrow,options).filter(attending);
+    context.studyCourses=applyEveningStudy(context.courses,today,{...options,nextDayCourses:context.tomorrowCourses}).filter(attending);
+    context.tomorrowStudyCourses=applyEveningStudy(context.tomorrowCourses,tomorrow,{...options,nextDayCourses:dm.getCoursesByDate(state.currentClass,nextDate(tomorrow))}).filter(attending);
   } catch { context.studyNotice='晚自习资料暂时无法读取，当前建议暂未纳入晚自习安排。'; }
   return context;
 }
