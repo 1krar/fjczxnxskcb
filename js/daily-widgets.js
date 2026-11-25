@@ -25,13 +25,15 @@ function getContext(state, dm, now) {
 }
 
 export function mountDailyAssistant(container, state, dm) {
+  const slot=container.querySelector('#dash-advice-slot');
+  if(state.isMobile)document.querySelector('.mobile-header')?.append(slot);
   const advice = document.createElement('section');
   advice.className = 'daily-advice daily-advice-inline';
   advice.setAttribute('aria-label', '今日一句');
-  container.querySelector('#dash-advice-slot').append(advice);
+  slot.append(advice);
   let lastMinute = -1;
-  const restore = container.querySelector('[data-restore-advice]');
-  const live = container.querySelector('#dash-advice-status');
+  const restore = slot.querySelector('[data-restore-advice]');
+  const live = slot.querySelector('#dash-advice-status');
   let disposed = false, busyKey = '', currentKey = '', aiNote = '', memoryEntry = null;
   const markup = new Map();
   function update(element, html) {
@@ -100,7 +102,7 @@ export function mountDailyAssistant(container, state, dm) {
       if (action === 'restore' && !readDailyData().profile.enabled) saveDailyProfile({ enabled:true });
       render();
       live.className = 'sr-only';
-      live.textContent = action === 'restore' ? '已恢复每日一句' : action === 'off' ? '每日一句已关闭，可从日期栏恢复；日程提醒不受影响。' : '今天已隐藏每日一句，次日恢复；日程提醒不受影响。';
+      live.textContent = action === 'restore' ? '已恢复每日一句' : action === 'off' ? '每日一句已关闭，可从标题栏恢复；日程提醒不受影响。' : '今天已隐藏每日一句，次日恢复；日程提醒不受影响。';
       (action === 'restore' ? advice.querySelector('summary') : restore)?.focus({ preventScroll:true });
     } catch (error) { live.className = 'daily-action-error'; live.textContent = error.message; }
   }
@@ -119,7 +121,7 @@ export function mountDailyAssistant(container, state, dm) {
     const minute = Math.floor(+now / 60000);
     if (minute !== lastMinute) { lastMinute = minute; render(false, now); }
   };
-  container.addEventListener('click', click);
+  slot.addEventListener('click', click);
   document.addEventListener('app:tick', tick);
   document.addEventListener('visibilitychange', resumed);
   window.addEventListener('daily:changed', changed);
@@ -134,7 +136,8 @@ export function mountDailyAssistant(container, state, dm) {
   return () => {
     disposed = true;
     cleanupSwipe();
-    container.removeEventListener('click', click);
+    slot.removeEventListener('click', click);
+    slot.remove();
     document.removeEventListener('app:tick', tick);
     document.removeEventListener('visibilitychange', resumed);
     window.removeEventListener('daily:changed', changed);

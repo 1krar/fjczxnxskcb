@@ -125,8 +125,8 @@
 
 /* Optional advice is one quiet row; concrete uncovered reminders stay visible. */
 #dash-advice-slot { overflow: clip; padding: 3px; margin: -3px; }
-.today-page .daily-advice-inline { display: flex; align-items: flex-start; margin: 0 0 12px; padding: 0; border: 0; border-radius: 8px; background: var(--color-primary-50); box-shadow: none; touch-action: pan-y; transition: transform 160ms ease-out; }
-.today-page .daily-advice-inline.is-swiping { transition: none; }
+#dash-advice-slot .daily-advice-inline { display: flex; align-items: flex-start; margin: 0 0 12px; padding: 0; border: 0; border-radius: 8px; background: var(--color-primary-50); box-shadow: none; touch-action: pan-y; transition: transform 160ms ease-out; }
+#dash-advice-slot .daily-advice-inline.is-swiping { transition: none; }
 .daily-banner-details { min-width: 0; flex: 1; }
 .daily-banner-details > summary { display: block; min-height: 44px; padding: 11px 0 11px 12px; list-style: none; cursor: pointer; }
 .daily-banner-details > summary::-webkit-details-marker { display: none; }
@@ -135,19 +135,19 @@
 .daily-restore { min-height: 44px; padding: 4px 8px; border: 0; border-radius: 6px; background: transparent; color: var(--color-primary-dark); font: inherit; font-size: 0.75rem; cursor: pointer; }
 .daily-restore[hidden] { display: none; }
 .daily-action-error { display: block; margin: 0 0 12px; color: var(--color-text-secondary); font-size: 0.8125rem; }
-.today-page .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+#dash-advice-slot .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .today-page .home-personal-list .home-personal-date { position: static; min-height: 20px; padding-right: 0; }
 .home-personal-list .home-personal-item .home-drag-handle { right: 0; top: 0; }
-.today-page .daily-advice-inline[hidden], .today-page .today-preparation[hidden] { display: none; }
+#dash-advice-slot .daily-advice-inline[hidden], .today-page .today-preparation[hidden] { display: none; }
 .today-page .daily-quiet-note > summary { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px 12px; min-height: 44px; padding: 8px 0; color: var(--color-text-secondary); font-size: 0.8125rem; line-height: 1.8; list-style: none; cursor: pointer; }
 .today-page .daily-quiet-note > summary::after { content: '+'; font-size: 1.0625rem; }
 .today-page .daily-quiet-note[open] > summary::after { content: '−'; }
-.today-page .daily-advice-inline .daily-sentence { display: block; font-size: 0.8125rem; line-height: 1.65; margin: 0; }
+#dash-advice-slot .daily-advice-inline .daily-sentence { display: block; font-size: 0.8125rem; line-height: 1.65; margin: 0; }
 .today-page .daily-context-note { border-left: 2px solid var(--color-primary-300); padding: 4px 0 0 12px; }
 .today-page .daily-inline-tools > summary { min-height: 44px; padding: 10px 0; font-size: 0.75rem; line-height: 1.8; color: var(--color-text-secondary); cursor: pointer; }
-.today-page .daily-inline-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
-.today-page .daily-inline-actions .daily-link { font-size: 0.75rem; }
-.today-page .daily-advice-inline .daily-feedback { margin: 4px 0 0; font-size: 0.75rem; }
+.daily-banner-tools .daily-inline-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.daily-banner-tools .daily-inline-actions .daily-link { font-size: 0.75rem; }
+#dash-advice-slot .daily-advice-inline .daily-feedback { margin: 4px 0 0; font-size: 0.75rem; }
 
 .today-page button:focus-visible, .today-page summary:focus-visible, .today-page a:focus-visible { outline: 2px solid var(--color-primary); outline-offset: 3px; }
 body:has(#view-today.active .today-page) #quick-capture { display: none; }
@@ -161,7 +161,7 @@ body:has(#view-today.active .today-page) #quick-capture { display: none; }
   .today-now-column, .today-support-column { gap: 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .today-page .daily-advice-inline { transition: none; }
+  #dash-advice-slot .daily-advice-inline { transition: none; }
 }
 @media (max-width: 360px) {
   .today-page .today-date-sub { font-size: 1.0625rem; }
@@ -281,11 +281,18 @@ body:has(#view-today.active .today-page) #quick-capture { display: none; }
 .today-page .today-header-row { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:0 12px; margin:0 0 10px; }
 .today-page .today-date-sub { line-height:1.35; }
 #dash-advice-slot { grid-column:1/-1; }
-.today-page .daily-advice-inline { background:transparent; margin:0; }
-.today-page .daily-advice-inline .daily-sentence { color:var(--color-text-secondary); }
-.today-page .daily-banner-details > summary { padding:9px 0; align-content:center; }
-.today-page .daily-banner-tools { padding-inline-start:0; }
-.today-page .daily-restore { grid-column:1/-1; justify-self:start; }
+#dash-advice-slot .daily-advice-inline { background:transparent; margin:0; }
+#dash-advice-slot .daily-advice-inline .daily-sentence { color:var(--color-text-secondary); }
+#dash-advice-slot .daily-banner-details > summary { padding:9px 0; align-content:center; }
+#dash-advice-slot .daily-banner-tools { padding-inline-start:0; }
+@media(max-width:768px) {
+  .mobile-header:has(#dash-advice-slot) { height:auto; }
+  .mobile-header #dash-advice-slot { margin:0; padding:0 14px; }
+  .mobile-header #dash-advice-slot .daily-banner-details > summary { min-height:36px; padding-block:3px; }
+  .mobile-header #dash-advice-slot .daily-banner-close, .mobile-header #dash-advice-slot .daily-restore { min-height:36px; }
+  .mobile-header #dash-advice-slot .daily-banner-tools { max-height:40dvh; overflow-y:auto; }
+  html:has(.mobile-header #dash-advice-slot) { scroll-padding-top:calc(var(--mobile-header-height) + 3rem); }
+}
 .today-priority { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.12fr); grid-template-areas:'books status' 'prep status'; gap:8px 16px; align-items:start; margin-bottom:16px; }
 #dash-books { grid-area:books; min-width:0; }
 #dash-prep-slot { grid-area:prep; min-width:0; }
